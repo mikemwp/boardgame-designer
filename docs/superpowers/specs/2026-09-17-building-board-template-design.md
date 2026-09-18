@@ -1,7 +1,7 @@
 # Building board template — design
 
 **Date:** 2026-09-18  
-**Status:** draft for review  
+**Status:** approved  
 **Product:** a **game designer** (layout, cards, spinners, items, media) plus a **player** that runs whatever was designed. Climb is only the first bundled example, not the limit of the engine.
 
 Think of this as a creator. The **engine is a small set of repeating mechanics** (stop on a square → optional background, media, spinner, card, item, move). The designer **links** squares, rooms, stairs, images, audio, spinners, cutscenes, and cards. A published game might be a full 3D-ish climb, a mystery with items, or a **plain board game** with no cutscenes and no first-person.
