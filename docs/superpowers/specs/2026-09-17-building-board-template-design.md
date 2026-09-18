@@ -241,10 +241,10 @@ Skipped no-show cards stay in their order for the next player who is allowed the
 
 **Import** (designer, CSV or xlsx first sheet):
 
-- **No header:** column A = pack / deck type, B = title, C = body. One card per row. Missing pack is created (back image and template still set in the editor).
-- **Header row:** first row names card fields. Any editor field may be a column (kind, timer, button flags and positive label, no-show groups, item links, media refs, together, win/fail paths, …). Empty cell = that card’s default. Unknown column names are listed and skipped.
-- Download a **template** CSV with the header names. Extra columns are how bulk work covers more than title and text.
-- Preview the rows, then append (default) or replace that pack’s cards. Row errors skip that row and report it; the rest import. Media files are not in the sheet — columns may name refs that already exist in the game; upload files in the editor.
+- First row is always a **header** of card field names. Download a **template** with those headers, fill rows, upload.
+- **Required** per row: **pack / deck type** and **card title**. Missing pack is created (back image and template still set in the editor).
+- Every other editor field is optional (body, kind, timer, button flags and positive label, no-show groups, item links, media refs, together, win/fail paths, …). Empty cell = that card’s default. Unknown column names are listed and skipped.
+- Preview the rows, then append (default) or replace that pack’s cards. A row missing pack or title is an error: skip it, report it, import the rest. Media files are not in the sheet — columns may name refs that already exist in the game; upload files in the editor.
 
 ## Relationships
 
@@ -283,7 +283,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - First-person **none** (3D board camera only) is valid
 - Starting kit / group kit / setup pick pool seed inventory
 - Card timer per card; pack back/front; shuffle cycle; group **no-show** skips in place; optional buttons (positive, Pass, both, or neither); Pass does not count as a reveal
-- Card import: CSV/xlsx, no-header A/B/C and header-row field map; append or replace; row errors reported; editor still creates cards one by one
+- Card import: header-row template (CSV/xlsx); pack and title required; other fields optional; append or replace; row errors reported; editor still creates cards one by one
 - Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
