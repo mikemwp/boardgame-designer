@@ -10,12 +10,13 @@ Play and design share one **grid + HUD** model (same idea as Michael’s widget 
 
 ## Goal
 
-A web creator (no Unity) where you draw floors, wire stairs that actually go somewhere, author card packs, items, and spinners, then play the result on one screen.
+A web creator (no Unity) where you design **many games**: new project, save drafts, **test** play, then **publish live**. Three.js is the 3D layer (first-person, rooms, stairs). The board designer stays a 2D grid + HUD.
 
 ## Non-goals (first implementation)
 
-- Unity, Godot, Phaser, free movement, physics, or a full 3D engine
-- Logins, payments, purchasable packs (pack **format** exists; buying is later)
+- Unity, Godot, Phaser, free movement, or physics
+- Logins for **players** (designer publish can use a simple local/studio flow at first; public play stays no-account)
+- Payments, purchasable packs (pack format exists; buying is later)
 - Each player on their own device (later)
 - Dice as a second movement toy (spinners cover number / player / yes-no)
 - Native apps
@@ -29,6 +30,26 @@ A web creator (no Unity) where you draw floors, wire stairs that actually go som
 - **2+:** pass-and-play, one screen.
 - Setup: name, token colour, optional partner, cannot-spin list, group (skipped or simplified for 1 player).
 - Session persists in the **browser**. No accounts.
+
+## Game library (multiple games)
+
+The designer is a **studio**, not a single document.
+
+| Action | Behaviour |
+|---|---|
+| **New** | Create a named game (empty grid, default HUD). Does not overwrite other games. |
+| **Save** | Persist the draft (layout, packs, items, spinners, media refs). Keep working. Invalid stairs/loops **block Test and Publish**, but **Save draft** is allowed so work isn’t lost. |
+| **Open** | List drafts and live games; open one to edit. |
+| **Test** | Play the **current draft** in player mode (including 1-player). Not public. Validation must pass. |
+| **Publish live** | Freeze a version, give it a public slug/URL, and make **Play** on the site load that version. Publishing again replaces live for that game (keep previous version as history if cheap). Unpublish / revert later is allowed. |
+
+Live play never silently uses an unsaved draft. Test always uses the draft in memory (after save).
+
+Media for a game stays with that game (per-project folder). Copy-as-new-game duplicates a draft.
+
+## First-person / 3D
+
+**Three.js is required** for first-person and 3D presentation (corridor, room/stair views, any 3D cut-in). The designer grid, HUD, cards, and spinners stay **DOM**. Discrete squares, no free movement, no physics.
 
 ## Play screen
 
@@ -53,7 +74,7 @@ Floor tabs: any number of floors, including **below** the start floor (basement)
 | Widget | Rules |
 |---|---|
 | Corridor square | Non-HUD cell. Adjacent cells form paths. **Loop required** except on a flagged **end floor**. Optional media. |
-| Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** or it will not save: another floor’s landing cell, a **room-only** floor (basement or penthouse), or the end room. Several stairs may share a destination. Optional media. |
+| Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** before Test or Publish: another floor’s landing cell, a **room-only** floor, or the end room. Several stairs may share a destination. Optional media. |
 | Room | Outer or inner side of a corridor, or **fill a floor** as a single room (no corridor) — used for a **room-only basement** or **room-only end**. Resize. Pick door if a corridor exists. Optional media, optional pack. Flag at most one **end room**. |
 
 **Stairs must go somewhere.** A down stair from floor 1 may link to:
@@ -150,20 +171,20 @@ Optional partner; cannot-spin (cannot exclude everyone unless partnered; a close
 TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested.
-2. **Game JSON** — floors, cells, stairs (with destinations), rooms, HUD rect, media, start, end flags, spinner defs, items, packs, win rule.
-3. **Play UI** — current floor, HUD, inventory, minimap, overlays.
-4. **Designer UI** — layout grid, card/pack editor, spinner editor, item editor, validation, export.
-5. **Persistence** — `localStorage` for play and drafts; bundled example JSON in the repo.
-
-First-person: CSS 3D first; Three.js only if needed. Discrete squares.
+2. **Game JSON** — floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, win rule, slug, draft vs live version.
+3. **Play UI** — current floor, HUD, inventory, minimap, **Three.js** first-person/room views.
+4. **Designer UI** — game library (new/open/save/test/publish), layout grid, card/pack/spinner/item editors, validation.
+5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
 
 Invalid if: stair with no destination; normal/basement corridor that doesn’t loop; non-loop corridor on a non-end floor; end-floor path that doesn’t reach the end room; exclude-all without a partner.
 
 ## UI states
 
-Designer: floors, palette, card/item/spinner editors, validation errors.  
-Play: setup (1+ players), intro media, turn, overlays, win as the game defines.  
-Errors: missing media placeholder; named layout errors.
+**Library:** list of drafts and live games; New.  
+**Designer:** floors, palette, editors, Save, Test, Publish (Publish disabled until valid).  
+**Test play:** same player as live, marked as preview, not the public URL.  
+**Live play:** public slug; intro media; turn; overlays; win as designed.  
+**Errors:** missing media placeholder; named layout errors; publish blocked with a list of validation failures.
 
 ## Testing
 
@@ -176,17 +197,19 @@ Errors: missing media placeholder; named layout errors.
 - Item give, require, lose, share
 - Card timer per card; pack back/front; shuffle cycle
 - Tile media on stop + start intro
-- Land-only resolve; locks; save round-trip
+- New / save draft / test / publish live; test is not public; live is a slug
+- Three.js first-person popup; DOM board + HUD
 
-Manual: 1-player cutscene beat; 2- and 6-player; designer: add basement, link down stair, refuse unsaved dangling stair.
+Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invalid draft, Test blocked until stairs link, Publish produces a playable slug.
 
 ## Build order (after approval)
 
-1. Engine + JSON schema (flexible; not Climb-hard-coded)
-2. Player that loads a bundled **example** layout (Climb-shaped) to prove play
-3. Layout designer (grid, stairs that must link, any floor count)
-4. Card / spinner / item designers
-5. Later: store, own-device, native, publish to the website
+1. Engine + JSON schema
+2. Player (draft test + live slug) with Three.js first-person
+3. Game library: New, Save, Open
+4. Layout designer
+5. Card / spinner / item designers
+6. Publish live (versioned bundle)
 
 ## Later slices
 
@@ -194,8 +217,7 @@ Manual: 1-player cutscene beat; 2- and 6-player; designer: add basement, link do
 2. Own-device multiplayer  
 3. Native wrapper  
 4. Inner-square room maps in the designer  
-5. Publish to Michael’s website  
-
+5. Cloud accounts for the studio (if local drafts stop being enough)
 ## Example defaults (Climb sample only — not engine limits)
 
 - Movement spinner 1–6  
