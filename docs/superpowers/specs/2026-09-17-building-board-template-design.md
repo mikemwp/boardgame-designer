@@ -132,7 +132,7 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 **Pack reveal counts** (designer, when floor hold is on):
 
 - On that floor, list one or more **packs** and a **count** each (e.g. Clues × 5). Pack type is the pack id; a corridor with a clue every fifth square is just those squares wired to the Clues pack.
-- Complete for a player when they have **revealed** that many cards from each listed pack **while on this floor**. A **reveal** is only the **positive** button (Accept / Reveal / Show / designer label) after the card body is shown. **Pass** and no-show skips do not count. Per-player.
+- Complete for a player when they have **revealed** that many cards from each listed pack **while on this floor**. A **reveal** is seeing the card body without **Pass**: the **positive** button if the card has one, or the card as dealt if it has no positive button. **Pass** and no-show skips do not count. Per-player.
 
 While hold is active for that player:
 
@@ -219,9 +219,11 @@ Each card may:
 
 - Kind: question, do/reveal, image-talk, clip, audio, or a combination the template allows
 - **Timer** with its **own duration** and zero result (fail, nudge, listed result, lose item, …)
-- **Buttons** (not pass-only): a **positive** action and a **negative** action
-  - **Positive:** designer label (Accept, Reveal, Show, or any copy that fits the card). This shows the rest of the card (e.g. clue type first, then the actual clue) and **counts as a pack reveal**.
-  - **Negative:** **Pass** (fixed role; label may stay “Pass”). Does **not** count as a reveal. Optional: game may disable Pass on a card.
+- **Buttons** (optional, per card): **positive**, **Pass**, **both**, or **neither**. No required actions.
+  - **Positive** (if present): designer label (Accept, Reveal, Show, or any copy that fits the card). Shows the rest of the card (e.g. clue type first, then the actual clue) and **counts as a pack reveal**.
+  - **Negative** (if present): **Pass** (fixed role; label may stay “Pass”). Does **not** count as a reveal.
+  - **Neither:** the card shows in full on deal; no action buttons. That **counts as a reveal**.
+  - Staged/hidden body (type then clue) only if a positive button exists to show it. Without positive, there is nothing left to reveal.
 - Linked **spinner or dice** (number spinner / dice / player / outcome)
 - Linked **overlay image**, **cutscene**, and/or **audio**
 - Together version of the **same type** (ignored in 1-player)
@@ -229,11 +231,11 @@ Each card may:
 - Item give/take/require/share/lose
 - Win / no-helper / fail paths as needed
 
-**Deck:** animated flip. On a draw, walk the pile from the top for the **drawing player**. Cards flagged **no-show** for that player’s group are **left in place** (not flipped, not sent to the bottom). The first card that is allowed is dealt. After it is used (positive **or** pass), **that** card goes to the bottom. After a full cycle of *drawn* cards, the next draw **shuffles** (animation).
+**Deck:** animated flip. On a draw, walk the pile from the top for the **drawing player**. Cards flagged **no-show** for that player’s group are **left in place** (not flipped, not sent to the bottom). The first card that is allowed is dealt. After it is used (positive, Pass, or no-button dismiss), **that** card goes to the bottom. After a full cycle of *drawn* cards, the next draw **shuffles** (animation).
 
 Skipped no-show cards stay in their order for the next player who is allowed them. A player with no group sees every card. If no allowed card remains in the pile, the draw is empty (continue; do not burn the hidden cards).
 
-**Pass:** skips the hidden body, stay on the square, spend a pass if the game uses a pass budget (optional max per player; lander or helper). The tease/type may have been visible; the actual clue was not. Floor-hold reveal counts ignore Pass.
+**Pass** (only if the card has the negative button): skips the hidden body, stay on the square, spend a pass if the game uses a pass budget (optional max per player; lander or helper). The tease/type may have been visible; the actual clue was not. Floor-hold reveal counts ignore Pass.
 
 ## Relationships
 
@@ -271,7 +273,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Audio links on squares, rooms, stairs, spinners (and slices), and cards; missing audio placeholder + continue
 - First-person **none** (3D board camera only) is valid
 - Starting kit / group kit / setup pick pool seed inventory
-- Card timer per card; pack back/front; shuffle cycle; group **no-show** skips in place, drawn card to bottom
+- Card timer per card; pack back/front; shuffle cycle; group **no-show** skips in place; optional buttons (positive, Pass, both, or neither); Pass does not count as a reveal
 - Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
