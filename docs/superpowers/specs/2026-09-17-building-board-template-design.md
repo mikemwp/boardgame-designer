@@ -127,6 +127,21 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
   - **Item squares** sit **beside** inner squares (same idea as a room beside a corridor). Landing on an item square plays that square’s card/pack — typically an item card. The designer makes room-specific packs and attaches them; there is no special item engine, only the same card link.
   - A **room card may itself be a spinner card**: each slice is whatever the designer labels (item, colour, direction, …) and each slice **links to a card**. That is the outcome spinner, not a new mechanic.
 - Start floor/square are chosen in the designer.
+- **Floor hold** (optional, per floor, default off): this player cannot **leave this floor by stairs** until their **scenarios** on that floor are complete. Other floors’ stairs they already passed stay as designed. Climb can leave this off.
+
+**Scenarios** (designer, used when floor hold is on):
+
+- Flag squares and/or a **pack + count** (e.g. clue pack, need **5** resolves on this floor). A corridor with a clue every fifth square is just those squares wired to that pack.
+- Complete for a player when they have met the count / resolved each flagged square **on this floor**. Per-player (two people can be on different progress).
+
+While hold is active for that player:
+
+- Stairs that **exit this floor** are **illegal landings** (they stay locked; landing would not take the stair).
+- Movement (number spinner or dice) still looks random. The engine **samples only values that would not land on an illegal stair** (same as “silently throw again”). The 3D dice/spinner animate to that allowed number — the player never sees a rejected face.
+- Crossing a stair without stopping still does nothing (land-to-resolve). A roll that *passes* the stair but stops past it is allowed.
+- If **every** possible roll would land on an illegal stair, movement is **0** this turn (do not loop forever).
+
+When scenarios are complete, those stairs unlock for that player and later rolls may land on them.
 
 ## Tile media
 
@@ -148,7 +163,7 @@ Resolve **only the square you stop on**.
 | Content corridor | optional pack + optional one effect | Media, then effect, then pack. |
 | Door | optional pack if **card-only room** | Media + optional background. Unlocked card-only → play room card (may be a spinner card). Unlocked inner-map → enter inner squares. Locked → stay. |
 | Inner / item square | optional pack | Same as any content square: media, pack, spinner, item. Path **loops to the door**. |
-| Stair | never | Media, then go to the **linked** destination if unlocked. |
+| Stair | never | Media, then go to the **linked** destination if unlocked (including floor-hold). Locked → stay. |
 
 Effects (at most one per corridor square) still include locks (stairs/doors/named room, self or everyone). Extra effect: **give / take / require item**.
 
@@ -169,7 +184,7 @@ Spinners and dice are **named, reusable** designer objects. Any of them may also
 
 - Spawn near the active token (or a designer roll point). They **tumble across the floor tiles**, collide with the board, settle, then despawn or idle until the next roll.
 - Floor tiles (and optionally low walls) are **static colliders** for dice only. Tokens stay animated slides; they are not rigid bodies and dice must not knock them around (collision-filtered out).
-- The **engine picks the integer first** (same RNG as a number spinner). Physics is the show: impulse plus face remap/prepare so the settled die matches that number. Test and Publish stay deterministic.
+- The **engine picks the integer first** (same RNG as a number spinner), then **drops any value that would land on an illegal square** (floor-hold stairs). Physics is the show: impulse plus face remap/prepare so the settled die matches that allowed number.
 
 A game may use several outcome spinners and more than one number/dice def. Cards, tiles, and rooms may **link** any spinner or dice. After the wheel/dice lands, play the slice’s media (image, cutscene, audio) / card / move in that order (skip anything unset).
 
@@ -227,7 +242,7 @@ Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude 
 TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested. **Not** PlayCanvas.
-2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner and dice defs, items, packs, named groups, card no-show, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
+2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner and dice defs, items, packs, named groups, card no-show, floor hold / scenarios, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
 3. **Play UI** — PlayCanvas React **3D board** + DOM HUD; first-person/room cameras in the same app (shared with designer preview).
 4. **Designer UI** — game library (new/open/save/test/publish), HTML layout grid, card/pack/spinner/item editors, validation, PlayCanvas floor preview.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
@@ -259,6 +274,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
 - 3D tokens slide tile-to-tile; dice tumble on the 3D board and show the pre-rolled integer
+- Floor hold: scenarios complete before leaving; movement RNG excludes illegal stair landings
 
 Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invalid draft, Test blocked until stairs link, Publish produces a playable slug.
 
