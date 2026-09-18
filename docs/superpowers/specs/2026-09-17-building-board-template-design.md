@@ -14,7 +14,7 @@ A web creator (no Unity) where you design **many games**: new project, save draf
 
 ## Non-goals (first implementation)
 
-- Unity, Godot, Phaser, Three.js, free movement, or physics (tokens and board). Dice rolls are a **presentation**; the integer is chosen first, then the 3D dice animate to match.
+- Unity, Godot, Phaser, Three.js, or free movement. **Tokens** do not use physics. **Dice** may use PlayCanvas (ammo.js) physics **on the 3D board only**, then despawn. The integer is chosen first; the roll is made to show that face.
 - The **PlayCanvas Editor** as the designer (our HTML grid + forms author games)
 - `@playcanvas/web-components` (second 3D authoring surface; we use the React wrapper only)
 - **PCUI** for HUD, player setup, or designer chrome (shadcn/ui only)
@@ -161,16 +161,15 @@ Spinners and dice are **named, reusable** designer objects. Any of them may also
 | Kind | Config | Use |
 |---|---|---|
 | Number spinner | min, max, step, optional labels, optional **audio** | Movement, or a card/scenario that needs a number |
-| Dice | **count** (1 or more), **sides** (4 / 6 / 8 / 10 / 12 / 20, or designer N), optional mesh, optional **audio**, presentation **on-board** or **tray** | Same as a number spinner: an integer result. Movement, or a card that needs a number |
+| Dice | **count** (1 or more), **sides** (4 / 6 / 8 / 10 / 12 / 20, or designer N), optional mesh, optional **audio** | Same as a number spinner: an integer result. Movement, or a card that needs a number |
 | Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups), optional **audio** | “Another player helps / is accused” |
 | Outcome | Designer config: slice **count** (2 or more), **labels**, optional **weights** (equal split default), optional spinner **audio**, and per-slice effects. The designer chooses what each slice means. Each slice: label plus any of **image, cutscene, audio, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
 
-**Dice presentation** (PlayCanvas only — do not import Three.js dice libraries):
+**Dice** live **on the 3D board** (same PlayCanvas scene as tiles and tokens). We build this ourselves with PlayCanvas rigid bodies — no Three.js dice libraries, no felt-tray overlay.
 
-- **On-board:** 3D dice meshes in the same scene as the board (the rolling-cube look). They tumble on/near the floor, then settle.
-- **Tray:** a felt-pit overlay (the dice-box look). Dice bounce inside a box over the view, not down the corridor. Dismiss after the result.
-
-The **engine picks the integer first** (same RNG path as a number spinner). The 3D roll is animation to that face so Test and Publish are deterministic. Token/board physics stay off.
+- Spawn near the active token (or a designer roll point). They **tumble across the floor tiles**, collide with the board, settle, then despawn or idle until the next roll.
+- Floor tiles (and optionally low walls) are **static colliders** for dice only. Tokens stay animated slides; they are not rigid bodies and dice must not knock them around (collision-filtered out).
+- The **engine picks the integer first** (same RNG as a number spinner). Physics is the show: impulse plus face remap/prepare so the settled die matches that number. Test and Publish stay deterministic.
 
 A game may use several outcome spinners and more than one number/dice def. Cards, tiles, and rooms may **link** any spinner or dice. After the wheel/dice lands, play the slice’s media (image, cutscene, audio) / card / move in that order (skip anything unset).
 
@@ -250,7 +249,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
-- Number / player / outcome spinners and **dice** (engine integer first, then 3D roll; on-board or tray)
+- Number / player / outcome spinners and **dice** (engine integer first; PlayCanvas physics roll on the 3D floor)
 - Room inner loops of any length; item squares; card-only door; board background per tile/room/stair
 - Audio links on squares, rooms, stairs, spinners (and slices), and cards; missing audio placeholder + continue
 - First-person **none** (3D board camera only) is valid
@@ -259,7 +258,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
-- 3D tokens slide tile-to-tile; dice on-board and tray presentations match the pre-rolled integer
+- 3D tokens slide tile-to-tile; dice tumble on the 3D board and show the pre-rolled integer
 
 Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invalid draft, Test blocked until stairs link, Publish produces a playable slug.
 
