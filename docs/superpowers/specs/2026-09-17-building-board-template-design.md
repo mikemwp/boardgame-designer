@@ -165,7 +165,7 @@ Spinners and dice are **named, reusable** designer objects. Any of them may also
 | Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups), optional **audio** | “Another player helps / is accused” |
 | Outcome | Designer config: slice **count** (2 or more), **labels**, optional **weights** (equal split default), optional spinner **audio**, and per-slice effects. The designer chooses what each slice means. Each slice: label plus any of **image, cutscene, audio, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
 
-**Dice** live **on the 3D board** (same PlayCanvas scene as tiles and tokens). We build this ourselves with PlayCanvas rigid bodies — no Three.js dice libraries, no felt-tray overlay.
+**Dice** live **on the 3D board** (same PlayCanvas scene as tiles and tokens). Physics pattern: [PlayCanvas on-board dice blueprint](/opt/cursor/projects/opt-cursor-worspace-projects-Users-mpenny-Library-Application-Support-Cursor-projects-tmp-project-store-a1c7c3c1d4c3c3c3c3c3c3c3c3c3c3c3/docs/superpowers/refs/playcanvas-dice-on-board.md). No Three.js dice libraries, no felt-tray overlay.
 
 - Spawn near the active token (or a designer roll point). They **tumble across the floor tiles**, collide with the board, settle, then despawn or idle until the next roll.
 - Floor tiles (and optionally low walls) are **static colliders** for dice only. Tokens stay animated slides; they are not rigid bodies and dice must not knock them around (collision-filtered out).
