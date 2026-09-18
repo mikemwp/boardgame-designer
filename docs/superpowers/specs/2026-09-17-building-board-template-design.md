@@ -237,6 +237,15 @@ Skipped no-show cards stay in their order for the next player who is allowed the
 
 **Pass** (only if the card has the negative button): skips the hidden body, stay on the square, spend a pass if the game uses a pass budget (optional max per player; lander or helper). The tease/type may have been visible; the actual clue was not. Floor-hold reveal counts ignore Pass.
 
+**Create:** one-by-one in the card editor, or **import** a spreadsheet into the same packs. Import does not replace the editor; it fills the list so the designer is not typing 30 titles by hand.
+
+**Import** (designer, CSV or xlsx first sheet):
+
+- **No header:** column A = pack / deck type, B = title, C = body. One card per row. Missing pack is created (back image and template still set in the editor).
+- **Header row:** first row names card fields. Any editor field may be a column (kind, timer, button flags and positive label, no-show groups, item links, media refs, together, win/fail paths, …). Empty cell = that card’s default. Unknown column names are listed and skipped.
+- Download a **template** CSV with the header names. Extra columns are how bulk work covers more than title and text.
+- Preview the rows, then append (default) or replace that pack’s cards. Row errors skip that row and report it; the rest import. Media files are not in the sheet — columns may name refs that already exist in the game; upload files in the editor.
+
 ## Relationships
 
 Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude everyone unless partnered; a closed pair may). The designer names **groups** freely (Faithfuls, Traitors, or any label). Groups apply default links, **default kits**, and **card no-show**. 1-player: graph unused; kit still applies; no-show does not apply.
@@ -248,7 +257,7 @@ TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at firs
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested. **Not** PlayCanvas.
 2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner and dice defs, items, packs, named groups, card no-show, floor hold / per-pack reveal counts, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
 3. **Play UI** — PlayCanvas React **3D board** + DOM HUD; first-person/room cameras in the same app (shared with designer preview).
-4. **Designer UI** — game library (new/open/save/test/publish), HTML layout grid, card/pack/spinner/item editors, validation, PlayCanvas floor preview.
+4. **Designer UI** — game library (new/open/save/test/publish), HTML layout grid, card/pack/spinner/item editors, card spreadsheet import, validation, PlayCanvas floor preview.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
 
 Invalid if: stair with no destination; non-loop corridor on a non-end floor; end-floor path that doesn’t reach the end room; exclude-all without a partner.
@@ -274,6 +283,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - First-person **none** (3D board camera only) is valid
 - Starting kit / group kit / setup pick pool seed inventory
 - Card timer per card; pack back/front; shuffle cycle; group **no-show** skips in place; optional buttons (positive, Pass, both, or neither); Pass does not count as a reveal
+- Card import: CSV/xlsx, no-header A/B/C and header-row field map; append or replace; row errors reported; editor still creates cards one by one
 - Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
@@ -288,7 +298,7 @@ Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invali
 2. Player (draft test + live slug) with PlayCanvas React 3D board + first-person
 3. Game library: New, Save, Open
 4. Layout designer (HTML grid + PlayCanvas preview)
-5. Card / spinner / dice / item designers
+5. Card / spinner / dice / item designers (including card spreadsheet import)
 6. Publish live (versioned bundle)
 
 ## Later slices
