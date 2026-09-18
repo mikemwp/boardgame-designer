@@ -14,14 +14,13 @@ A web creator (no Unity) where you design **many games**: new project, save draf
 
 ## Non-goals (first implementation)
 
-- Unity, Godot, Phaser, Three.js, free movement, or physics
+- Unity, Godot, Phaser, Three.js, free movement, or physics (tokens and board). Dice rolls are a **presentation**; the integer is chosen first, then the 3D dice animate to match.
 - The **PlayCanvas Editor** as the designer (our HTML grid + forms author games)
 - `@playcanvas/web-components` (second 3D authoring surface; we use the React wrapper only)
 - **PCUI** for HUD, player setup, or designer chrome (shadcn/ui only)
 - Logins for **players** (designer publish can use a simple local/studio flow at first; public play stays no-account)
 - Payments, purchasable packs (pack format exists; buying is later)
 - Each player on their own device (later)
-- Dice as a second movement toy (spinners cover number / player / outcome)
 - Native apps
 - Hidden-traitor *game* (the pair/exclude/group **graph** exists so a whodunit can be designed)
 - Showing every floor at once on the play board
@@ -58,7 +57,7 @@ Media for a game stays with that game (per-project folder). Copy-as-new-game dup
 
 **PlayCanvas is locked** as the 3D engine. **`@playcanvas/react`** is the only wrapper. One PlayCanvas application module, three shells:
 
-- **Play board:** current floor as a **3D plane** (corridor, rooms, stairs, tokens). Game JSON maps to `<Entity>` tiles. Discrete squares; tokens move square-to-square. No physics, no free walk.
+- **Play board:** current floor as a **3D plane** (corridor, rooms, stairs, **3D tokens**). Game JSON maps to `<Entity>` tiles. Discrete squares; tokens **slide** square-to-square along the path. No physics, no free walk.
 - **Play first-person:** same app, camera into a corridor/room/stair when the game setting allows.
 - **Creator preview:** HTML grid, dropdowns, drag-drop, forms (like the widget home screen). A **PlayCanvas preview** of the floor being edited so Test/Publish match what you placed. Do not build the editor inside the 3D canvas.
 
@@ -72,7 +71,7 @@ HUD, cards, spinners, inventory, and **player setup** stay **DOM + shadcn/ui** o
 
 On a turn you see **that player’s floor only**, as a **3D board**. The HUD is a DOM overlay (not a hole punched in the mesh).
 
-- **Centre HUD (reserved in the designer grid):** active spinner, cards, inventory, timer, whose turn, passes, player strip. Overlays for the current scenario. No board widgets here.
+- **Centre HUD (reserved in the designer grid):** active spinner or dice, cards, inventory, timer, whose turn, passes, player strip. Overlays for the current scenario. No board widgets here.
 - **Corridor:** looping path on the 3D floor. **Every floor must loop**, except a flagged **end floor**, which may be a path into the end room (or a single room).
 - **Rooms:** beside the corridor, not under the HUD overlay. Resizable. One door square. Optional media (image, cutscene, **audio**).
 - **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label uses the **destination floor’s name** (`Up to Penthouse`, `Down to Cellar`). Optional media including **audio**.
@@ -82,6 +81,15 @@ On a turn you see **that player’s floor only**, as a **3D board**. The HUD is 
 - **Inventory** in the HUD for the current player (icons). 1-player still has inventory.
 
 Door/stair labels are dynamic: Enter Room / Room locked, Use Stairs / Stairs blocked.
+
+## Tokens
+
+Tokens are **3D entities** on the PlayCanvas board, one per player.
+
+- Sit on the **centre of the current square**. On a move they **slide** along the path (lerp tile-to-tile), then **stop**. Resolve only the landing square.
+- Default mesh is a pawn/token; the designer may link a **GLB** (or keep the default). Setup **token colour** tints the mesh.
+- Other players on this floor are visible on the board; other floors only on the minimap.
+- Tokens never use physics. Sliding is animation on the grid.
 
 ## Layout designer
 
@@ -146,15 +154,27 @@ Effects (at most one per corridor square) still include locks (stairs/doors/name
 
 Door squares hold a pack **only** when the room is card-only. Stair squares never hold packs.
 
-## Spinners
+## Spinners and dice
 
-Spinners are **named, reusable** designer objects — not a single hard-coded 1–6 wheel. Any spinner may also link **audio** that plays when it is used.
+Spinners and dice are **named, reusable** designer objects. Any of them may also link **audio** that plays when used.
 
 | Kind | Config | Use |
 |---|---|---|
-| Number | min, max, step, optional labels, optional **audio** | Movement, or a card/scenario that needs a number |
+| Number spinner | min, max, step, optional labels, optional **audio** | Movement, or a card/scenario that needs a number |
+| Dice | **count** (1 or more), **sides** (4 / 6 / 8 / 10 / 12 / 20, or designer N), optional mesh, optional **audio**, presentation **on-board** or **tray** | Same as a number spinner: an integer result. Movement, or a card that needs a number |
 | Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups), optional **audio** | “Another player helps / is accused” |
 | Outcome | Designer config: slice **count** (2 or more), **labels**, optional **weights** (equal split default), optional spinner **audio**, and per-slice effects. The designer chooses what each slice means. Each slice: label plus any of **image, cutscene, audio, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
+
+**Dice presentation** (PlayCanvas only — do not import Three.js dice libraries):
+
+- **On-board:** 3D dice meshes in the same scene as the board (the rolling-cube look). They tumble on/near the floor, then settle.
+- **Tray:** a felt-pit overlay (the dice-box look). Dice bounce inside a box over the view, not down the corridor. Dismiss after the result.
+
+The **engine picks the integer first** (same RNG path as a number spinner). The 3D roll is animation to that face so Test and Publish are deterministic. Token/board physics stay off.
+
+A game may use several outcome spinners and more than one number/dice def. Cards, tiles, and rooms may **link** any spinner or dice. After the wheel/dice lands, play the slice’s media (image, cutscene, audio) / card / move in that order (skip anything unset).
+
+A game picks default **movement**: a **number spinner** or **dice**. 1-player: number, dice, and outcome work; player spinner follows no-helper if the set is empty.
 
 **Outcome slices** (each independently, all designer-set):
 
@@ -165,10 +185,6 @@ Spinners are **named, reusable** designer objects — not a single hard-coded 1�
 - Optional **card** (or pack draw) — e.g. each slice is an item that opens that item’s card
 - Optional **item** give/take
 - Optional **token movement**: move the current player **N** squares along the current path, **or** send them to a named tile/stair/room (designer picks). Movement still **stops and resolves** that landing square.
-
-A game may use several outcome spinners. Cards, tiles, and rooms may **link** any spinner. After the wheel lands, play the slice’s media (image, cutscene, audio) / card / move in that order (skip anything unset).
-
-A game picks which **number** spinner is default **movement**. 1-player: number and outcome work; player spinner follows no-helper if the set is empty.
 
 ## Items and inventory
 
@@ -190,7 +206,7 @@ Each card may:
 - Kind: question, do/reveal, image-talk, clip, audio, or a combination the template allows
 - **Timer** with its **own duration** and zero result (fail, nudge, listed result, lose item, …)
 - **Pass** allowed or not
-- Linked **spinner** (number / player / outcome)
+- Linked **spinner or dice** (number spinner / dice / player / outcome)
 - Linked **overlay image**, **cutscene**, and/or **audio**
 - Together version of the **same type** (ignored in 1-player)
 - **No-show groups:** one or more designer groups that must not see this card
@@ -212,7 +228,7 @@ Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude 
 TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested. **Not** PlayCanvas.
-2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, named groups, card no-show, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
+2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner and dice defs, items, packs, named groups, card no-show, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
 3. **Play UI** — PlayCanvas React **3D board** + DOM HUD; first-person/room cameras in the same app (shared with designer preview).
 4. **Designer UI** — game library (new/open/save/test/publish), HTML layout grid, card/pack/spinner/item editors, validation, PlayCanvas floor preview.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
@@ -234,7 +250,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
-- Number / player / outcome spinners (designer slice count and labels; slice can move, play media including audio, draw a card, give an item)
+- Number / player / outcome spinners and **dice** (engine integer first, then 3D roll; on-board or tray)
 - Room inner loops of any length; item squares; card-only door; board background per tile/room/stair
 - Audio links on squares, rooms, stairs, spinners (and slices), and cards; missing audio placeholder + continue
 - First-person **none** (3D board camera only) is valid
@@ -243,6 +259,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
+- 3D tokens slide tile-to-tile; dice on-board and tray presentations match the pre-rolled integer
 
 Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invalid draft, Test blocked until stairs link, Publish produces a playable slug.
 
@@ -252,7 +269,7 @@ Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invali
 2. Player (draft test + live slug) with PlayCanvas React 3D board + first-person
 3. Game library: New, Save, Open
 4. Layout designer (HTML grid + PlayCanvas preview)
-5. Card / spinner / item designers
+5. Card / spinner / dice / item designers
 6. Publish live (versioned bundle)
 
 ## Later slices
@@ -264,7 +281,7 @@ Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invali
 
 ## Example defaults (Climb sample only — not engine limits)
 
-- Movement spinner 1–6  
+- Movement spinner 1–6 **in that sample** (other games may use **dice**)  
 - Three looping floors + room-only penthouse; up stairs only **in that sample**  
 - Passes on, 1 each  
 - First-person: room + stairs, skip on **in that sample** (other games may set **none**)  
