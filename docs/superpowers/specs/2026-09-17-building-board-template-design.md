@@ -44,7 +44,7 @@ The board is a **grid**. On your turn you see **your floor only**.
 
 Door/stair labels are **dynamic** for the current player: Enter Room / Room locked, Use Stairs / Stairs blocked.
 
-Entering a room or using stairs can show a HUD overlay: still image or cutscene linked on that room/stair (then the card / move continues).
+Entering a **tile** can show a HUD overlay: still image or cutscene linked on that tile (then the rest of the landing continues). See Tile media.
 
 v1 play layout is desktop-first, usable on a tablet.
 
@@ -56,9 +56,11 @@ One **floor** at a time on the same grid. Floor tabs (1…`maxFloors`). HUD bloc
 
 | Widget | Rules |
 |---|---|
-| Corridor square | Drop on a non-HUD cell. Adjacent corridor cells form paths. On a **normal floor**, save is invalid until they form a **single loop**. On the **end floor**, a loop is **not** required — a path (or no corridor at all) is allowed. |
+| Corridor square | Drop on a non-HUD cell. Adjacent corridor cells form paths. On a **normal floor**, save is invalid until they form a **single loop**. On the **end floor**, a loop is **not** required — a path (or no corridor at all) is allowed. Optional image/cutscene. |
 | Stair | Drop only on the **inner** edge of an existing corridor square. That cell **becomes** a stair square. Destination: next floor up (v1), **or the end room** if the floor above is room-only. **Several** stairs on the same floor may share that destination. Optional image/cutscene. |
 | Room | Drop on the **outer or inner** side of a corridor (not on the HUD), **or** fill the end floor as a single room with no corridor. Resize freely. If the room sits on a corridor, pick **which corridor square is the door**. Optional image/cutscene. Optional pack. Flag **at most one room in the game** as the **end room** (Climb win). |
+
+**Any tile** (corridor, door, stair, room, start) can attach an image and/or cutscene. The **start square** should, for intros (hotel entrance, abandoned building, etc.).
 
 Cannot drop two widgets on the same corridor cell except converting corridor → stair.
 
@@ -89,7 +91,17 @@ There are **no** preset square counts per floor. A normal floor’s loop is what
   - **Approach corridor:** a **non-loop** run of tiles that leads to the end room’s door. Stairs from below land on a chosen cell of that path (or on the door). You still have to stop on the end room to win.
 - **End room:** the flagged win room (not the HUD). After it **resolves**, that player wins Climb.
 - Side rooms are still either **card-only** (play pack, snap back to the door square) or **2–4 inner squares** with a Leave Room square (snap back to the door). Inner squares are play state, not extra designer widgets in v1 — v1 designer places the room **footprint**; inner-square maps can be a later designer toggle.
-- `startFloor` / `startSquare` (Climb: floor 1, a chosen corridor cell).
+- `startFloor` / `startSquare` (Climb: floor 1, a chosen corridor cell). The start square may play media **at match start** (shared intro on the HUD) as well as if someone later **stops** on it.
+
+## Tile media
+
+Every board tile may link **none, an image, a cutscene, or both**.
+
+- **On stop:** if the tile has media and `onStop` is on (default when media is attached), play it in the HUD **before** effects, packs, door, or stair resolve.
+- **On game start:** the start square may also have `onGameStart` (default **on** if it has media). Plays once when the match begins, before the first spin — hotel lobby, haunted doorway, etc.
+- Skip/dismiss follows the same skip rules as other overlays if the template allows skip.
+- Missing file: placeholder + continue, do not crash.
+- Media does not replace a pack or a room card; it plays **then** those still run if the tile has them.
 - `stairDirection` on the template: Climb `up`. Down is stored for later games.
 
 ## Squares
@@ -98,10 +110,10 @@ Resolve **only the square you stop on**, and only if it has something to resolve
 
 | Kind | Pack? | What happens on land |
 |---|---|---|
-| Empty corridor | no | Turn ends. Next player. |
-| Content corridor | optional pack + optional **one** effect | Apply effect (if any), then draw from the pack (if any). |
-| Door | **never** | Unlocked → enter that room (optional room image/cutscene in HUD first). Locked → stay, next player. |
-| Stair | **never** | Unlocked → optional stair image/cutscene, then move to the destination: paired cell on the floor above, **or** straight into the end room if that floor is room-only. Blocked → stay, next player. |
+| Empty corridor | no | Optional tile media, then turn ends. Next player. |
+| Content corridor | optional pack + optional **one** effect | Optional tile media, then effect (if any), then pack (if any). |
+| Door | **never** | Optional tile media (and/or the room’s media). Unlocked → enter that room. Locked → stay, next player. |
+| Stair | **never** | Optional tile media. Unlocked → then move to the destination: paired cell on the floor above, **or** straight into the end room if that floor is room-only. Blocked → stay, next player. |
 
 **Effect** (at most one per corridor square), v1 kinds:
 
@@ -177,11 +189,11 @@ Engine:
 - End floor: room-only **or** a connected non-loop path to the end room
 - Multiple stairs on the floor below may share the end room as destination
 - Stair only legal on inner corridor; destination floor or end room exists
-- Room door must be on the loop; resize keeps a door
+- Room door must be on that floor’s corridor path; resize keeps a door
 - HUD cells reject pieces
 - Land-only resolve
 - Door/stair lock vs enter/climb
-- Room overlay media does not skip the room card
+- Tile media on stop does not skip packs/rooms; start-square media plays at match start
 - End room win after resolve
 - Together, pack cycle/shuffle, pass, helper eligibility, save round-trip
 
