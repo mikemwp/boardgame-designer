@@ -28,7 +28,7 @@ A web creator (no Unity) where you design **many games**: new project, save draf
 - Player count is **1 or more**. No engine cap. We will **test** 1 and 2–6; the UI must not assume 6 is max.
 - **1 player:** interactive / cutscene-driven. No together cards (nobody else on the square). Player spinner with no eligible people uses the card’s **no-helper** path. Partner setup is skipped.
 - **2+:** pass-and-play, one screen.
-- Setup (2+; 1-player skips partner/exclude/group): **name**, **token colour**, optional **partner**, **cannot-partner** list (same exclude graph as player spinners: people you won’t couple with and who won’t be spun as “another player”), optional **group**, **starting items**.
+- Setup (2+; 1-player skips partner/exclude/group): **name**, **token colour**, optional **partner**, **cannot-partner** list (same exclude graph as player spinners: people you won’t couple with and who won’t be spun as “another player”), optional **group** (from the designer’s named list), **starting items**.
 - **Starting items** at setup:
   - The designer can give everyone a **kit**, or kits **by group** (Faithfuls get X, Traitors get Y).
   - If the game has a **pick pool**, each player also chooses up to N items from that pool (unique or shared, as the designer sets).
@@ -187,23 +187,26 @@ Each card may:
 - Linked **spinner** (number / player / outcome)
 - Linked **overlay image**, **cutscene**, and/or **audio**
 - Together version of the **same type** (ignored in 1-player)
+- **No-show groups:** one or more designer groups that must not see this card
 - Item give/take/require/share/lose
 - Win / no-helper / fail paths as needed
 
-**Deck:** animated flip; used card to the bottom; after a full cycle, next draw **shuffles** (animation).
+**Deck:** animated flip. On a draw, walk the pile from the top for the **drawing player**. Cards flagged **no-show** for that player’s group are **left in place** (not flipped, not sent to the bottom). The first card that is allowed is dealt. After it is used, **that** card goes to the bottom. After a full cycle of *drawn* cards, the next draw **shuffles** (animation).
+
+Skipped no-show cards stay in their order for the next player who is allowed them. A player with no group sees every card. If no allowed card remains in the pile, the draw is empty (continue; do not burn the hidden cards).
 
 **Game passes:** optional max per player. Pass skips the card, stay, spend that actor’s pass (lander or helper).
 
 ## Relationships
 
-Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude everyone unless partnered; a closed pair may). Groups apply default links **and default kits**. 1-player: graph unused; kit still applies.
+Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude everyone unless partnered; a closed pair may). The designer names **groups** freely (Faithfuls, Traitors, or any label). Groups apply default links, **default kits**, and **card no-show**. 1-player: graph unused; kit still applies; no-show does not apply.
 
 ## Architecture
 
 TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested.
-2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, win rule, slug, draft vs live version.
+2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, named groups, card no-show, win rule, slug, draft vs live version.
 3. **Play UI** — HTML board + HUD for v1; **Three.js** first-person/room views (shared with designer preview).
 4. **Designer UI** — game library (new/open/save/test/publish), layout grid, card/pack/spinner/item editors, validation.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
@@ -230,7 +233,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Audio links on squares, rooms, stairs, spinners (and slices), and cards; missing audio placeholder + continue
 - First-person **none** (plain board) is valid
 - Starting kit / group kit / setup pick pool seed inventory
-- Card timer per card; pack back/front; shuffle cycle
+- Card timer per card; pack back/front; shuffle cycle; group **no-show** skips in place, drawn card to bottom
 - Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - Three.js first-person + designer preview; HTML board v1
