@@ -67,9 +67,9 @@ HUD, cards, spinners, inventory stay **DOM**. Discrete squares, no free movement
 Grid. On a turn you see **that player’s floor only**.
 
 - **Centre HUD (reserved):** active spinner, cards, inventory, timer, whose turn, passes, player strip. Overlays for the current scenario. No board widgets here.
-- **Corridor:** around the HUD. **Normal floors (including basement) must loop.** The **only** floor allowed a **non-loop** corridor is a flagged **end floor**, and only as a path into the end room.
+- **Corridor:** around the HUD. **Every floor must loop**, except a flagged **end floor**, which may be a path into the end room (or a single room).
 - **Rooms:** outside or inside the corridor, not on the HUD. Resizable. One door square. Optional media.
-- **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label is the real destination (`Up to floor 2`, `Down to basement`).
+- **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label uses the **destination floor’s name** (`Up to Penthouse`, `Down to Cellar`).
 - **Minimap** in the HUD: overlay of the whole building, everyone marked. Other floors’ tokens are not on the big ring.
 - **First-person popup:** game setting: **none** | room only | room + stairs | every spin, plus allow skip. **None** = plain board game (no FP, cutscenes optional).
 - **Board background:** the main play area can swap a **background image** when you stop on a square, enter a room, or use stairs (designer links the image). Card-only rooms typically switch to that room’s image while the room card is up.
@@ -79,7 +79,7 @@ Door/stair labels are dynamic: Enter Room / Room locked, Use Stairs / Stairs blo
 
 ## Layout designer
 
-Floor tabs: any number of floors, including **below** the start floor (basement). No max. HUD cannot receive drops.
+Floor tabs: any number of **named** floors (Ground, Cellar, Roof, …). No max, no special floor types. HUD cannot receive drops.
 
 **Palette:**
 
@@ -89,20 +89,21 @@ Floor tabs: any number of floors, including **below** the start floor (basement)
 | Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** before Test or Publish: another floor’s landing cell, a **room-only** floor, or the end room. Several stairs may share a destination. Optional media. |
 | Room | Outer or inner side of a corridor, or **fill a floor** as a single room. Resize. Pick door if a corridor exists. Optional background image. **Card-only** or **inner map** (any number of inner squares). Flag at most one **end room**. |
 
-**Stairs must go somewhere** before Test or Publish. A down stair from floor 1 may link to:
+**Stairs must go somewhere** before Test or Publish. A stair may link to:
 
-- a **single basement room** (room-only floor), or
-- a **basement corridor loop** with its own rooms and stairs.
+- another **named** floor’s landing cell (that floor’s corridor loop, with its own rooms and stairs), or
+- a **room-only** floor (stairs dump into that room), or
+- the **end room**.
 
 A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 
-**Only the end floor** may use a **single-line corridor** that leads to the end room. Basement corridors, if not room-only, **must loop**. End floor may instead be room-only (stairs from below dump into the room).
+**Only the end floor** may use a **single-line corridor** that leads to the end room. Every other floor with a corridor **must loop**. Any floor may instead be room-only.
 
 **Any tile** may have image and/or cutscene. Mark one cell as **start**; it can play media **at match start** (entrance) as well as on stop.
 
 ## Building (runtime)
 
-- Floors are an ordered stack (… basement, 1, 2, …). Count is whatever the designer saved.
+- Floors are an ordered stack of **named** floors in designer order. Count is whatever the designer saved. Names are free text (Ground, Cellar, Roof, …) — not types.
 - Movement along the current path, then door or stair.
 - **End floor** (optional): **(A)** room-only end room, one or more stairs from below enter it, or **(B)** non-loop approach path to the end room. You win a “reach the end” game only if that win rule is selected **and** the end room has **resolved**.
 - **Win** is designed, not assumed: e.g. reach end room, or **none** (cards/cutscenes/items declare win). Climb example uses reach end room.
@@ -200,12 +201,12 @@ Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude 
 TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested.
-2. **Game JSON** — floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, win rule, slug, draft vs live version.
+2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, win rule, slug, draft vs live version.
 3. **Play UI** — HTML board + HUD for v1; **Three.js** first-person/room views (shared with designer preview).
 4. **Designer UI** — game library (new/open/save/test/publish), layout grid, card/pack/spinner/item editors, validation.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
 
-Invalid if: stair with no destination; normal/basement corridor that doesn’t loop; non-loop corridor on a non-end floor; end-floor path that doesn’t reach the end room; exclude-all without a partner.
+Invalid if: stair with no destination; non-loop corridor on a non-end floor; end-floor path that doesn’t reach the end room; exclude-all without a partner.
 
 ## UI states
 
@@ -217,8 +218,8 @@ Invalid if: stair with no destination; normal/basement corridor that doesn’t l
 
 ## Testing
 
-- Loop required except flagged end floor; basement loop vs room-only basement
-- Down stair from floor 1 must link to a basement room **or** looping basement
+- Loop required except flagged end floor; any floor may be room-only or a looping corridor
+- Stair must link to a named destination (landing cell, room-only floor, or end room)
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
