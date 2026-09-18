@@ -4,7 +4,7 @@
 **Status:** draft for review  
 **Product:** a **game designer** (layout, cards, spinners, items, media) plus a **player** that runs whatever was designed. Climb is only the first bundled example, not the limit of the engine.
 
-Think of this as a creator. Michael will make Climb, whodunit, paranormal, escape, or a 1-player cutscene game **in the designer**, as long as the designer stays flexible. Do not hard-code “three floors” or “2–6 players” or “up stairs only.”
+Think of this as a creator. The **engine is a small set of repeating mechanics** (stop on a square → optional background, media, spinner, card, item, move). The designer **links** squares, rooms, stairs, images, spinners, cutscenes, and cards. A published game might be a full 3D-ish climb, a mystery with items, or a **plain board game** with no cutscenes and no first-person.
 
 Play and design share one **grid + HUD** model (same idea as Michael’s widget home screen: dropdown → drop → drag). Designer can be a route in this app or a sibling project that exports the same JSON.
 
@@ -71,7 +71,8 @@ Grid. On a turn you see **that player’s floor only**.
 - **Rooms:** outside or inside the corridor, not on the HUD. Resizable. One door square. Optional media.
 - **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label is the real destination (`Up to floor 2`, `Down to basement`).
 - **Minimap** in the HUD: overlay of the whole building, everyone marked. Other floors’ tokens are not on the big ring.
-- **First-person popup:** template setting (room only | room + stairs | every spin) + allow skip.
+- **First-person popup:** game setting: **none** | room only | room + stairs | every spin, plus allow skip. **None** = plain board game (no FP, cutscenes optional).
+- **Board background:** the main play area can swap a **background image** when you stop on a square, enter a room, or use stairs (designer links the image). Card-only rooms typically switch to that room’s image while the room card is up.
 - **Inventory** in the HUD for the current player (icons). 1-player still has inventory.
 
 Door/stair labels are dynamic: Enter Room / Room locked, Use Stairs / Stairs blocked.
@@ -86,7 +87,7 @@ Floor tabs: any number of floors, including **below** the start floor (basement)
 |---|---|
 | Corridor square | Non-HUD cell. Adjacent cells form paths. **Loop required** except on a flagged **end floor**. Optional media. |
 | Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** before Test or Publish: another floor’s landing cell, a **room-only** floor, or the end room. Several stairs may share a destination. Optional media. |
-| Room | Outer or inner side of a corridor, or **fill a floor** as a single room (no corridor) — used for a **room-only basement** or **room-only end**. Resize. Pick door if a corridor exists. Optional media, optional pack. Flag at most one **end room**. |
+| Room | Outer or inner side of a corridor, or **fill a floor** as a single room. Resize. Pick door if a corridor exists. Optional background image. **Card-only** or **inner map** (any number of inner squares). Flag at most one **end room**. |
 
 **Stairs must go somewhere** before Test or Publish. A down stair from floor 1 may link to:
 
@@ -105,14 +106,19 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 - Movement along the current path, then door or stair.
 - **End floor** (optional): **(A)** room-only end room, one or more stairs from below enter it, or **(B)** non-loop approach path to the end room. You win a “reach the end” game only if that win rule is selected **and** the end room has **resolved**.
 - **Win** is designed, not assumed: e.g. reach end room, or **none** (cards/cutscenes/items declare win). Climb example uses reach end room.
-- Side rooms: card-only snap-back, or 2–4 inner squares with Leave Room. Inner maps can stay a later designer toggle; v1 places the room footprint.
+- **Rooms** (same square rules as the rest of the game):
+  - **Card-only:** landing on the **door** (corridor square) plays that room’s card(s). Optional: main-board **background** becomes the room image for that beat. Then snap back to the door (unless the card/spinner says otherwise).
+  - **Inner map:** the room is its own path of **any number** of inner squares that **loop back to the door**. Enter via the door; leave by stopping on the door square again (or a marked Leave square that *is* the door). Inner squares are wired like any tile: packs, media, backgrounds, spinners, effects.
+  - **Item squares** sit **beside** inner squares (same idea as a room beside a corridor). Landing on an item square plays that square’s card/pack — typically an item card. The designer makes room-specific packs and attaches them; there is no special item engine, only the same card link.
+  - A **room card may itself be a spinner card**: each slice is an item (or colour, yes/no, etc.) and each slice **links to a card**. That is the outcome spinner, not a new mechanic.
 - Start floor/square are chosen in the designer.
 
 ## Tile media
 
 Any tile: none, image, cutscene, or both.
 
-- **On stop** (default if media is set): HUD overlay, then the tile’s usual resolve.
+- **Board background** (optional, per square / room / stair): when you stop or enter, the **main play area** can switch to that image. Clears when the designer says (leave room, next stop, etc.).
+- **On stop** (default if media is set): HUD overlay and/or background, then the tile’s usual resolve.
 - **On game start:** available on the start square (default on if it has media). Shared intro before the first spin.
 - Skip if the game allows skip. Missing file: placeholder + continue. Media never replaces a pack/card; it plays first.
 
@@ -124,12 +130,13 @@ Resolve **only the square you stop on**.
 |---|---|---|
 | Empty corridor | no | Media, then next player (or next beat in 1-player). |
 | Content corridor | optional pack + optional one effect | Media, then effect, then pack. |
-| Door | never | Media, then enter or stay if locked. |
+| Door | optional pack if **card-only room** | Media + optional background. Unlocked card-only → play room card (may be a spinner card). Unlocked inner-map → enter inner squares. Locked → stay. |
+| Inner / item square | optional pack | Same as any content square: media, pack, spinner, item. Path **loops to the door**. |
 | Stair | never | Media, then go to the **linked** destination if unlocked. |
 
 Effects (at most one per corridor square) still include locks (stairs/doors/named room, self or everyone). Extra effect: **give / take / require item**.
 
-Door/stair squares never hold packs.
+Door squares hold a pack **only** when the room is card-only. Stair squares never hold packs.
 
 ## Spinners
 
@@ -139,14 +146,15 @@ Spinners are **named, reusable** designer objects — not a single hard-coded 1�
 |---|---|---|
 | Number | min, max, step, optional labels | Movement, or a card/scenario that needs a number |
 | Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups) | “Another player helps / is accused” |
-| Outcome | **2, 3, or 4** slices (50/50, thirds, or quarters). Equal split by default; optional **weights** if a slice should be rarer. Each slice: label plus any of **image, cutscene, card, token move** | Flexible random beat — yes/no is just a 2-slice preset |
+| Outcome | **N slices** (2 = yes/no, 3, 4, or as many as the designer needs — items, colours, rooms, …). Equal split by default; optional **weights**. Each slice: label plus any of **image, cutscene, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
 
 **Outcome slices** (each independently):
 
 - Label (e.g. Yes / No, or Left wing / Roof / Cellar)
 - Optional **overlay image**
 - Optional **cutscene**
-- Optional **card** (or pack draw)
+- Optional **card** (or pack draw) — e.g. each slice is an item that opens that item’s card
+- Optional **item** give/take
 - Optional **token movement**: move the current player **N** squares along the current path, **or** send them to a named tile/stair/room (designer picks). Movement still **stops and resolves** that landing square.
 
 A game may use several outcome spinners. Cards, tiles, and rooms may **link** any spinner. After the wheel lands, play the slice’s media/card/move in that order (skip anything unset).
@@ -214,7 +222,9 @@ Invalid if: stair with no destination; normal/basement corridor that doesn’t l
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
-- Number / player / outcome spinners (2/3/4 slices; slice can move, play media, or draw a card)
+- Number / player / outcome spinners (**N** slices; slice can move, play media, draw a card, give an item)
+- Room inner loops of any length; item squares; card-only door; board background per tile/room/stair
+- First-person **none** (plain board) is valid
 - Starting kit / group kit / setup pick pool seed inventory
 - Card timer per card; pack back/front; shuffle cycle
 - Tile media on stop + start intro
@@ -238,13 +248,12 @@ Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invali
 2. Buyable packs  
 3. Own-device multiplayer  
 4. Native wrapper  
-5. Inner-square room maps in the designer  
-6. Cloud accounts for the studio (if local drafts stop being enough)
+5. Cloud accounts for the studio (if local drafts stop being enough)
 
 ## Example defaults (Climb sample only — not engine limits)
 
 - Movement spinner 1–6  
 - Three looping floors + room-only penthouse; up stairs only **in that sample**  
 - Passes on, 1 each  
-- First-person: room + stairs, skip on  
+- First-person: room + stairs, skip on **in that sample** (other games may set **none**)  
 - HUD centre rectangle set in the layout
