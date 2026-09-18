@@ -10,7 +10,7 @@ Play and design share one **grid + HUD** model (same idea as Michael’s widget 
 
 ## Goal
 
-A web creator (no Unity) where you design **many games**: new project, save drafts, **test** play, then **publish live**. Three.js is the 3D layer (first-person, rooms, stairs). The board designer stays a 2D grid + HUD.
+A web creator (no Unity) where you design **many games**: new project, save drafts, **test** play, then **publish live**. **Three.js** is the shared 3D layer (play + designer preview). The board stays **HTML for v1**; a Three.js **3D-plane board** is a planned later move.
 
 ## Non-goals (first implementation)
 
@@ -53,7 +53,14 @@ Media for a game stays with that game (per-project folder). Copy-as-new-game dup
 
 ## First-person / 3D
 
-**Three.js is required** for first-person and 3D presentation (corridor, room/stair views, any 3D cut-in). The designer grid, HUD, cards, and spinners stay **DOM**. Discrete squares, no free movement, no physics.
+**Three.js is locked** for 3D. One module, two shells:
+
+- **Play:** first-person corridor, room/stair views, 3D cut-ins.
+- **Creator:** HTML grid, dropdowns, drag-drop, forms (like the widget home screen). A **Three.js preview** of the floor being edited so Test/Publish match what you placed. Do not build the editor inside the 3D canvas.
+
+HUD, cards, spinners, inventory stay **DOM**. Discrete squares, no free movement, no physics.
+
+**v1 play board is HTML** (current-floor ring, tokens slide on the grid). **Later:** the same board as a **Three.js 3D plane** (tokens on a 3D floor, closer to the Three.js examples). Same JSON; swap the board renderer, don’t redesign the games.
 
 ## Play screen
 
@@ -186,7 +193,7 @@ TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at firs
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested.
 2. **Game JSON** — floors, cells, stairs, rooms, HUD, media, start/end, spinner defs, items, packs, win rule, slug, draft vs live version.
-3. **Play UI** — current floor, HUD, inventory, minimap, **Three.js** first-person/room views.
+3. **Play UI** — HTML board + HUD for v1; **Three.js** first-person/room views (shared with designer preview).
 4. **Designer UI** — game library (new/open/save/test/publish), layout grid, card/pack/spinner/item editors, validation.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
 
@@ -212,7 +219,7 @@ Invalid if: stair with no destination; normal/basement corridor that doesn’t l
 - Card timer per card; pack back/front; shuffle cycle
 - Tile media on stop + start intro
 - New / save draft / test / publish live; test is not public; live is a slug
-- Three.js first-person popup; DOM board + HUD
+- Three.js first-person + designer preview; HTML board v1
 
 Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invalid draft, Test blocked until stairs link, Publish produces a playable slug.
 
@@ -227,11 +234,13 @@ Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invali
 
 ## Later slices
 
-1. Buyable packs  
-2. Own-device multiplayer  
-3. Native wrapper  
-4. Inner-square room maps in the designer  
-5. Cloud accounts for the studio (if local drafts stop being enough)
+1. **Three.js 3D-plane play board** (replace the HTML ring; same game JSON)
+2. Buyable packs  
+3. Own-device multiplayer  
+4. Native wrapper  
+5. Inner-square room maps in the designer  
+6. Cloud accounts for the studio (if local drafts stop being enough)
+
 ## Example defaults (Climb sample only — not engine limits)
 
 - Movement spinner 1–6  
