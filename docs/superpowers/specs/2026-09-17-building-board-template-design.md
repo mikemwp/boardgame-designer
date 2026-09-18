@@ -36,9 +36,9 @@ Players sit at one screen, spin, and move around a building made of corridor loo
 The board is a **grid**. On your turn you see **your floor only**.
 
 - **Centre HUD (reserved):** spinner, cards, clips, audio, timer, whose turn, passes, player strip (name + floor for everyone). No board pieces live here. Overlays stack on this HUD for the current scenario.
-- **Corridor** occupies grid cells around the HUD and **must form a loop**. Tokens slide along that loop.
+- **Corridor** occupies grid cells around the HUD. On a **normal floor**, it **must form a loop**. On the **end floor**, see End floor below. Tokens slide along that floor’s path.
 - **Rooms** sit on the **outside** of the corridor (toward the screen edge) or the **inside** (toward the HUD), without entering the HUD reserved cells. A room is larger than one cell and can be resized. It spans several corridor cells; exactly **one** of those corridor cells is the **door**.
-- **Stairs** are corridor cells on the **inner** side of the loop (toward the HUD). Label is the destination, e.g. `Up to floor 2`. v1 Climb is up only. Later: `Down to basement`.
+- **Stairs** are corridor cells on the **inner** side of the corridor (toward the HUD). Label is the destination, e.g. `Up to floor 2`. v1 Climb is up only. Later: `Down to basement`.
 - **Minimap** control in the HUD opens an overlay of the **whole building** with every player marked on their square. Close it to return to the current-floor board. Tokens for other floors do **not** appear on the big ring — only in the player strip and on the minimap.
 - **First-person popup** is a template setting: room only | room + stairs | every spin. Second setting: **Allow skip first-person**.
 
@@ -56,32 +56,38 @@ One **floor** at a time on the same grid. Floor tabs (1…`maxFloors`). HUD bloc
 
 | Widget | Rules |
 |---|---|
-| Corridor square | Drop on a non-HUD cell. Adjacent corridor cells form paths. **Save is invalid until corridors on that floor form a single loop.** |
-| Stair | Drop only on the **inner** edge of an existing corridor square. That cell **becomes** a stair square (not a second piece on top). Must pick destination floor (v1: next floor up). Optional image/cutscene for the HUD overlay. |
-| Room | Drop on the **outer or inner** side of the corridor (not on the HUD). Resize freely (min size one extra cell beyond a door). Then pick **which corridor square is the door**. The room visually stretches along those corridor cells. Optional image/cutscene. Optional pack. Flag **at most one room in the game** as the **end room** (Climb win). |
+| Corridor square | Drop on a non-HUD cell. Adjacent corridor cells form paths. On a **normal floor**, save is invalid until they form a **single loop**. On the **end floor**, a loop is **not** required — a path (or no corridor at all) is allowed. |
+| Stair | Drop only on the **inner** edge of an existing corridor square. That cell **becomes** a stair square. Destination: next floor up (v1), **or the end room** if the floor above is room-only. **Several** stairs on the same floor may share that destination. Optional image/cutscene. |
+| Room | Drop on the **outer or inner** side of a corridor (not on the HUD), **or** fill the end floor as a single room with no corridor. Resize freely. If the room sits on a corridor, pick **which corridor square is the door**. Optional image/cutscene. Optional pack. Flag **at most one room in the game** as the **end room** (Climb win). |
 
 Cannot drop two widgets on the same corridor cell except converting corridor → stair.
 
 **Validation (designer and play load):**
 
-- Each used floor has exactly one corridor loop
+- Each **normal** floor has exactly one corridor **loop**
+- **End floor** is one of: **(A)** a single end room and no corridor, or **(B)** a **non-loop** corridor path whose tiles lead to the end room (tiles that don’t reach the end room are invalid)
 - HUD cells empty of board widgets
 - Stairs only on inner corridor cells, with a valid destination
-- Each room has exactly one door square that belongs to this floor’s loop
+- **One or more** stairs on the floor below may target the end floor (same end room, or landing cells on the end-floor path)
+- Each room that sits on a corridor has exactly one door square on that path
 - Rooms do not overlap HUD or each other
 - End room is a room (required for Climb)
+- Room-only end floor: arriving by stairs places the token **in the end room** (no paired stair cell required there)
 - `floorCount` ≤ `maxFloors`
 - Relationship graph rules (see below)
 
 Designer **exports** template JSON. Play **imports** it. Climb v1 ships a bundled layout that obeys these rules (as if it had been drawn in the designer).
 
-There are **no** preset “16 / 12 / 8 squares per floor”. Loop length is whatever the creator drew, as long as it loops.
+There are **no** preset square counts per floor. A normal floor’s loop is whatever the creator drew. The end floor does not have to loop.
 
 ## Building (runtime)
 
 - `maxFloors`: **3** in v1. Climb uses 3 floors.
-- Movement is along the corridor loop of the current floor, then through a door into a room or through a stair to another floor.
-- **End room:** a flagged room (not the HUD). Climb: typically on the top floor, entered from an inward stair or its door. After that room **resolves**, that player wins.
+- Movement is along the current floor’s path (loop on normal floors; open path or immediate room on the end floor), then through a door or stair.
+- **End floor** (top for Climb) is flagged in the layout. Two legal shapes:
+  - **Room-only:** the whole floor is the end room. **One or more** stair tiles on the floor below dump you straight into that room.
+  - **Approach corridor:** a **non-loop** run of tiles that leads to the end room’s door. Stairs from below land on a chosen cell of that path (or on the door). You still have to stop on the end room to win.
+- **End room:** the flagged win room (not the HUD). After it **resolves**, that player wins Climb.
 - Side rooms are still either **card-only** (play pack, snap back to the door square) or **2–4 inner squares** with a Leave Room square (snap back to the door). Inner squares are play state, not extra designer widgets in v1 — v1 designer places the room **footprint**; inner-square maps can be a later designer toggle.
 - `startFloor` / `startSquare` (Climb: floor 1, a chosen corridor cell).
 - `stairDirection` on the template: Climb `up`. Down is stored for later games.
@@ -95,7 +101,7 @@ Resolve **only the square you stop on**, and only if it has something to resolve
 | Empty corridor | no | Turn ends. Next player. |
 | Content corridor | optional pack + optional **one** effect | Apply effect (if any), then draw from the pack (if any). |
 | Door | **never** | Unlocked → enter that room (optional room image/cutscene in HUD first). Locked → stay, next player. |
-| Stair | **never** | Unlocked → optional stair image/cutscene, then move to the destination floor’s paired stair cell. Blocked → stay, next player. |
+| Stair | **never** | Unlocked → optional stair image/cutscene, then move to the destination: paired cell on the floor above, **or** straight into the end room if that floor is room-only. Blocked → stay, next player. |
 
 **Effect** (at most one per corridor square), v1 kinds:
 
@@ -110,7 +116,7 @@ Door/stair squares never hold packs. Packs live on content squares and inside ro
 
 1. Play view switches to the current player’s floor.
 2. They spin (v1: spinner; default 1–6).
-3. Token slides that many squares along this floor’s loop (or along inner room squares if they are inside a room).
+3. Token slides that many squares along this floor’s path (loop, end-floor approach, or already in the end room). If they are inside a side room, along that room’s inner squares.
 4. Landing square resolves.
 5. Card / room / overlay finishes (timer, pass, helper, together).
 6. Next player (unless they remain in an inner-square room until Leave Room). After the end room resolves, Climb ends for that player (win).
@@ -167,8 +173,10 @@ First-person: CSS 3D corridor first; tiny Three.js only if CSS looks cheap. Disc
 
 Engine:
 
-- Loop validation (open path invalid; single loop valid)
-- Stair only legal on inner corridor; destination floor exists
+- Loop validation on normal floors (open path invalid; single loop valid)
+- End floor: room-only **or** a connected non-loop path to the end room
+- Multiple stairs on the floor below may share the end room as destination
+- Stair only legal on inner corridor; destination floor or end room exists
 - Room door must be on the loop; resize keeps a door
 - HUD cells reject pieces
 - Land-only resolve
@@ -204,5 +212,5 @@ Manual: 2 and 6 players on Climb; turn change swaps the visible floor; minimap s
 - First player = **setup order**
 - First-person default for Climb = **room + stairs**, skip **on**
 - Passes **on**, **1** per player
-- Climb end room = top-floor inward room linked from the inner stair
+- Climb end floor = **room-only** penthouse; one inner stair on floor 2 is enough, more stairs are allowed
 - HUD reserved as a centre rectangle (size set in the layout, not by dropping widgets)
