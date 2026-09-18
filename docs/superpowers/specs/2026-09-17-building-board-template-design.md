@@ -2,227 +2,204 @@
 
 **Date:** 2026-09-18  
 **Status:** draft for review  
-**v1 product:** a pass-and-play web app that **plays** a configured building game (Climb) and a **layout designer** that authors those configurations
+**Product:** a **game designer** (layout, cards, spinners, items, media) plus a **player** that runs whatever was designed. Climb is only the first bundled example, not the limit of the engine.
 
-This is a **game template / creator**, not a single story. The same engine can later be penthouse climb, escape, ghost hunt, or whodunit by changing layout, packs, and rules. Climb is the first bundled game.
+Think of this as a creator. Michael will make Climb, whodunit, paranormal, escape, or a 1-player cutscene game **in the designer**, as long as the designer stays flexible. Do not hard-code “three floors” or “2–6 players” or “up stairs only.”
 
-The designer follows the same idea as Michael’s widget home screen: pick a piece from a dropdown, drop it on a grid, drag to place. Play and design share one **grid + HUD** model. The designer can live in this repo as a second route, or in a sibling project that **exports the same JSON** this player loads.
+Play and design share one **grid + HUD** model (same idea as Michael’s widget home screen: dropdown → drop → drag). Designer can be a route in this app or a sibling project that exports the same JSON.
 
 ## Goal
 
-Players sit at one screen, spin, and move around a building made of corridor loops, rooms, stairs, cards, and short media — without Unity. Michael (and later other creators) **draw** each floor on a grid instead of picking a fixed square count.
+A web creator (no Unity) where you draw floors, wire stairs that actually go somewhere, author card packs, items, and spinners, then play the result on one screen.
 
-## Non-goals (v1)
+## Non-goals (first implementation)
 
 - Unity, Godot, Phaser, free movement, physics, or a full 3D engine
-- Logins, payments, purchasable packs (pack **format** exists; buying is a later slice)
-- Each player on their own device
-- Dice (setting exists later; v1 is spinner only)
-- Native apps (web first; wrap later if stores matter)
-- Hidden-traitor gameplay (the pair/exclude/group **graph** exists; the full social-deduction game does not)
-- Down stairs in Climb (the layout can store a down stair; Climb v1 only uses **up**)
-- More than `maxFloors` (v1: **3**)
-- Showing every floor at once on the play board (that crowded the screen)
+- Logins, payments, purchasable packs (pack **format** exists; buying is later)
+- Each player on their own device (later)
+- Dice as a second movement toy (spinners cover number / player / yes-no)
+- Native apps
+- Hidden-traitor *game* (the pair/exclude/group **graph** exists so a whodunit can be designed)
+- Showing every floor at once on the play board
 
 ## Players and session
 
-- **2–6 players**, pass-and-play, one screen. Player count is a template setting; v1 cap is 6.
-- Setup before play: name, token colour, optional **partner**, optional **cannot-spin** list, optional **group**.
-- Current game persists in the **browser**. No accounts.
-- Later: same engine, each player on their own phone/laptop.
+- Player count is **1 or more**. No engine cap. We will **test** 1 and 2–6; the UI must not assume 6 is max.
+- **1 player:** interactive / cutscene-driven. No together cards (nobody else on the square). Player spinner with no eligible people uses the card’s **no-helper** path. Partner setup is skipped.
+- **2+:** pass-and-play, one screen.
+- Setup: name, token colour, optional partner, cannot-spin list, group (skipped or simplified for 1 player).
+- Session persists in the **browser**. No accounts.
 
 ## Play screen
 
-The board is a **grid**. On your turn you see **your floor only**.
+Grid. On a turn you see **that player’s floor only**.
 
-- **Centre HUD (reserved):** spinner, cards, clips, audio, timer, whose turn, passes, player strip (name + floor for everyone). No board pieces live here. Overlays stack on this HUD for the current scenario.
-- **Corridor** occupies grid cells around the HUD. On a **normal floor**, it **must form a loop**. On the **end floor**, see End floor below. Tokens slide along that floor’s path.
-- **Rooms** sit on the **outside** of the corridor (toward the screen edge) or the **inside** (toward the HUD), without entering the HUD reserved cells. A room is larger than one cell and can be resized. It spans several corridor cells; exactly **one** of those corridor cells is the **door**.
-- **Stairs** are corridor cells on the **inner** side of the corridor (toward the HUD). Label is the destination, e.g. `Up to floor 2`. v1 Climb is up only. Later: `Down to basement`.
-- **Minimap** control in the HUD opens an overlay of the **whole building** with every player marked on their square. Close it to return to the current-floor board. Tokens for other floors do **not** appear on the big ring — only in the player strip and on the minimap.
-- **First-person popup** is a template setting: room only | room + stairs | every spin. Second setting: **Allow skip first-person**.
+- **Centre HUD (reserved):** active spinner, cards, inventory, timer, whose turn, passes, player strip. Overlays for the current scenario. No board widgets here.
+- **Corridor:** around the HUD. **Normal floors (including basement) must loop.** The **only** floor allowed a **non-loop** corridor is a flagged **end floor**, and only as a path into the end room.
+- **Rooms:** outside or inside the corridor, not on the HUD. Resizable. One door square. Optional media.
+- **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label is the real destination (`Up to floor 2`, `Down to basement`).
+- **Minimap** in the HUD: overlay of the whole building, everyone marked. Other floors’ tokens are not on the big ring.
+- **First-person popup:** template setting (room only | room + stairs | every spin) + allow skip.
+- **Inventory** in the HUD for the current player (icons). 1-player still has inventory.
 
-Door/stair labels are **dynamic** for the current player: Enter Room / Room locked, Use Stairs / Stairs blocked.
-
-Entering a **tile** can show a HUD overlay: still image or cutscene linked on that tile (then the rest of the landing continues). See Tile media.
-
-v1 play layout is desktop-first, usable on a tablet.
+Door/stair labels are dynamic: Enter Room / Room locked, Use Stairs / Stairs blocked.
 
 ## Layout designer
 
-One **floor** at a time on the same grid. Floor tabs (1…`maxFloors`). HUD block is visible and **cannot** receive drops.
+Floor tabs: any number of floors, including **below** the start floor (basement). No max. HUD cannot receive drops.
 
-**Palette (dropdown, then drag onto the grid):**
+**Palette:**
 
 | Widget | Rules |
 |---|---|
-| Corridor square | Drop on a non-HUD cell. Adjacent corridor cells form paths. On a **normal floor**, save is invalid until they form a **single loop**. On the **end floor**, a loop is **not** required — a path (or no corridor at all) is allowed. Optional image/cutscene. |
-| Stair | Drop only on the **inner** edge of an existing corridor square. That cell **becomes** a stair square. Destination: next floor up (v1), **or the end room** if the floor above is room-only. **Several** stairs on the same floor may share that destination. Optional image/cutscene. |
-| Room | Drop on the **outer or inner** side of a corridor (not on the HUD), **or** fill the end floor as a single room with no corridor. Resize freely. If the room sits on a corridor, pick **which corridor square is the door**. Optional image/cutscene. Optional pack. Flag **at most one room in the game** as the **end room** (Climb win). |
+| Corridor square | Non-HUD cell. Adjacent cells form paths. **Loop required** except on a flagged **end floor**. Optional media. |
+| Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** or it will not save: another floor’s landing cell, a **room-only** floor (basement or penthouse), or the end room. Several stairs may share a destination. Optional media. |
+| Room | Outer or inner side of a corridor, or **fill a floor** as a single room (no corridor) — used for a **room-only basement** or **room-only end**. Resize. Pick door if a corridor exists. Optional media, optional pack. Flag at most one **end room**. |
 
-**Any tile** (corridor, door, stair, room, start) can attach an image and/or cutscene. The **start square** should, for intros (hotel entrance, abandoned building, etc.).
+**Stairs must go somewhere.** A down stair from floor 1 may link to:
 
-Cannot drop two widgets on the same corridor cell except converting corridor → stair.
+- a **single basement room** (room-only floor), or
+- a **basement corridor loop** with its own rooms and stairs.
 
-**Validation (designer and play load):**
+A dangling stair is invalid.
 
-- Each **normal** floor has exactly one corridor **loop**
-- **End floor** is one of: **(A)** a single end room and no corridor, or **(B)** a **non-loop** corridor path whose tiles lead to the end room (tiles that don’t reach the end room are invalid)
-- HUD cells empty of board widgets
-- Stairs only on inner corridor cells, with a valid destination
-- **One or more** stairs on the floor below may target the end floor (same end room, or landing cells on the end-floor path)
-- Each room that sits on a corridor has exactly one door square on that path
-- Rooms do not overlap HUD or each other
-- End room is a room (required for Climb)
-- Room-only end floor: arriving by stairs places the token **in the end room** (no paired stair cell required there)
-- `floorCount` ≤ `maxFloors`
-- Relationship graph rules (see below)
+**Only the end floor** may use a **single-line corridor** that leads to the end room. Basement corridors, if not room-only, **must loop**. End floor may instead be room-only (stairs from below dump into the room).
 
-Designer **exports** template JSON. Play **imports** it. Climb v1 ships a bundled layout that obeys these rules (as if it had been drawn in the designer).
-
-There are **no** preset square counts per floor. A normal floor’s loop is whatever the creator drew. The end floor does not have to loop.
+**Any tile** may have image and/or cutscene. Mark one cell as **start**; it can play media **at match start** (entrance) as well as on stop.
 
 ## Building (runtime)
 
-- `maxFloors`: **3** in v1. Climb uses 3 floors.
-- Movement is along the current floor’s path (loop on normal floors; open path or immediate room on the end floor), then through a door or stair.
-- **End floor** (top for Climb) is flagged in the layout. Two legal shapes:
-  - **Room-only:** the whole floor is the end room. **One or more** stair tiles on the floor below dump you straight into that room.
-  - **Approach corridor:** a **non-loop** run of tiles that leads to the end room’s door. Stairs from below land on a chosen cell of that path (or on the door). You still have to stop on the end room to win.
-- **End room:** the flagged win room (not the HUD). After it **resolves**, that player wins Climb.
-- Side rooms are still either **card-only** (play pack, snap back to the door square) or **2–4 inner squares** with a Leave Room square (snap back to the door). Inner squares are play state, not extra designer widgets in v1 — v1 designer places the room **footprint**; inner-square maps can be a later designer toggle.
-- `startFloor` / `startSquare` (Climb: floor 1, a chosen corridor cell). The start square may play media **at match start** (shared intro on the HUD) as well as if someone later **stops** on it.
+- Floors are an ordered stack (… basement, 1, 2, …). Count is whatever the designer saved.
+- Movement along the current path, then door or stair.
+- **End floor** (optional): **(A)** room-only end room, one or more stairs from below enter it, or **(B)** non-loop approach path to the end room. You win a “reach the end” game only if that win rule is selected **and** the end room has **resolved**.
+- **Win** is designed, not assumed: e.g. reach end room, or **none** (cards/cutscenes/items declare win). Climb example uses reach end room.
+- Side rooms: card-only snap-back, or 2–4 inner squares with Leave Room. Inner maps can stay a later designer toggle; v1 places the room footprint.
+- Start floor/square are chosen in the designer.
 
 ## Tile media
 
-Every board tile may link **none, an image, a cutscene, or both**.
+Any tile: none, image, cutscene, or both.
 
-- **On stop:** if the tile has media and `onStop` is on (default when media is attached), play it in the HUD **before** effects, packs, door, or stair resolve.
-- **On game start:** the start square may also have `onGameStart` (default **on** if it has media). Plays once when the match begins, before the first spin — hotel lobby, haunted doorway, etc.
-- Skip/dismiss follows the same skip rules as other overlays if the template allows skip.
-- Missing file: placeholder + continue, do not crash.
-- Media does not replace a pack or a room card; it plays **then** those still run if the tile has them.
-- `stairDirection` on the template: Climb `up`. Down is stored for later games.
+- **On stop** (default if media is set): HUD overlay, then the tile’s usual resolve.
+- **On game start:** available on the start square (default on if it has media). Shared intro before the first spin.
+- Skip if the game allows skip. Missing file: placeholder + continue. Media never replaces a pack/card; it plays first.
 
 ## Squares
 
-Resolve **only the square you stop on**, and only if it has something to resolve. Crossing a door or stair on the way never fires.
+Resolve **only the square you stop on**.
 
-| Kind | Pack? | What happens on land |
+| Kind | Pack? | On land |
 |---|---|---|
-| Empty corridor | no | Optional tile media, then turn ends. Next player. |
-| Content corridor | optional pack + optional **one** effect | Optional tile media, then effect (if any), then pack (if any). |
-| Door | **never** | Optional tile media (and/or the room’s media). Unlocked → enter that room. Locked → stay, next player. |
-| Stair | **never** | Optional tile media. Unlocked → then move to the destination: paired cell on the floor above, **or** straight into the end room if that floor is room-only. Blocked → stay, next player. |
+| Empty corridor | no | Media, then next player (or next beat in 1-player). |
+| Content corridor | optional pack + optional one effect | Media, then effect, then pack. |
+| Door | never | Media, then enter or stay if locked. |
+| Stair | never | Media, then go to the **linked** destination if unlocked. |
 
-**Effect** (at most one per corridor square), v1 kinds:
+Effects (at most one per corridor square) still include locks (stairs/doors/named room, self or everyone). Extra effect: **give / take / require item**.
 
-- lock stairs for *n* of **this player’s** turns
-- lock doors for *n* of **this player’s** turns
-- lock a **named room** (including the end room) for *n* of **this player’s** turns
-- same three as **everyone** locks for *n* full rounds
+Door/stair squares never hold packs.
 
-Door/stair squares never hold packs. Packs live on content squares and inside rooms.
+## Spinners
 
-## Turn loop
+Spinners are **named, reusable** designer objects — not a single hard-coded 1–6 wheel.
 
-1. Play view switches to the current player’s floor.
-2. They spin (v1: spinner; default 1–6).
-3. Token slides that many squares along this floor’s path (loop, end-floor approach, or already in the end room). If they are inside a side room, along that room’s inner squares.
-4. Landing square resolves.
-5. Card / room / overlay finishes (timer, pass, helper, together).
-6. Next player (unless they remain in an inner-square room until Leave Room). After the end room resolves, Climb ends for that player (win).
+| Kind | Config | Use |
+|---|---|---|
+| Number | min, max, step, optional labels | Movement, or a card/scenario that needs a number |
+| Player | eligibility from the **relationship graph** (partners, cannot-spin, groups) | “Another player helps / is accused” |
+| Yes/no | optional weights, labels | Random yes/no beat |
 
-## Cards and packs
+A game picks which spinner is **movement**. Cards may **link** any spinner. 1-player: number and yes/no work; player spinner follows no-helper if the set is empty.
 
-Unchanged in spirit. Packs are JSON + media wired to squares or rooms.
+## Items and inventory
 
-**Kinds (v1):** Question; Do / reveal; Image; Clip; Audio.
+Items are designer objects (`id`, name, icon, stackable?, canShare, canLose).
 
-Any kind may start a **timer** (countdown in the HUD) with a per-card zero result (fail, nudge, or listed result), and may allow **Pass**.
+- Each player has an **inventory** (HUD).
+- Cards, tile effects, and together/helper beats can **give**, **remove**, **require** (can’t proceed without it), **share** (to partner / chosen player), or **lose** (timer fail, pass, or card).
+- Sharing uses the relationship graph when the card says “partner”; otherwise a player spinner (if eligible people exist).
+- 1-player: share-to-other is skipped; lose/give/require still work (camera, magnifying glass for a solo mystery).
 
-**Game passes:** optional max per player. Pass = skip card, stay, turn ends, spend that player’s pass.
+## Cards and packs (card designer)
 
-**Together:** occupied square/room uses the together version of **that** pack’s type; replaces the solo card. Per card: lander-only or everyone on the square.
+A **pack** is a set: shared **back image**, list of cards, wired to squares/rooms.
 
-**Helper spinner:** picks another **eligible** player. Helper may Pass (their pass). Else help, or card fail path.
+**Front:** a **template image** for that pack (or per card) plus **slots** for the card’s properties (title, body, timer, buttons). Not a single fixed card layout for every game.
 
-**Deck:** animated flip; used card to bottom; after a full cycle, next landing **shuffles** (animation) then draws.
+Each card may:
 
-## Relationships (setup graph)
+- Kind: question, do/reveal, image-talk, clip, audio, or a combination the template allows
+- **Timer** with its **own duration** and zero result (fail, nudge, listed result, lose item, …)
+- **Pass** allowed or not
+- Linked **spinner** (number / player / yes-no)
+- Linked **overlay image** and/or **cutscene**
+- Together version of the **same type** (ignored in 1-player)
+- Item give/take/require/share/lose
+- Win / no-helper / fail paths as needed
 
-- Optional **partner**
-- **Cannot-spin** list: cannot exclude everyone unless you have a partner (closed pair may exclude all others)
-- Unpaired: partner-cards fall back to helper spinner
-- **Groups** store default partners/excludes; no hidden-traitor game in v1
+**Deck:** animated flip; used card to the bottom; after a full cycle, next draw **shuffles** (animation).
+
+**Game passes:** optional max per player. Pass skips the card, stay, spend that actor’s pass (lander or helper).
+
+## Relationships
+
+Optional partner; cannot-spin (cannot exclude everyone unless partnered; a closed pair may). Groups apply default links. 1-player: graph unused.
 
 ## Architecture
 
-**Stack:** TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend in v1.
+TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
-**Split:**
+1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested.
+2. **Game JSON** — floors, cells, stairs (with destinations), rooms, HUD rect, media, start, end flags, spinner defs, items, packs, win rule.
+3. **Play UI** — current floor, HUD, inventory, minimap, overlays.
+4. **Designer UI** — layout grid, card/pack editor, spinner editor, item editor, validation, export.
+5. **Persistence** — `localStorage` for play and drafts; bundled example JSON in the repo.
 
-1. **Engine (pure TypeScript)** — grid graph, loop check, movement, locks, decks, eligibility, win, save. Unit-tested.
-2. **Layout JSON** — floors, cells, rooms, stairs, HUD rect, media refs, end-room id, start cell.
-3. **Packs** — JSON + images/audio/video.
-4. **Play UI** — current-floor grid, HUD, minimap overlay, first-person popup, win.
-5. **Designer UI** — same grid, palette, drag/drop/resize, validation, export.
-6. **Persistence** — play session in `localStorage`; designer can save layouts in the browser too (v1), files on disk as JSON in the repo for Climb.
+First-person: CSS 3D first; Three.js only if needed. Discrete squares.
 
-First-person: CSS 3D corridor first; tiny Three.js only if CSS looks cheap. Discrete squares, not a character controller.
-
-**Data flow:** designer (or bundled JSON) → validate layout → setup players/graph → play loop → persist → win.
+Invalid if: stair with no destination; normal/basement corridor that doesn’t loop; non-loop corridor on a non-end floor; end-floor path that doesn’t reach the end room; exclude-all without a partner.
 
 ## UI states
 
-- **Designer:** empty grid / floor tabs / invalid loop warning / export
-- **Play, no save:** setup, then Climb
-- **Loading / error:** missing media placeholder + skip; invalid layout named clearly
-- **Play:** current floor, HUD, player strip, minimap icon
-- **Win:** named player resolved the end room; new game clears save
+Designer: floors, palette, card/item/spinner editors, validation errors.  
+Play: setup (1+ players), intro media, turn, overlays, win as the game defines.  
+Errors: missing media placeholder; named layout errors.
 
 ## Testing
 
-Engine:
+- Loop required except flagged end floor; basement loop vs room-only basement
+- Down stair from floor 1 must link to a basement room **or** looping basement
+- Up/down/both stairs; dangling stair rejected
+- End floor path vs room-only end; non-end non-loop rejected
+- 1-player: no together; player spinner → no-helper path; inventory still works
+- Number / player / yes-no spinners
+- Item give, require, lose, share
+- Card timer per card; pack back/front; shuffle cycle
+- Tile media on stop + start intro
+- Land-only resolve; locks; save round-trip
 
-- Loop validation on normal floors (open path invalid; single loop valid)
-- End floor: room-only **or** a connected non-loop path to the end room
-- Multiple stairs on the floor below may share the end room as destination
-- Stair only legal on inner corridor; destination floor or end room exists
-- Room door must be on that floor’s corridor path; resize keeps a door
-- HUD cells reject pieces
-- Land-only resolve
-- Door/stair lock vs enter/climb
-- Tile media on stop does not skip packs/rooms; start-square media plays at match start
-- End room win after resolve
-- Together, pack cycle/shuffle, pass, helper eligibility, save round-trip
+Manual: 1-player cutscene beat; 2- and 6-player; designer: add basement, link down stair, refuse unsaved dangling stair.
 
-Manual: 2 and 6 players on Climb; turn change swaps the visible floor; minimap shows everyone; designer: draw a loop, add inner stair, add outer room, pick door, refuse HUD drop.
+## Build order (after approval)
 
-## Build order (after this spec is approved)
-
-1. Engine + bundled Climb layout + play (proves rules)
-2. Layout designer on the same grid (author the next game without hand-JSON)
-3. Later: store, dice, own-device, down-stair games, native
+1. Engine + JSON schema (flexible; not Climb-hard-coded)
+2. Player that loads a bundled **example** layout (Climb-shaped) to prove play
+3. Layout designer (grid, stairs that must link, any floor count)
+4. Card / spinner / item designers
+5. Later: store, own-device, native, publish to the website
 
 ## Later slices
 
-1. Publish layouts to Michael’s website
-2. Buyable card packs
-3. Dice
-4. Own-device multiplayer
-5. Escape / hunt / whodunit + hidden groups
-6. Native wrapper
-7. `maxFloors` above 3
-8. Designer toggle for inner-square room maps
-9. Down-stair labels in a shipped game
+1. Buyable packs  
+2. Own-device multiplayer  
+3. Native wrapper  
+4. Inner-square room maps in the designer  
+5. Publish to Michael’s website  
 
-## Open defaults
+## Example defaults (Climb sample only — not engine limits)
 
-- Spinner **1–6**
-- Loop walk **clockwise** unless the drawn loop implies otherwise
-- First player = **setup order**
-- First-person default for Climb = **room + stairs**, skip **on**
-- Passes **on**, **1** per player
-- Climb end floor = **room-only** penthouse; one inner stair on floor 2 is enough, more stairs are allowed
-- HUD reserved as a centre rectangle (size set in the layout, not by dropping widgets)
+- Movement spinner 1–6  
+- Three looping floors + room-only penthouse; up stairs only **in that sample**  
+- Passes on, 1 each  
+- First-person: room + stairs, skip on  
+- HUD centre rectangle set in the layout
