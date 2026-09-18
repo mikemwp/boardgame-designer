@@ -1,5 +1,7 @@
 # Building Board Template Implementation Plan
 
+> **Status: superseded.** Spec reopened for PlayCanvas React 3D board v1. Do not implement this plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship a Next.js designer + player web app where Michael can author building-board games (layout, cards, spinners, items, media), test drafts, publish live slugs, and play them pass-and-play with an HTML v1 board and a shared Three.js first-person preview layer.
