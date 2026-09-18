@@ -111,7 +111,7 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
   - **Card-only:** landing on the **door** (corridor square) plays that room’s card(s). Optional: main-board **background** becomes the room image for that beat. Then snap back to the door (unless the card/spinner says otherwise).
   - **Inner map:** the room is its own path of **any number** of inner squares that **loop back to the door**. Enter via the door; leave by stopping on the door square again (or a marked Leave square that *is* the door). Inner squares are wired like any tile: packs, media, backgrounds, spinners, effects.
   - **Item squares** sit **beside** inner squares (same idea as a room beside a corridor). Landing on an item square plays that square’s card/pack — typically an item card. The designer makes room-specific packs and attaches them; there is no special item engine, only the same card link.
-  - A **room card may itself be a spinner card**: each slice is an item (or colour, yes/no, etc.) and each slice **links to a card**. That is the outcome spinner, not a new mechanic.
+  - A **room card may itself be a spinner card**: each slice is whatever the designer labels (item, colour, direction, …) and each slice **links to a card**. That is the outcome spinner, not a new mechanic.
 - Start floor/square are chosen in the designer.
 
 ## Tile media
@@ -147,11 +147,11 @@ Spinners are **named, reusable** designer objects — not a single hard-coded 1�
 |---|---|---|
 | Number | min, max, step, optional labels | Movement, or a card/scenario that needs a number |
 | Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups) | “Another player helps / is accused” |
-| Outcome | **N slices** (2 = yes/no, 3, 4, or as many as the designer needs — items, colours, rooms, …). Equal split by default; optional **weights**. Each slice: label plus any of **image, cutscene, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
+| Outcome | Designer config: slice **count** (2 or more), **labels**, optional **weights** (equal split default), and per-slice effects. The designer chooses what each slice means. Each slice: label plus any of **image, cutscene, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
 
-**Outcome slices** (each independently):
+**Outcome slices** (each independently, all designer-set):
 
-- Label (e.g. Yes / No, or Left wing / Roof / Cellar)
+- Label (Up / Down, Yes / No, Left wing / Roof / Cellar, item names, …)
 - Optional **overlay image**
 - Optional **cutscene**
 - Optional **card** (or pack draw) — e.g. each slice is an item that opens that item’s card
@@ -223,7 +223,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
-- Number / player / outcome spinners (**N** slices; slice can move, play media, draw a card, give an item)
+- Number / player / outcome spinners (designer slice count and labels; slice can move, play media, draw a card, give an item)
 - Room inner loops of any length; item squares; card-only door; board background per tile/room/stair
 - First-person **none** (plain board) is valid
 - Starting kit / group kit / setup pick pool seed inventory
