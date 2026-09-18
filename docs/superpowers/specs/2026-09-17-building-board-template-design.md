@@ -18,7 +18,7 @@ A web creator (no Unity) where you design **many games**: new project, save draf
 - Logins for **players** (designer publish can use a simple local/studio flow at first; public play stays no-account)
 - Payments, purchasable packs (pack format exists; buying is later)
 - Each player on their own device (later)
-- Dice as a second movement toy (spinners cover number / player / yes-no)
+- Dice as a second movement toy (spinners cover number / player / outcome)
 - Native apps
 - Hidden-traitor *game* (the pair/exclude/group **graph** exists so a whodunit can be designed)
 - Showing every floor at once on the play board
@@ -128,9 +128,19 @@ Spinners are **named, reusable** designer objects — not a single hard-coded 1�
 |---|---|---|
 | Number | min, max, step, optional labels | Movement, or a card/scenario that needs a number |
 | Player | eligibility from the **relationship graph** (partners, cannot-spin, groups) | “Another player helps / is accused” |
-| Yes/no | optional weights, labels | Random yes/no beat |
+| Outcome | **2, 3, or 4** slices (50/50, thirds, or quarters). Equal split by default; optional **weights** if a slice should be rarer. Each slice: label plus any of **image, cutscene, card, token move** | Flexible random beat — yes/no is just a 2-slice preset |
 
-A game picks which spinner is **movement**. Cards may **link** any spinner. 1-player: number and yes/no work; player spinner follows no-helper if the set is empty.
+**Outcome slices** (each independently):
+
+- Label (e.g. Yes / No, or Left wing / Roof / Cellar)
+- Optional **overlay image**
+- Optional **cutscene**
+- Optional **card** (or pack draw)
+- Optional **token movement**: move the current player **N** squares along the current path, **or** send them to a named tile/stair/room (designer picks). Movement still **stops and resolves** that landing square.
+
+A game may use several outcome spinners. Cards, tiles, and rooms may **link** any spinner. After the wheel lands, play the slice’s media/card/move in that order (skip anything unset).
+
+A game picks which **number** spinner is default **movement**. 1-player: number and outcome work; player spinner follows no-helper if the set is empty.
 
 ## Items and inventory
 
@@ -152,7 +162,7 @@ Each card may:
 - Kind: question, do/reveal, image-talk, clip, audio, or a combination the template allows
 - **Timer** with its **own duration** and zero result (fail, nudge, listed result, lose item, …)
 - **Pass** allowed or not
-- Linked **spinner** (number / player / yes-no)
+- Linked **spinner** (number / player / outcome)
 - Linked **overlay image** and/or **cutscene**
 - Together version of the **same type** (ignored in 1-player)
 - Item give/take/require/share/lose
@@ -193,7 +203,7 @@ Invalid if: stair with no destination; normal/basement corridor that doesn’t l
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
-- Number / player / yes-no spinners
+- Number / player / outcome spinners (2/3/4 slices; slice can move, play media, or draw a card)
 - Item give, require, lose, share
 - Card timer per card; pack back/front; shuffle cycle
 - Tile media on stop + start intro
