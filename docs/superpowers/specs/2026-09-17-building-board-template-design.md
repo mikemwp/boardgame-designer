@@ -127,12 +127,12 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
   - **Item squares** sit **beside** inner squares (same idea as a room beside a corridor). Landing on an item square plays that square’s card/pack — typically an item card. The designer makes room-specific packs and attaches them; there is no special item engine, only the same card link.
   - A **room card may itself be a spinner card**: each slice is whatever the designer labels (item, colour, direction, …) and each slice **links to a card**. That is the outcome spinner, not a new mechanic.
 - Start floor/square are chosen in the designer.
-- **Floor hold** (optional, per floor, default off): this player cannot **leave this floor by stairs** until their **scenarios** on that floor are complete. Other floors’ stairs they already passed stay as designed. Climb can leave this off.
+- **Floor hold** (optional, **per floor**, default off): this player cannot **leave this floor by stairs** until their **pack reveal counts** on that floor are met. Climb can leave this off.
 
-**Scenarios** (designer, used when floor hold is on):
+**Pack reveal counts** (designer, when floor hold is on):
 
-- Flag squares and/or a **pack + count** (e.g. clue pack, need **5** resolves on this floor). A corridor with a clue every fifth square is just those squares wired to that pack.
-- Complete for a player when they have met the count / resolved each flagged square **on this floor**. Per-player (two people can be on different progress).
+- On that floor, list one or more **packs** and a **count** each (e.g. Clues × 5). Pack type is the pack id; a corridor with a clue every fifth square is just those squares wired to the Clues pack.
+- Complete for a player when they have **revealed** that many cards from each listed pack **while on this floor**. A reveal is a card that was actually shown (not a no-show skip, not a pass). Per-player.
 
 While hold is active for that player:
 
@@ -141,7 +141,7 @@ While hold is active for that player:
 - Crossing a stair without stopping still does nothing (land-to-resolve). A roll that *passes* the stair but stops past it is allowed.
 - If **every** possible roll would land on an illegal stair, movement is **0** this turn (do not loop forever).
 
-When scenarios are complete, those stairs unlock for that player and later rolls may land on them.
+When the reveal counts are met, those stairs unlock for that player and later rolls may land on them.
 
 ## Tile media
 
@@ -242,7 +242,7 @@ Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude 
 TypeScript web app (Next.js + Tailwind + shadcn/ui). No backend required at first.
 
 1. **Engine** — grid, loops, stair links, movement, locks, decks, spinners, inventory, eligibility, win, save. Unit-tested. **Not** PlayCanvas.
-2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner and dice defs, items, packs, named groups, card no-show, floor hold / scenarios, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
+2. **Game JSON** — named floors, cells, stairs, rooms, HUD, media, start/end, spinner and dice defs, items, packs, named groups, card no-show, floor hold / per-pack reveal counts, win rule, slug, draft vs live version. PlayCanvas entities are **derived** from this.
 3. **Play UI** — PlayCanvas React **3D board** + DOM HUD; first-person/room cameras in the same app (shared with designer preview).
 4. **Designer UI** — game library (new/open/save/test/publish), HTML layout grid, card/pack/spinner/item editors, validation, PlayCanvas floor preview.
 5. **Persistence** — drafts in `localStorage` (and downloadable JSON); **live** games as versioned static bundles the public player loads by slug.
@@ -274,7 +274,7 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - New / save draft / test / publish live; test is not public; live is a slug
 - PlayCanvas React 3D board + first-person + designer preview; HUD/setup are DOM + shadcn
 - 3D tokens slide tile-to-tile; dice tumble on the 3D board and show the pre-rolled integer
-- Floor hold: scenarios complete before leaving; movement RNG excludes illegal stair landings
+- Floor hold: per-pack reveal counts on that floor before leaving; movement RNG excludes illegal stair landings
 
 Manual: 1-player cutscene beat; 2- and 6-player; designer: new game, save invalid draft, Test blocked until stairs link, Publish produces a playable slug.
 
