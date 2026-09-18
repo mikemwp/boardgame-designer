@@ -77,12 +77,12 @@ Floor tabs: any number of floors, including **below** the start floor (basement)
 | Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** before Test or Publish: another floor’s landing cell, a **room-only** floor, or the end room. Several stairs may share a destination. Optional media. |
 | Room | Outer or inner side of a corridor, or **fill a floor** as a single room (no corridor) — used for a **room-only basement** or **room-only end**. Resize. Pick door if a corridor exists. Optional media, optional pack. Flag at most one **end room**. |
 
-**Stairs must go somewhere.** A down stair from floor 1 may link to:
+**Stairs must go somewhere** before Test or Publish. A down stair from floor 1 may link to:
 
 - a **single basement room** (room-only floor), or
 - a **basement corridor loop** with its own rooms and stairs.
 
-A dangling stair is invalid.
+A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 
 **Only the end floor** may use a **single-line corridor** that leads to the end room. Basement corridors, if not room-only, **must loop**. End floor may instead be room-only (stairs from below dump into the room).
 
