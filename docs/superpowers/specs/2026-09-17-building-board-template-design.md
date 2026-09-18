@@ -28,7 +28,11 @@ A web creator (no Unity) where you design **many games**: new project, save draf
 - Player count is **1 or more**. No engine cap. We will **test** 1 and 2–6; the UI must not assume 6 is max.
 - **1 player:** interactive / cutscene-driven. No together cards (nobody else on the square). Player spinner with no eligible people uses the card’s **no-helper** path. Partner setup is skipped.
 - **2+:** pass-and-play, one screen.
-- Setup: name, token colour, optional partner, cannot-spin list, group (skipped or simplified for 1 player).
+- Setup (2+; 1-player skips partner/exclude/group): **name**, **token colour**, optional **partner**, **cannot-partner** list (same exclude graph as player spinners: people you won’t couple with and who won’t be spun as “another player”), optional **group**, **starting items**.
+- **Starting items** at setup:
+  - The designer can give everyone a **kit**, or kits **by group** (Faithfuls get X, Traitors get Y).
+  - If the game has a **pick pool**, each player also chooses up to N items from that pool (unique or shared, as the designer sets).
+  - 1-player: kit plus optional pick, then play. Inventory is live before intro media.
 - Session persists in the **browser**. No accounts.
 
 ## Game library (multiple games)
@@ -127,7 +131,7 @@ Spinners are **named, reusable** designer objects — not a single hard-coded 1�
 | Kind | Config | Use |
 |---|---|---|
 | Number | min, max, step, optional labels | Movement, or a card/scenario that needs a number |
-| Player | eligibility from the **relationship graph** (partners, cannot-spin, groups) | “Another player helps / is accused” |
+| Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups) | “Another player helps / is accused” |
 | Outcome | **2, 3, or 4** slices (50/50, thirds, or quarters). Equal split by default; optional **weights** if a slice should be rarer. Each slice: label plus any of **image, cutscene, card, token move** | Flexible random beat — yes/no is just a 2-slice preset |
 
 **Outcome slices** (each independently):
@@ -146,7 +150,7 @@ A game picks which **number** spinner is default **movement**. 1-player: number 
 
 Items are designer objects (`id`, name, icon, stackable?, canShare, canLose).
 
-- Each player has an **inventory** (HUD).
+- Each player has an **inventory** (HUD), seeded at setup from kit + picks, then changed in play.
 - Cards, tile effects, and together/helper beats can **give**, **remove**, **require** (can’t proceed without it), **share** (to partner / chosen player), or **lose** (timer fail, pass, or card).
 - Sharing uses the relationship graph when the card says “partner”; otherwise a player spinner (if eligible people exist).
 - 1-player: share-to-other is skipped; lose/give/require still work (camera, magnifying glass for a solo mystery).
@@ -174,7 +178,7 @@ Each card may:
 
 ## Relationships
 
-Optional partner; cannot-spin (cannot exclude everyone unless partnered; a closed pair may). Groups apply default links. 1-player: graph unused.
+Optional partner; **cannot-partner** / cannot-spin exclude list (cannot exclude everyone unless partnered; a closed pair may). Groups apply default links **and default kits**. 1-player: graph unused; kit still applies.
 
 ## Architecture
 
@@ -204,7 +208,7 @@ Invalid if: stair with no destination; normal/basement corridor that doesn’t l
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
 - Number / player / outcome spinners (2/3/4 slices; slice can move, play media, or draw a card)
-- Item give, require, lose, share
+- Starting kit / group kit / setup pick pool seed inventory
 - Card timer per card; pack back/front; shuffle cycle
 - Tile media on stop + start intro
 - New / save draft / test / publish live; test is not public; live is a slug
