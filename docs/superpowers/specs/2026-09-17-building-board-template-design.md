@@ -132,7 +132,7 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 **Pack reveal counts** (designer, when floor hold is on):
 
 - On that floor, list one or more **packs** and a **count** each (e.g. Clues × 5). Pack type is the pack id; a corridor with a clue every fifth square is just those squares wired to the Clues pack.
-- Complete for a player when they have **revealed** that many cards from each listed pack **while on this floor**. A reveal is a card that was actually shown (not a no-show skip, not a pass). Per-player.
+- Complete for a player when they have **revealed** that many cards from each listed pack **while on this floor**. A **reveal** is only the **positive** button (Accept / Reveal / Show / designer label) after the card body is shown. **Pass** and no-show skips do not count. Per-player.
 
 While hold is active for that player:
 
@@ -213,13 +213,15 @@ Items are designer objects (`id`, name, icon, stackable?, canShare, canLose).
 
 A **pack** is a set: shared **back image**, list of cards, wired to squares/rooms.
 
-**Front:** a **template image** for that pack (or per card) plus **slots** for the card’s properties (title, body, timer, buttons). Not a single fixed card layout for every game.
+**Front:** a **template image** for that pack (or per card) plus **slots** for the card’s properties (title, body, timer, **buttons**). Not a single fixed card layout for every game.
 
 Each card may:
 
 - Kind: question, do/reveal, image-talk, clip, audio, or a combination the template allows
 - **Timer** with its **own duration** and zero result (fail, nudge, listed result, lose item, …)
-- **Pass** allowed or not
+- **Buttons** (not pass-only): a **positive** action and a **negative** action
+  - **Positive:** designer label (Accept, Reveal, Show, or any copy that fits the card). This shows the rest of the card (e.g. clue type first, then the actual clue) and **counts as a pack reveal**.
+  - **Negative:** **Pass** (fixed role; label may stay “Pass”). Does **not** count as a reveal. Optional: game may disable Pass on a card.
 - Linked **spinner or dice** (number spinner / dice / player / outcome)
 - Linked **overlay image**, **cutscene**, and/or **audio**
 - Together version of the **same type** (ignored in 1-player)
@@ -227,11 +229,11 @@ Each card may:
 - Item give/take/require/share/lose
 - Win / no-helper / fail paths as needed
 
-**Deck:** animated flip. On a draw, walk the pile from the top for the **drawing player**. Cards flagged **no-show** for that player’s group are **left in place** (not flipped, not sent to the bottom). The first card that is allowed is dealt. After it is used, **that** card goes to the bottom. After a full cycle of *drawn* cards, the next draw **shuffles** (animation).
+**Deck:** animated flip. On a draw, walk the pile from the top for the **drawing player**. Cards flagged **no-show** for that player’s group are **left in place** (not flipped, not sent to the bottom). The first card that is allowed is dealt. After it is used (positive **or** pass), **that** card goes to the bottom. After a full cycle of *drawn* cards, the next draw **shuffles** (animation).
 
 Skipped no-show cards stay in their order for the next player who is allowed them. A player with no group sees every card. If no allowed card remains in the pile, the draw is empty (continue; do not burn the hidden cards).
 
-**Game passes:** optional max per player. Pass skips the card, stay, spend that actor’s pass (lander or helper).
+**Pass:** skips the hidden body, stay on the square, spend a pass if the game uses a pass budget (optional max per player; lander or helper). The tease/type may have been visible; the actual clue was not. Floor-hold reveal counts ignore Pass.
 
 ## Relationships
 
