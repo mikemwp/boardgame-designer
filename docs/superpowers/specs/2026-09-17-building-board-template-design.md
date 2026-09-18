@@ -4,7 +4,7 @@
 **Status:** draft for review  
 **Product:** a **game designer** (layout, cards, spinners, items, media) plus a **player** that runs whatever was designed. Climb is only the first bundled example, not the limit of the engine.
 
-Think of this as a creator. The **engine is a small set of repeating mechanics** (stop on a square → optional background, media, spinner, card, item, move). The designer **links** squares, rooms, stairs, images, spinners, cutscenes, and cards. A published game might be a full 3D-ish climb, a mystery with items, or a **plain board game** with no cutscenes and no first-person.
+Think of this as a creator. The **engine is a small set of repeating mechanics** (stop on a square → optional background, media, spinner, card, item, move). The designer **links** squares, rooms, stairs, images, audio, spinners, cutscenes, and cards. A published game might be a full 3D-ish climb, a mystery with items, or a **plain board game** with no cutscenes and no first-person.
 
 Play and design share one **grid + HUD** model (same idea as Michael’s widget home screen: dropdown → drop → drag). Designer can be a route in this app or a sibling project that exports the same JSON.
 
@@ -68,8 +68,8 @@ Grid. On a turn you see **that player’s floor only**.
 
 - **Centre HUD (reserved):** active spinner, cards, inventory, timer, whose turn, passes, player strip. Overlays for the current scenario. No board widgets here.
 - **Corridor:** around the HUD. **Every floor must loop**, except a flagged **end floor**, which may be a path into the end room (or a single room).
-- **Rooms:** outside or inside the corridor, not on the HUD. Resizable. One door square. Optional media.
-- **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label uses the **destination floor’s name** (`Up to Penthouse`, `Down to Cellar`).
+- **Rooms:** outside or inside the corridor, not on the HUD. Resizable. One door square. Optional media (image, cutscene, **audio**).
+- **Stairs:** inner edge of a corridor cell (cell **becomes** the stair). Label uses the **destination floor’s name** (`Up to Penthouse`, `Down to Cellar`). Optional media including **audio**.
 - **Minimap** in the HUD: overlay of the whole building, everyone marked. Other floors’ tokens are not on the big ring.
 - **First-person popup:** game setting: **none** | room only | room + stairs | every spin, plus allow skip. **None** = plain board game (no FP, cutscenes optional).
 - **Board background:** the main play area can swap a **background image** when you stop on a square, enter a room, or use stairs (designer links the image). Card-only rooms typically switch to that room’s image while the room card is up.
@@ -85,9 +85,9 @@ Floor tabs: any number of **named** floors (Ground, Cellar, Roof, …). No max, 
 
 | Widget | Rules |
 |---|---|
-| Corridor square | Non-HUD cell. Adjacent cells form paths. **Loop required** except on a flagged **end floor**. Optional media. |
-| Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** before Test or Publish: another floor’s landing cell, a **room-only** floor, or the end room. Several stairs may share a destination. Optional media. |
-| Room | Outer or inner side of a corridor, or **fill a floor** as a single room. Resize. Pick door if a corridor exists. Optional background image. **Card-only** or **inner map** (any number of inner squares). Flag at most one **end room**. |
+| Corridor square | Non-HUD cell. Adjacent cells form paths. **Loop required** except on a flagged **end floor**. Optional media (image, cutscene, **audio**). |
+| Stair | Inner edge of a corridor cell only. That cell becomes a stair. Direction **up, down, or both**. **Must link to a destination** before Test or Publish: another floor’s landing cell, a **room-only** floor, or the end room. Several stairs may share a destination. Optional media (image, cutscene, **audio**). |
+| Room | Outer or inner side of a corridor, or **fill a floor** as a single room. Resize. Pick door if a corridor exists. Optional background image, cutscene, and/or **audio**. **Card-only** or **inner map** (any number of inner squares). Flag at most one **end room**. |
 
 **Stairs must go somewhere** before Test or Publish. A stair may link to:
 
@@ -99,7 +99,7 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 
 **Only the end floor** may use a **single-line corridor** that leads to the end room. Every other floor with a corridor **must loop**. Any floor may instead be room-only.
 
-**Any tile** may have image and/or cutscene. Mark one cell as **start**; it can play media **at match start** (entrance) as well as on stop.
+**Any tile** may have image, cutscene, and/or **audio** (any mix). Mark one cell as **start**; it can play media **at match start** (entrance) as well as on stop.
 
 ## Building (runtime)
 
@@ -116,10 +116,11 @@ A dangling stair is invalid for Test/Publish. Draft save is still allowed.
 
 ## Tile media
 
-Any tile: none, image, cutscene, or both.
+Any square, room, or stair: none, **image**, **cutscene**, **audio**, or any mix. Each is a designer **link** (file/ref), independent of the others.
 
 - **Board background** (optional, per square / room / stair): when you stop or enter, the **main play area** can switch to that image. Clears when the designer says (leave room, next stop, etc.).
-- **On stop** (default if media is set): HUD overlay and/or background, then the tile’s usual resolve.
+- **Audio** (optional, same places): plays on stop/enter. Does not replace image or cutscene.
+- **On stop** (default if media is set): HUD overlay and/or background and/or audio, then the tile’s usual resolve.
 - **On game start:** available on the start square (default on if it has media). Shared intro before the first spin.
 - Skip if the game allows skip. Missing file: placeholder + continue. Media never replaces a pack/card; it plays first.
 
@@ -141,24 +142,25 @@ Door squares hold a pack **only** when the room is card-only. Stair squares neve
 
 ## Spinners
 
-Spinners are **named, reusable** designer objects — not a single hard-coded 1–6 wheel.
+Spinners are **named, reusable** designer objects — not a single hard-coded 1–6 wheel. Any spinner may also link **audio** that plays when it is used.
 
 | Kind | Config | Use |
 |---|---|---|
-| Number | min, max, step, optional labels | Movement, or a card/scenario that needs a number |
-| Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups) | “Another player helps / is accused” |
-| Outcome | Designer config: slice **count** (2 or more), **labels**, optional **weights** (equal split default), and per-slice effects. The designer chooses what each slice means. Each slice: label plus any of **image, cutscene, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
+| Number | min, max, step, optional labels, optional **audio** | Movement, or a card/scenario that needs a number |
+| Player | eligibility from the **relationship graph** (partners, cannot-partner list, groups), optional **audio** | “Another player helps / is accused” |
+| Outcome | Designer config: slice **count** (2 or more), **labels**, optional **weights** (equal split default), optional spinner **audio**, and per-slice effects. The designer chooses what each slice means. Each slice: label plus any of **image, cutscene, audio, card, item, token move** | One random beat; a room “item spinner” is this, not a new type |
 
 **Outcome slices** (each independently, all designer-set):
 
 - Label (Up / Down, Yes / No, Left wing / Roof / Cellar, item names, …)
 - Optional **overlay image**
 - Optional **cutscene**
+- Optional **audio**
 - Optional **card** (or pack draw) — e.g. each slice is an item that opens that item’s card
 - Optional **item** give/take
 - Optional **token movement**: move the current player **N** squares along the current path, **or** send them to a named tile/stair/room (designer picks). Movement still **stops and resolves** that landing square.
 
-A game may use several outcome spinners. Cards, tiles, and rooms may **link** any spinner. After the wheel lands, play the slice’s media/card/move in that order (skip anything unset).
+A game may use several outcome spinners. Cards, tiles, and rooms may **link** any spinner. After the wheel lands, play the slice’s media (image, cutscene, audio) / card / move in that order (skip anything unset).
 
 A game picks which **number** spinner is default **movement**. 1-player: number and outcome work; player spinner follows no-helper if the set is empty.
 
@@ -183,7 +185,7 @@ Each card may:
 - **Timer** with its **own duration** and zero result (fail, nudge, listed result, lose item, …)
 - **Pass** allowed or not
 - Linked **spinner** (number / player / outcome)
-- Linked **overlay image** and/or **cutscene**
+- Linked **overlay image**, **cutscene**, and/or **audio**
 - Together version of the **same type** (ignored in 1-player)
 - Item give/take/require/share/lose
 - Win / no-helper / fail paths as needed
@@ -223,12 +225,13 @@ Invalid if: stair with no destination; non-loop corridor on a non-end floor; end
 - Up/down/both stairs; dangling stair rejected
 - End floor path vs room-only end; non-end non-loop rejected
 - 1-player: no together; player spinner → no-helper path; inventory still works
-- Number / player / outcome spinners (designer slice count and labels; slice can move, play media, draw a card, give an item)
+- Number / player / outcome spinners (designer slice count and labels; slice can move, play media including audio, draw a card, give an item)
 - Room inner loops of any length; item squares; card-only door; board background per tile/room/stair
+- Audio links on squares, rooms, stairs, spinners (and slices), and cards; missing audio placeholder + continue
 - First-person **none** (plain board) is valid
 - Starting kit / group kit / setup pick pool seed inventory
 - Card timer per card; pack back/front; shuffle cycle
-- Tile media on stop + start intro
+- Tile media on stop + start intro (image, cutscene, audio)
 - New / save draft / test / publish live; test is not public; live is a slug
 - Three.js first-person + designer preview; HTML board v1
 
