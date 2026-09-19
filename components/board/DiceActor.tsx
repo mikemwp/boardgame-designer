@@ -17,7 +17,7 @@ export function faceRotationForValue(value: number): [number, number, number] {
 }
 
 export function DiceActor({ targetValue, rolling }: { targetValue: number; rolling: boolean }) {
-  const rotation = rolling ? [0, 0, 0] : faceRotationForValue(targetValue);
+  const rotation: [number, number, number] = rolling ? [0, 0, 0] : faceRotationForValue(targetValue);
   return (
     <Entity name="die" rotation={rotation} position={[0, 1.5, 0]}>
       <Render type="box" />
