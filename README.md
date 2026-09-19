@@ -1,20 +1,19 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Building board game template — Next.js + PlayCanvas (slice 1: engine + scaffold).
+
+## Requirements
+
+- **Node.js 20.19+** or **22 LTS** (Vitest 3 / Vite 7 need a recent Node). Node 20.3 will fail on `npm test`.
+- Use `.nvmrc` (`nvm use` / `fnm use`) if you manage Node versions.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm ci
+npm test
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://127.0.0.1:4318](http://127.0.0.1:4318) with your browser.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
