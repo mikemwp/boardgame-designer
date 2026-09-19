@@ -1,4 +1,6 @@
-Building board game template — Next.js + PlayCanvas (slice 1: engine + scaffold).
+# Building Board Template
+
+Next.js building-board game template with a pure TypeScript engine, PlayCanvas React 3D board, DOM shadcn HUD, spreadsheet card import, and a bundled Climb sample.
 
 ## Requirements
 
@@ -15,21 +17,44 @@ npm run dev
 
 Open [http://127.0.0.1:4318](http://127.0.0.1:4318) with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **`lib/engine/*`** — Authoritative game rules and state (no PlayCanvas imports). Commands flow in; events flow out.
+- **`components/board/*`** — PlayCanvas React view layer: floor stack, sliding tokens, optional ammo.js dice visualization.
+- **`components/hud/*`** — DOM + shadcn HUD: cards, player bar, import dialog, feature toggles.
+- **`hooks/use-game-store.ts`** — React bridge connecting engine `dispatch` to UI state.
 
-## Learn More
+The engine decides outcomes; the board view only renders and animates.
 
-To learn more about Next.js, take a look at the following resources:
+## Card import
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Upload a CSV with a header row. Required columns:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Column | Required | Notes |
+|--------|----------|-------|
+| `pack` | yes | Card pack id |
+| `title` | yes | Card title |
+| `body` | no | Card body text |
+| `tags` | no | Pipe-separated tags |
 
-## Deploy on Vercel
+A sample file ships at `public/samples/climb-cards.csv`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Feature flags
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Toggle in the HUD sidebar:
+
+- **Dice** — Engine integer rolls; optional 3D physics dice on the board when enabled.
+- **Per-floor hold** — Require per-pack reveal quotas before leaving a hold floor.
+- **Card actions** — `both`, `positive`, `pass`, or `neither`. Pass does not count as a reveal.
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Dev server on port 4318 |
+| `npm test` | Run Vitest suite |
+| `npm run build` | Production build |
+
+## Sample
+
+The bundled **Climb (sample)** game demonstrates multi-floor stairs, optional hold on Floor 1, and card actions.
