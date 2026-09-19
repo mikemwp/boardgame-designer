@@ -8,6 +8,8 @@ vi.mock('@playcanvas/react', () => ({
 
 vi.mock('@playcanvas/react/components', () => ({
   Render: () => null,
+  Collision: () => null,
+  RigidBody: () => null,
 }));
 
 import { BoardScene } from '@/components/board/BoardScene';
@@ -16,7 +18,7 @@ import { createGame } from '@/lib/engine/game';
 
 describe('BoardScene', () => {
   it('mounts PlayCanvas Application', () => {
-    const game = createGame(climbSample);
+    const game = createGame(climbSample, { diceEnabled: false });
     render(<BoardScene game={game} />);
     expect(screen.getByTestId('pc-app')).toBeDefined();
   });
