@@ -10,6 +10,8 @@ vi.mock('@playcanvas/react/components', () => ({
   Render: () => null,
   Collision: () => null,
   RigidBody: () => null,
+  Camera: () => null,
+  Light: () => null,
 }));
 
 import { BoardScene } from '@/components/board/BoardScene';
