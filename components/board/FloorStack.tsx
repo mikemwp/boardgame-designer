@@ -7,7 +7,7 @@ import type { Board } from '@/lib/engine/board';
 import { cellToWorld } from '@/lib/view/board-layout';
 
 export function FloorStack({ board, usePhysics = false }: { board: Board; usePhysics?: boolean }) {
-  const material = useMaterial({ diffuse: '#64748b', roughness: 0.85, metalness: 0.05 });
+  const material = useMaterial({ diffuse: '#94a3b8', emissive: '#475569', emissiveIntensity: 0.9 });
 
   return (
     <>
@@ -18,7 +18,7 @@ export function FloorStack({ board, usePhysics = false }: { board: Board; usePhy
             key={floor.id}
             name={floor.id}
             position={[pos.x, pos.y, pos.z]}
-            scale={[1.4, 0.12, 1.4]}
+            scale={[1.6, 0.25, 1.6]}
           >
             <Render type="box" material={material} />
             {usePhysics && (

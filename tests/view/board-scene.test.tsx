@@ -1,8 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
+vi.mock('@/components/board/PlayCanvasViewport', () => ({
+  PlayCanvasViewport: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="pc-app">{children}</div>
+  ),
+}));
+
 vi.mock('@playcanvas/react', () => ({
-  Application: ({ children }: { children: React.ReactNode }) => <div data-testid="pc-app">{children}</div>,
   Entity: ({ name }: { name?: string }) => <div data-testid={`entity-${name}`} />,
 }));
 
