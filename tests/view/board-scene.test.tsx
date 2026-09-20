@@ -14,6 +14,10 @@ vi.mock('@playcanvas/react/components', () => ({
   Light: () => null,
 }));
 
+vi.mock('@playcanvas/react/hooks', () => ({
+  useMaterial: () => ({}),
+}));
+
 import { BoardScene } from '@/components/board/BoardScene';
 import { climbSample } from '@/lib/samples/climb';
 import { createGame } from '@/lib/engine/game';

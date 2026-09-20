@@ -1,7 +1,19 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { BoardScene } from '@/components/board/BoardScene';
+
+const BoardScene = dynamic(
+  () => import('@/components/board/BoardScene').then((m) => m.BoardScene),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[480px] w-full items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm text-slate-400">
+        Loading board…
+      </div>
+    ),
+  },
+);
 import { Button } from '@/components/ui/button';
 import { CardPanel } from '@/components/hud/CardPanel';
 import { FeatureToggles } from '@/components/hud/FeatureToggles';
