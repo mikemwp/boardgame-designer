@@ -33,4 +33,10 @@ describe('BoardScene', () => {
     render(<BoardScene game={game} />);
     expect(screen.getByTestId('pc-app')).toBeDefined();
   });
+
+  it('does not mount a 3D die on the play board', () => {
+    const game = createGame(climbSample, { diceEnabled: true, movementViz: 'dice' });
+    render(<BoardScene game={game} />);
+    expect(screen.queryByTestId('entity-die')).toBeNull();
+  });
 });

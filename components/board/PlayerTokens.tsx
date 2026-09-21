@@ -21,12 +21,14 @@ export function PlayerTokens({
   board,
   players,
   lastRoll,
+  allowSlide = true,
   onSlideStart,
   onSlideComplete,
 }: {
   board: Board;
   players: Player[];
   lastRoll: LastRoll | null;
+  allowSlide?: boolean;
   onSlideStart?: () => void;
   onSlideComplete?: () => void;
 }) {
@@ -55,6 +57,9 @@ export function PlayerTokens({
         lastRoll.value > 0 &&
         lastRoll.id !== lastAnimatedRollId.current;
       if (sameCell && !fullLap) {
+        continue;
+      }
+      if (!allowSlide) {
         continue;
       }
       const waypoints = fullLap
@@ -102,7 +107,7 @@ export function PlayerTokens({
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [board, players, lastRoll]);
+  }, [board, players, lastRoll, allowSlide, onSlideStart, onSlideComplete]);
 
   return (
     <>

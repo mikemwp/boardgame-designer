@@ -10,11 +10,13 @@ import { PlayerTokens } from './PlayerTokens';
 export function BoardScene({
   game,
   usePhysics,
+  allowSlide = true,
   onTokenSlideStart,
   onTokenSlideComplete,
 }: {
   game: GameState;
   usePhysics?: boolean;
+  allowSlide?: boolean;
   onTokenSlideStart?: () => void;
   onTokenSlideComplete?: () => void;
 }) {
@@ -37,6 +39,7 @@ export function BoardScene({
           board={game.board}
           players={game.players.players}
           lastRoll={game.lastRoll}
+          allowSlide={allowSlide}
           onSlideStart={onTokenSlideStart}
           onSlideComplete={onTokenSlideComplete}
         />
