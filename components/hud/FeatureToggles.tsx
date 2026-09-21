@@ -17,7 +17,7 @@ export function FeatureToggles({
     <div className="flex flex-col gap-4 rounded-lg border border-slate-800 p-4">
       <h2 className="text-sm font-medium text-slate-200">Features</h2>
       <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="dice-toggle">Dice</Label>
+        <Label htmlFor="dice-toggle">3D dice</Label>
         <Switch
           id="dice-toggle"
           checked={config.diceEnabled}

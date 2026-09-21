@@ -15,4 +15,28 @@ describe('CardPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
     expect(onDispatch).toHaveBeenCalledWith({ type: 'PASS_CARD', packId: 'climb' });
   });
+
+  it('hides body until visible', () => {
+    render(
+      <CardPanel
+        actionMode="both"
+        currentCard={{ id: '1', pack: 'climb', title: 'Rung', body: 'Secret clue' }}
+        bodyVisible={false}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(screen.queryByText('Secret clue')).toBeNull();
+  });
+
+  it('shows body when visible', () => {
+    render(
+      <CardPanel
+        actionMode="neither"
+        currentCard={{ id: '1', pack: 'climb', title: 'Rung', body: 'Secret clue' }}
+        bodyVisible
+        onDispatch={() => {}}
+      />,
+    );
+    expect(screen.getByText('Secret clue')).toBeDefined();
+  });
 });

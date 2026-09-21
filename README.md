@@ -39,13 +39,19 @@ Upload a CSV with a header row. Required columns:
 
 A sample file ships at `public/samples/climb-cards.csv`.
 
+## Play the Climb sample
+
+1. `npm run dev` and open http://127.0.0.1:4318
+2. Click **Roll dice**. The engine picks a 1–6 that would not land on a locked exit stair, the token slides that many squares, and a card deals only if you **stop** on a packed corridor cell.
+3. **Play** counts as a pack reveal. **Pass** dismisses the card and does not.
+4. Floor 1 hold (toggle **Per-floor hold**): you cannot land on that floor’s up stair until one climb card is revealed on that hold. If every face would hit that stair, last roll is **0 — stairs held**.
+5. There is no debug stair button. Climb is a bundled sample, not the engine’s limit.
+
 ## Feature flags
 
-Toggle in the HUD sidebar:
-
-- **Dice** — Engine integer rolls; optional 3D physics dice on the board when enabled.
-- **Per-floor hold** — Require per-pack reveal quotas before leaving a hold floor.
-- **Card actions** — `both`, `positive`, `pass`, or `neither`. Pass does not count as a reveal.
+- **3D dice** — ammo.js tumble on the board. Movement still uses the engine integer when this is off.
+- **Per-floor hold** — per-pack reveal quotas before leaving a hold floor by stairs.
+- **Card actions** — `both`, `positive`, `pass`, or `neither`. Pass does not count as a reveal. Neither counts on deal.
 
 ## Scripts
 
@@ -54,7 +60,3 @@ Toggle in the HUD sidebar:
 | `npm run dev` | Dev server on port 4318 |
 | `npm test` | Run Vitest suite |
 | `npm run build` | Production build |
-
-## Sample
-
-The bundled **Climb (sample)** game demonstrates multi-floor stairs, optional hold on Floor 1, and card actions.
