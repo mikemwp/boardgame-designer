@@ -54,6 +54,8 @@ export interface CardPack {
 
 export type DiceCount = 1 | 2;
 
+export type MovementViz = 'dice' | 'spinner';
+
 export interface GameConfig {
   actionMode: ActionMode;
   diceEnabled: boolean;
@@ -62,6 +64,7 @@ export interface GameConfig {
   passesPerPack: Record<string, number>;
   diceCount: DiceCount;
   diceSides: number;
+  movementViz: MovementViz;
   maxPlayers?: number;
   maxFloors?: number;
 }
@@ -75,5 +78,6 @@ export function defaultGameConfig(): GameConfig {
     passesPerPack: {},
     diceCount: 1,
     diceSides: 6,
+    movementViz: 'dice',
   };
 }

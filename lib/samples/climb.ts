@@ -71,5 +71,6 @@ export const climbSample: GameBootstrap = {
     actionMode: 'both',
     diceCount: 1,
     diceSides: 6,
+    movementViz: 'dice',
   },
 };

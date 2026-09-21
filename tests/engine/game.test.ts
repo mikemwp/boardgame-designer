@@ -150,6 +150,18 @@ describe('ROLL_DICE', () => {
     expect(next.lastRoll?.value).toBe(12);
     expect(next.lastRoll?.faces).toEqual([6, 6]);
   });
+
+  it('spinner two-range stores a uniform 1-12 lastRoll, not 2d6 faces', () => {
+    const game = createGame(loopBootstrap(), {
+      movementViz: 'spinner',
+      diceCount: 2,
+      rng: () => 0,
+    });
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.lastRoll?.sides).toBe(12);
+    expect(next.lastRoll?.value).toBe(1);
+    expect(next.lastRoll?.faces).toEqual([1]);
+  });
 });
 
 describe('PASS_CARD budget', () => {

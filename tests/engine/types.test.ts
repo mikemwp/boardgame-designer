@@ -11,6 +11,12 @@ describe('GameConfig', () => {
     expect(cfg.maxPlayers).toBeUndefined();
     expect(cfg.maxFloors).toBeUndefined();
   });
+
+  it('defaults movementViz to dice', () => {
+    const cfg: GameConfig = defaultGameConfig();
+    expect(cfg.movementViz).toBe('dice');
+    expect(cfg.diceCount).toBe(1);
+  });
 });
 
 describe('Cell and Floor slice-2 fields', () => {

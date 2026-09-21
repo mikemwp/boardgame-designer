@@ -1,7 +1,8 @@
 import { sampleMoveValue } from './movement';
+import type { DiceCount, MovementViz } from './types';
 
 export type Rng = () => number;
-export type DiceCount = 1 | 2;
+export type { DiceCount };
 
 export interface DiceRollResult {
   value: number;
@@ -11,6 +12,13 @@ export interface DiceRollResult {
 
 export function movementRangeForCount(count: DiceCount): { min: number; max: number } {
   return count === 2 ? { min: 2, max: 12 } : { min: 1, max: 6 };
+}
+
+export function movementRange(viz: MovementViz, count: DiceCount): { min: number; max: number } {
+  if (viz === 'spinner') {
+    return count === 2 ? { min: 1, max: 12 } : { min: 1, max: 6 };
+  }
+  return movementRangeForCount(count);
 }
 
 export function rollInteger(sides: number, rng: Rng = Math.random): number {
@@ -32,6 +40,20 @@ export function rollDiceMovement(
   const sum = d1 + d2;
   const value = allowed.includes(sum) ? sum : 0;
   return { value, faces: [d1, d2], sides: 12 };
+}
+
+export function sampleMovement(
+  viz: MovementViz,
+  count: DiceCount,
+  allowed: number[],
+  rng: Rng = Math.random,
+): DiceRollResult {
+  if (viz === 'spinner') {
+    const { max } = movementRange(viz, count);
+    const value = sampleMoveValue(allowed, rng);
+    return { value, faces: value > 0 ? [value] : [], sides: max };
+  }
+  return rollDiceMovement(count, allowed, rng);
 }
 
 export interface DiceRollEvent {
