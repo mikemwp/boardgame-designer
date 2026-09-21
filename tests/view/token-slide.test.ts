@@ -29,4 +29,14 @@ describe('loop layout', () => {
     );
     expect(points.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('full lap on a 6-cell loop slides through every cell, not a zero-distance stay', () => {
+    const from = { floorId: 'lobby', cellId: 'lobby-c0' };
+    const start = tokenPosToWorld(climbSample.board, from);
+    const points = worldWaypoints(climbSample.board, from, from, 6);
+    expect(points.length).toBe(6);
+    expect(points.some((p) => Math.hypot(p.x - start.x, p.z - start.z) > 0.01)).toBe(true);
+    const last = points[points.length - 1]!;
+    expect(Math.hypot(last.x - start.x, last.z - start.z)).toBeLessThan(0.01);
+  });
 });

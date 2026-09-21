@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Board } from '@/lib/engine/board';
+import type { LastRoll } from '@/lib/engine/game';
 import type { Player, TokenPos } from '@/lib/engine/types';
 import { tokenPosToWorld, worldWaypoints } from '@/lib/view/board-layout';
 import { slideDurationSeconds } from '@/lib/view/token-slide';
@@ -16,11 +17,20 @@ function initialPositions(board: Board, players: Player[]): Record<string, Vec3>
   return positions;
 }
 
-export function PlayerTokens({ board, players }: { board: Board; players: Player[] }) {
+export function PlayerTokens({
+  board,
+  players,
+  lastRoll,
+}: {
+  board: Board;
+  players: Player[];
+  lastRoll: LastRoll | null;
+}) {
   const [positions, setPositions] = useState<Record<string, Vec3>>(() =>
     initialPositions(board, players),
   );
   const prevToken = useRef<Record<string, TokenPos>>({});
+  const lastAnimatedRollId = useRef(0);
   const positionsRef = useRef(positions);
   positionsRef.current = positions;
   const animRef = useRef<number | null>(null);
@@ -33,11 +43,23 @@ export function PlayerTokens({ board, players }: { board: Board; players: Player
         setPositions((p) => ({ ...p, [player.id]: tokenPosToWorld(board, player.token) }));
         continue;
       }
-      if (prev.floorId === player.token.floorId && prev.cellId === player.token.cellId) {
+      const sameCell =
+        prev.floorId === player.token.floorId && prev.cellId === player.token.cellId;
+      const fullLap =
+        sameCell &&
+        lastRoll &&
+        lastRoll.value > 0 &&
+        lastRoll.id !== lastAnimatedRollId.current;
+      if (sameCell && !fullLap) {
         continue;
       }
-      const waypoints = worldWaypoints(board, prev, player.token);
+      const waypoints = fullLap
+        ? worldWaypoints(board, prev, player.token, lastRoll!.value)
+        : worldWaypoints(board, prev, player.token);
       prevToken.current[player.id] = player.token;
+      if (fullLap) {
+        lastAnimatedRollId.current = lastRoll!.id;
+      }
       if (waypoints.length === 0) continue;
 
       let i = 0;
@@ -68,7 +90,7 @@ export function PlayerTokens({ board, players }: { board: Board; players: Player
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [board, players]);
+  }, [board, players, lastRoll]);
 
   return (
     <>

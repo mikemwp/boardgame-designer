@@ -1,6 +1,6 @@
 import type { Board } from '@/lib/engine/board';
 import { getFloor } from '@/lib/engine/board';
-import { forwardPathCells } from '@/lib/engine/movement';
+import { forwardPathCells, forwardPathSteps } from '@/lib/engine/movement';
 import type { TokenPos } from '@/lib/engine/types';
 
 const FLOOR_HEIGHT = 2;
@@ -34,12 +34,17 @@ export function tokenPosToWorld(
   return cellToWorld(floor.index, cell.index, floor.cells.length);
 }
 
-export function worldWaypoints(board: Board, from: TokenPos, to: TokenPos): Vec3[] {
+export function worldWaypoints(board: Board, from: TokenPos, to: TokenPos, steps?: number): Vec3[] {
   if (from.floorId !== to.floorId) {
     return [tokenPosToWorld(board, to)];
   }
   const floor = getFloor(board, from.floorId);
   if (!floor) return [tokenPosToWorld(board, to)];
+  if (from.cellId === to.cellId && steps && steps > 0) {
+    const cells = forwardPathSteps(floor, from.cellId, steps);
+    if (cells.length === 0) return [tokenPosToWorld(board, to)];
+    return cells.map((cell) => tokenPosToWorld(board, { floorId: from.floorId, cellId: cell.id }));
+  }
   const cells = forwardPathCells(floor, from.cellId, to.cellId);
   if (cells.length === 0) return [tokenPosToWorld(board, to)];
   return cells.map((cell) => tokenPosToWorld(board, { floorId: from.floorId, cellId: cell.id }));

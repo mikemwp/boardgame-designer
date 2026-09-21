@@ -33,6 +33,20 @@ export function forwardPathCells(floor: { cells: Cell[] }, fromCellId: string, t
   return path;
 }
 
+export function forwardPathSteps(floor: { cells: Cell[] }, fromCellId: string, steps: number): Cell[] {
+  const cells = sortedCells(floor);
+  const start = cells.findIndex((c) => c.id === fromCellId);
+  if (start < 0 || steps <= 0) return [];
+  const path: Cell[] = [];
+  let i = start;
+  for (let step = 0; step < steps; step += 1) {
+    i = (i + 1) % cells.length;
+    const cell = cells[i];
+    if (cell) path.push(cell);
+  }
+  return path;
+}
+
 export function isIllegalLanding(
   board: Board,
   cell: Cell,
