@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { cellToWorld } from '@/lib/view/board-layout';
+import { cellToWorld, tokenPosToWorld, worldWaypoints } from '@/lib/view/board-layout';
 import { lerpVec3 } from '@/lib/view/token-slide';
+import { climbSample } from '@/lib/samples/climb';
 
 describe('token slide', () => {
   it('maps floor index to increasing y', () => {
@@ -9,5 +10,23 @@ describe('token slide', () => {
 
   it('lerps between positions', () => {
     expect(lerpVec3({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, 0.5).x).toBe(5);
+  });
+});
+
+describe('loop layout', () => {
+  it('places distinct xz for adjacent cells on the same floor', () => {
+    const a = tokenPosToWorld(climbSample.board, { floorId: 'lobby', cellId: 'lobby-c0' });
+    const b = tokenPosToWorld(climbSample.board, { floorId: 'lobby', cellId: 'lobby-c1' });
+    expect(a.x !== b.x || a.z !== b.z).toBe(true);
+    expect(a.y).toBe(b.y);
+  });
+
+  it('builds waypoints along the loop instead of a single jump', () => {
+    const points = worldWaypoints(
+      climbSample.board,
+      { floorId: 'lobby', cellId: 'lobby-c5' },
+      { floorId: 'lobby', cellId: 'lobby-c1' },
+    );
+    expect(points.length).toBeGreaterThanOrEqual(2);
   });
 });

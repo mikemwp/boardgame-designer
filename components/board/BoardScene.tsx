@@ -14,7 +14,7 @@ export function BoardScene({ game, usePhysics }: { game: GameState; usePhysics?:
   return (
     <div className="h-[480px] w-full rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
       <PlayCanvasViewport usePhysics={physicsEnabled}>
-        <Entity name="camera" position={[0, 3.5, 7]} rotation={[-22, 0, 0]}>
+        <Entity name="camera" position={[0, 7, 10]} rotation={[-32, 0, 0]}>
           <Camera clearColor="#0f172a" fov={50} nearClip={0.1} farClip={100} />
         </Entity>
         <Entity name="sun" rotation={[-55, 40, 0]}>
