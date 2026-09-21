@@ -9,12 +9,19 @@ import {
   diceSpawnOffsets,
   spawnPositionAboveFloor,
 } from '@/lib/view/dice-throw';
+import { DICE_TUMBLE_MS, shouldKeepDiceOnBoard } from '@/lib/view/dice-lifetime';
 import { DiceActor } from './DiceActor';
-
-const SETTLE_MS = 1500;
 
 export function shouldShowDie(lastRoll: LastRoll | null): boolean {
   return Boolean(lastRoll && lastRoll.value >= 1);
+}
+
+interface DisplayedRoll {
+  value: number;
+  rolling: boolean;
+  id: number;
+  faces: number[];
+  spawnAt: Vec3;
 }
 
 export function DiceRollLayer({
@@ -28,22 +35,45 @@ export function DiceRollLayer({
   diceCount: DiceCount;
   spawnAt: Vec3;
 }) {
-  const [roll, setRoll] = useState<{ value: number; rolling: boolean; id: number; faces: number[] } | null>(null);
+  const [roll, setRoll] = useState<DisplayedRoll | null>(null);
 
   useEffect(() => {
-    if (!enabled || !shouldShowDie(lastRoll) || !lastRoll) return;
-    setRoll({ value: lastRoll.value, rolling: true, id: lastRoll.id, faces: lastRoll.faces });
-    const timer = window.setTimeout(() => {
-      setRoll((current) => (current ? { ...current, rolling: false } : null));
-    }, SETTLE_MS);
-    return () => window.clearTimeout(timer);
-  }, [enabled, lastRoll?.id, lastRoll?.value, lastRoll]);
+    if (!enabled) return;
 
-  if (!enabled || !roll) return null;
+    if (!lastRoll || lastRoll.value < 1) {
+      setRoll(null);
+      return;
+    }
+
+    let startedNewRoll = false;
+    setRoll((current) => {
+      if (current?.id === lastRoll.id) return current;
+      startedNewRoll = true;
+      return {
+        value: lastRoll.value,
+        rolling: true,
+        id: lastRoll.id,
+        faces: [...lastRoll.faces],
+        spawnAt: { x: spawnAt.x, y: spawnAt.y, z: spawnAt.z },
+      };
+    });
+
+    if (!startedNewRoll) return;
+
+    const tumbleTimer = window.setTimeout(() => {
+      setRoll((current) =>
+        current && current.id === lastRoll.id ? { ...current, rolling: false } : current,
+      );
+    }, DICE_TUMBLE_MS);
+
+    return () => window.clearTimeout(tumbleTimer);
+  }, [enabled, lastRoll?.id, lastRoll?.value, spawnAt.x, spawnAt.y, spawnAt.z]);
+
+  if (!enabled || !roll || !shouldKeepDiceOnBoard(lastRoll, roll.id)) return null;
 
   const faces = diceDisplayFaces(roll.value, diceCount, roll.faces);
   const offsets = diceSpawnOffsets(diceCount);
-  const base = spawnPositionAboveFloor(spawnAt);
+  const base = spawnPositionAboveFloor(roll.spawnAt);
 
   return (
     <>
