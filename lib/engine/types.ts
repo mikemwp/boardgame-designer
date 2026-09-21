@@ -1,8 +1,13 @@
 export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
+export type CellKind = 'corridor' | 'stair';
+
 export interface Cell {
   id: string;
   index: number;
+  kind?: CellKind;
+  packId?: string;
+  stairId?: string;
 }
 
 export interface Stair {
@@ -19,6 +24,7 @@ export interface Floor {
   label: string;
   cells: Cell[];
   holdEnabled?: boolean;
+  holdQuotas?: Record<string, number>;
 }
 
 export interface TokenPos {
