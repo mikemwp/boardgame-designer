@@ -17,10 +17,12 @@ describe('GameHud', () => {
     expect(screen.getByText('No card drawn')).toBeDefined();
   });
 
-  it('locks Roll while a resolvable card is showing', () => {
-    render(<GameHud bootstrap={climbSample} />);
+  it('locks Roll until Play or Pass, then unlocks after Play', () => {
+    render(<GameHud bootstrap={{ ...climbSample, rng: () => 0 }} />);
     const roll = screen.getByRole('button', { name: 'Roll dice' });
     fireEvent.click(roll);
     expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    expect(roll).toHaveProperty('disabled', false);
   });
 });

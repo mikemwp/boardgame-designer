@@ -21,8 +21,7 @@ export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
 
   const rollLocked = isRollLocked({
     tokenSliding,
-    currentCard: game.cards.currentCard,
-    actionMode: game.config.actionMode,
+    awaitingAction: game.cards.awaitingAction,
   });
   const visibleCard = shouldShowDealtCard({
     tokenSliding,
@@ -66,6 +65,7 @@ export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
           actionMode={game.config.actionMode}
           currentCard={visibleCard}
           bodyVisible={game.cards.bodyVisible}
+          awaitingAction={game.cards.awaitingAction}
           onDispatch={dispatch}
         />
       </aside>

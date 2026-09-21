@@ -10,14 +10,16 @@ export function CardPanel({
   actionMode,
   currentCard,
   bodyVisible = false,
+  awaitingAction = false,
   onDispatch,
 }: {
   actionMode: ActionMode;
   currentCard: CardType | null;
   bodyVisible?: boolean;
+  awaitingAction?: boolean;
   onDispatch: (cmd: GameCommand) => void;
 }) {
-  const actions = allowedActions(actionMode);
+  const actions = awaitingAction ? allowedActions(actionMode) : [];
   if (!currentCard) return <p className="text-slate-400">No card drawn</p>;
   return (
     <Card>
@@ -26,14 +28,16 @@ export function CardPanel({
         {bodyVisible && currentCard.body ? (
           <p className="text-sm text-slate-300">{currentCard.body}</p>
         ) : null}
-        <div className="flex gap-2">
-          {actions.includes('positive') && (
-            <Button onClick={() => onDispatch({ type: 'REVEAL_CARD', packId: currentCard.pack })}>Play</Button>
-          )}
-          {actions.includes('pass') && (
-            <Button variant="secondary" onClick={() => onDispatch({ type: 'PASS_CARD', packId: currentCard.pack })}>Pass</Button>
-          )}
-        </div>
+        {actions.length > 0 ? (
+          <div className="flex gap-2">
+            {actions.includes('positive') && (
+              <Button onClick={() => onDispatch({ type: 'REVEAL_CARD', packId: currentCard.pack })}>Play</Button>
+            )}
+            {actions.includes('pass') && (
+              <Button variant="secondary" onClick={() => onDispatch({ type: 'PASS_CARD', packId: currentCard.pack })}>Pass</Button>
+            )}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

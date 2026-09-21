@@ -32,6 +32,7 @@ describe('dealFromPack', () => {
     const s = dealFromPack(createCardState([rung]), 'climb', 'both');
     expect(s.currentCard?.id).toBe('1');
     expect(s.bodyVisible).toBe(false);
+    expect(s.awaitingAction).toBe(true);
     expect(s.revealedByPack.climb ?? 0).toBe(0);
   });
 
@@ -39,6 +40,7 @@ describe('dealFromPack', () => {
     const s = dealFromPack(createCardState([rung]), 'climb', 'neither');
     expect(s.currentCard?.id).toBe('1');
     expect(s.bodyVisible).toBe(true);
+    expect(s.awaitingAction).toBe(false);
     expect(s.revealedByPack.climb).toBe(1);
   });
 
@@ -53,15 +55,17 @@ describe('applyAction after deal', () => {
     let s = dealFromPack(createCardState([rung, brick]), 'climb', 'both');
     s = applyAction(s, 'pass', 'climb');
     expect(s.currentCard).toBeNull();
+    expect(s.awaitingAction).toBe(false);
     expect(s.revealedByPack.climb ?? 0).toBe(0);
     expect(s.deck[s.deck.length - 1]?.id).toBe('1');
   });
 
-  it('positive reveals body and counts once', () => {
+  it('positive reveals body, counts once, and clears awaitingAction', () => {
     let s = dealFromPack(createCardState([rung]), 'climb', 'both');
     s = applyAction(s, 'positive', 'climb');
     expect(s.bodyVisible).toBe(true);
     expect(s.currentCard?.id).toBe('1');
+    expect(s.awaitingAction).toBe(false);
     expect(s.revealedByPack.climb).toBe(1);
   });
 });

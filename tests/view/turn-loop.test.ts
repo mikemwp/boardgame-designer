@@ -9,33 +9,37 @@ const card = { id: '1', pack: 'climb', title: 'Rung', body: 'Clue' };
 
 describe('hasResolvableCard', () => {
   it('is false with no card', () => {
-    expect(hasResolvableCard(null, 'both')).toBe(false);
+    expect(hasResolvableCard({ currentCard: null, actionMode: 'both', awaitingAction: true })).toBe(false);
   });
 
-  it('is true when both Play and Pass are allowed', () => {
-    expect(hasResolvableCard(card, 'both')).toBe(true);
+  it('is true when awaiting Play or Pass', () => {
+    expect(hasResolvableCard({ currentCard: card, actionMode: 'both', awaitingAction: true })).toBe(true);
+  });
+
+  it('is false after Play even if the card remains on screen', () => {
+    expect(hasResolvableCard({ currentCard: card, actionMode: 'both', awaitingAction: false })).toBe(false);
   });
 
   it('is false when action mode is neither', () => {
-    expect(hasResolvableCard(card, 'neither')).toBe(false);
+    expect(hasResolvableCard({ currentCard: card, actionMode: 'neither', awaitingAction: true })).toBe(false);
   });
 });
 
 describe('isRollLocked', () => {
   it('locks while the token is sliding', () => {
-    expect(isRollLocked({ tokenSliding: true, currentCard: null, actionMode: 'both' })).toBe(true);
+    expect(isRollLocked({ tokenSliding: true, awaitingAction: false })).toBe(true);
   });
 
-  it('locks while a resolvable card is showing', () => {
-    expect(isRollLocked({ tokenSliding: false, currentCard: card, actionMode: 'both' })).toBe(true);
+  it('locks while awaiting Play or Pass', () => {
+    expect(isRollLocked({ tokenSliding: false, awaitingAction: true })).toBe(true);
   });
 
-  it('unlocks after slide when no card needs resolution', () => {
-    expect(isRollLocked({ tokenSliding: false, currentCard: null, actionMode: 'both' })).toBe(false);
+  it('unlocks after Play even when the card body stays visible', () => {
+    expect(isRollLocked({ tokenSliding: false, awaitingAction: false })).toBe(false);
   });
 
-  it('unlocks for neither-mode deals after slide', () => {
-    expect(isRollLocked({ tokenSliding: false, currentCard: card, actionMode: 'neither' })).toBe(false);
+  it('unlocks after Pass', () => {
+    expect(isRollLocked({ tokenSliding: false, awaitingAction: false })).toBe(false);
   });
 });
 
