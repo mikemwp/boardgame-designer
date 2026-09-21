@@ -1,28 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { GameEvent } from '@/lib/engine/events';
+import type { LastRoll } from '@/lib/engine/game';
 import { DiceActor } from './DiceActor';
 
 const SETTLE_MS = 1500;
 
+export function shouldShowDie(lastRoll: LastRoll | null): boolean {
+  return Boolean(lastRoll && lastRoll.value >= 1);
+}
+
 export function DiceRollLayer({
   enabled,
-  lastEvent,
+  lastRoll,
 }: {
   enabled: boolean;
-  lastEvent: GameEvent | null;
+  lastRoll: LastRoll | null;
 }) {
-  const [roll, setRoll] = useState<{ value: number; rolling: boolean } | null>(null);
+  const [roll, setRoll] = useState<{ value: number; rolling: boolean; id: number } | null>(null);
 
   useEffect(() => {
-    if (!enabled || lastEvent?.type !== 'DICE_ROLLED') return;
-    setRoll({ value: lastEvent.value, rolling: true });
+    if (!enabled || !shouldShowDie(lastRoll) || !lastRoll) return;
+    setRoll({ value: lastRoll.value, rolling: true, id: lastRoll.id });
     const timer = window.setTimeout(() => {
       setRoll((current) => (current ? { ...current, rolling: false } : null));
     }, SETTLE_MS);
     return () => window.clearTimeout(timer);
-  }, [enabled, lastEvent]);
+  }, [enabled, lastRoll?.id, lastRoll?.value, lastRoll]);
 
   if (!enabled || !roll) return null;
 

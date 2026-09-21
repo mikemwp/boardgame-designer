@@ -24,12 +24,8 @@ export function BoardScene({ game, usePhysics }: { game: GameState; usePhysics?:
           <Light type="omni" intensity={0.8} />
         </Entity>
         <FloorStack board={game.board} usePhysics={physicsEnabled} />
-        <PlayerTokens
-          board={game.board}
-          players={game.players.players}
-          lastEvent={game.lastEvent}
-        />
-        <DiceRollLayer enabled={game.config.diceEnabled} lastEvent={game.lastEvent} />
+        <PlayerTokens board={game.board} players={game.players.players} />
+        <DiceRollLayer enabled={game.config.diceEnabled} lastRoll={game.lastRoll} />
       </PlayCanvasViewport>
     </div>
   );
