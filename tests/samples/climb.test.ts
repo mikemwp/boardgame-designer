@@ -29,6 +29,11 @@ describe('climb sample', () => {
     expect(climbSample.board.stairs.some((s) => s.id === 's0-bypass')).toBe(false);
   });
 
+  it('starts with one climb pass for the climber', () => {
+    const game = createGame(climbSample);
+    expect(game.players.players[0]?.passesLeftByPack).toEqual({ climb: 1 });
+  });
+
   it('does not deal a card until a content square is landed', () => {
     const game = createGame(climbSample);
     expect(game.cards.currentCard).toBeNull();

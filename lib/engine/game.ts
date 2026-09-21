@@ -1,6 +1,7 @@
 import { defaultGameConfig, type GameConfig, type TokenPos } from './types';
 import { getFloor, type Board } from './board';
-import { moveToken, type PlayerState } from './players';
+import { initPlayerPasses, moveToken, setPlayerPassesLeft, type PlayerState } from './players';
+import { canSpendPass, createPassesLeft, spendPass } from './passes';
 import { movementRangeForCount, rollDiceMovement, type Rng } from './dice';
 import { applyAction, countsTowardReveal, dealFromPack, type CardState } from './cards';
 import { canExitHold, createHoldState, recordHoldReveal, type HoldState } from './hold';
@@ -34,10 +35,14 @@ export interface GameBootstrap {
 }
 
 export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameConfig> & { rng?: Rng }): GameState {
+  const config = { ...defaultGameConfig(), ...bootstrap.config, ...overrides };
+  const players = config.passesEnabled && Object.keys(config.passesPerPack).length > 0
+    ? initPlayerPasses(bootstrap.players, createPassesLeft(config.passesPerPack))
+    : bootstrap.players;
   return {
-    config: { ...defaultGameConfig(), ...bootstrap.config, ...overrides },
+    config,
     board: bootstrap.board,
-    players: bootstrap.players,
+    players,
     cards: bootstrap.cards,
     hold: null,
     lastEvent: null,
@@ -148,8 +153,27 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       const players = moveToken(rolled.players, active, landing);
       return afterMove({ ...rolled, players }, active, landing);
     }
-    case 'PASS_CARD':
-      return { ...state, cards: applyAction(state.cards, 'pass', cmd.packId) };
+    case 'PASS_CARD': {
+      const active = state.players.activePlayerId;
+      if (!active) return state;
+      const player = state.players.players.find((p) => p.id === active);
+      if (!player) return state;
+      if (
+        state.config.passesEnabled
+        && !canSpendPass(player.passesLeftByPack ?? {}, cmd.packId)
+      ) {
+        return state;
+      }
+      const cards = applyAction(state.cards, 'pass', cmd.packId);
+      const players = state.config.passesEnabled
+        ? setPlayerPassesLeft(
+          state.players,
+          active,
+          spendPass(player.passesLeftByPack ?? {}, cmd.packId),
+        )
+        : state.players;
+      return { ...state, cards, players };
+    }
     case 'REVEAL_CARD': {
       const cards = applyAction(state.cards, 'positive', cmd.packId);
       let hold = state.hold;

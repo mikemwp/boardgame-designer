@@ -36,6 +36,7 @@ export interface Player {
   id: string;
   name: string;
   token: TokenPos;
+  passesLeftByPack?: Record<string, number>;
 }
 
 export interface Card {
@@ -57,6 +58,8 @@ export interface GameConfig {
   actionMode: ActionMode;
   diceEnabled: boolean;
   holdEnabled: boolean;
+  passesEnabled: boolean;
+  passesPerPack: Record<string, number>;
   diceCount: DiceCount;
   diceSides: number;
   maxPlayers?: number;
@@ -68,6 +71,8 @@ export function defaultGameConfig(): GameConfig {
     actionMode: 'both',
     diceEnabled: false,
     holdEnabled: false,
+    passesEnabled: false,
+    passesPerPack: {},
     diceCount: 1,
     diceSides: 6,
   };

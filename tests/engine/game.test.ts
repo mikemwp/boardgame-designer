@@ -152,6 +152,35 @@ describe('ROLL_DICE', () => {
   });
 });
 
+describe('PASS_CARD budget', () => {
+  it('decrements remaining passes for the active player and pack', () => {
+    let game = createGame(loopBootstrap(), {
+      passesEnabled: true,
+      passesPerPack: { climb: 1 },
+      rng: () => 0,
+    });
+    game = dispatch(game, { type: 'ROLL_DICE' });
+    game = dispatch(game, { type: 'PASS_CARD', packId: 'climb' });
+    expect(game.players.players[0]?.passesLeftByPack?.climb).toBe(0);
+    expect(game.cards.currentCard).toBeNull();
+    expect(game.cards.bodyVisible).toBe(false);
+    expect(game.cards.awaitingAction).toBe(false);
+  });
+
+  it('ignores pass when no passes remain', () => {
+    let game = createGame(loopBootstrap(), {
+      passesEnabled: true,
+      passesPerPack: { climb: 1 },
+      rng: () => 0,
+    });
+    game = dispatch(game, { type: 'ROLL_DICE' });
+    game = dispatch(game, { type: 'PASS_CARD', packId: 'climb' });
+    const blocked = dispatch(game, { type: 'ROLL_DICE' });
+    const retried = dispatch(blocked, { type: 'PASS_CARD', packId: 'climb' });
+    expect(retried).toEqual(blocked);
+  });
+});
+
 describe('card actions and hold', () => {
   it('Pass does not unlock hold; Play does', () => {
     let game = createGame(loopBootstrap(), { rng: () => 0 });

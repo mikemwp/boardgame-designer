@@ -24,6 +24,32 @@ export function moveToken(state: PlayerState, playerId: string, pos: TokenPos): 
   };
 }
 
+export function setPlayerPassesLeft(
+  state: PlayerState,
+  playerId: string,
+  passesLeftByPack: Record<string, number>,
+): PlayerState {
+  return {
+    ...state,
+    players: state.players.map((p) =>
+      p.id === playerId ? { ...p, passesLeftByPack } : p,
+    ),
+  };
+}
+
+export function initPlayerPasses(
+  state: PlayerState,
+  passesPerPack: Record<string, number>,
+): PlayerState {
+  return {
+    ...state,
+    players: state.players.map((p) => ({
+      ...p,
+      passesLeftByPack: { ...passesPerPack },
+    })),
+  };
+}
+
 export function requireMinPlayers(state: PlayerState, min: number): boolean {
   return state.players.length >= min;
 }

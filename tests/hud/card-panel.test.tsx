@@ -17,6 +17,21 @@ describe('CardPanel', () => {
     expect(onDispatch).toHaveBeenCalledWith({ type: 'PASS_CARD', packId: 'climb' });
   });
 
+  it('hides Pass when no passes remain', () => {
+    render(
+      <CardPanel
+        actionMode="both"
+        currentCard={{ id: '1', pack: 'climb', title: 'Rung' }}
+        awaitingAction
+        passesEnabled
+        passesLeftByPack={{ climb: 0 }}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Pass' })).toBeNull();
+  });
+
   it('hides Play and Pass after the card is accepted', () => {
     render(
       <CardPanel

@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { allowedActions } from '@/lib/engine/cards';
+import { passActionAllowed } from '@/lib/engine/passes';
 import type { ActionMode, Card as CardType } from '@/lib/engine/types';
 import type { GameCommand } from '@/lib/engine/events';
 
@@ -11,15 +12,22 @@ export function CardPanel({
   currentCard,
   bodyVisible = false,
   awaitingAction = false,
+  passesEnabled = false,
+  passesLeftByPack = {},
   onDispatch,
 }: {
   actionMode: ActionMode;
   currentCard: CardType | null;
   bodyVisible?: boolean;
   awaitingAction?: boolean;
+  passesEnabled?: boolean;
+  passesLeftByPack?: Record<string, number>;
   onDispatch: (cmd: GameCommand) => void;
 }) {
   const actions = awaitingAction ? allowedActions(actionMode) : [];
+  const showPass = currentCard
+    ? passActionAllowed(actionMode, passesEnabled, passesLeftByPack, currentCard.pack)
+    : false;
   if (!currentCard) return <p className="text-slate-400">No card drawn</p>;
   return (
     <Card>
@@ -33,7 +41,7 @@ export function CardPanel({
             {actions.includes('positive') && (
               <Button onClick={() => onDispatch({ type: 'REVEAL_CARD', packId: currentCard.pack })}>Play</Button>
             )}
-            {actions.includes('pass') && (
+            {actions.includes('pass') && showPass && (
               <Button variant="secondary" onClick={() => onDispatch({ type: 'PASS_CARD', packId: currentCard.pack })}>Pass</Button>
             )}
           </div>

@@ -17,6 +17,11 @@ describe('GameHud', () => {
     expect(screen.getByText('No card drawn')).toBeDefined();
   });
 
+  it('shows remaining passes for the active player', () => {
+    render(<GameHud bootstrap={climbSample} />);
+    expect(screen.getByText('Passes left: climb 1')).toBeDefined();
+  });
+
   it('locks Roll until Play or Pass, then unlocks after Play', () => {
     render(<GameHud bootstrap={{ ...climbSample, rng: () => 0 }} />);
     const roll = screen.getByRole('button', { name: 'Roll dice' });

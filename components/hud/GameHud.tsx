@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CardPanel } from '@/components/hud/CardPanel';
 import { FeatureToggles } from '@/components/hud/FeatureToggles';
 import { HoldStatus } from '@/components/hud/HoldStatus';
+import { PassStatus } from '@/components/hud/PassStatus';
 import { ImportCardsDialog } from '@/components/hud/ImportCardsDialog';
 import { LastRoll } from '@/components/hud/LastRoll';
 import { PlayerBar } from '@/components/hud/PlayerBar';
@@ -18,6 +19,7 @@ export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
   const [importOpen, setImportOpen] = useState(false);
   const [tokenSliding, setTokenSliding] = useState(false);
   const holdFloor = game.board.floors.find((f) => f.id === game.hold?.floorId);
+  const activePlayer = game.players.players.find((p) => p.id === game.players.activePlayerId);
 
   const rollLocked = isRollLocked({
     tokenSliding,
@@ -47,6 +49,10 @@ export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
         />
         <LastRoll lastRoll={game.lastRoll} />
         <HoldStatus hold={game.hold} floorLabel={holdFloor?.label ?? 'this floor'} />
+        <PassStatus
+          passesEnabled={game.config.passesEnabled}
+          passesLeftByPack={activePlayer?.passesLeftByPack ?? {}}
+        />
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => dispatch({ type: 'ROLL_DICE' })}
@@ -66,6 +72,8 @@ export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
           currentCard={visibleCard}
           bodyVisible={game.cards.bodyVisible}
           awaitingAction={game.cards.awaitingAction}
+          passesEnabled={game.config.passesEnabled}
+          passesLeftByPack={activePlayer?.passesLeftByPack ?? {}}
           onDispatch={dispatch}
         />
       </aside>

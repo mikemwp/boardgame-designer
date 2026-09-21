@@ -6,6 +6,8 @@ describe('GameConfig', () => {
   it('defaults actionMode to both and no caps', () => {
     const cfg: GameConfig = defaultGameConfig();
     expect(cfg.actionMode).toBe('both');
+    expect(cfg.passesEnabled).toBe(false);
+    expect(cfg.passesPerPack).toEqual({});
     expect(cfg.maxPlayers).toBeUndefined();
     expect(cfg.maxFloors).toBeUndefined();
   });
