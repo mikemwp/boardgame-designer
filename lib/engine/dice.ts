@@ -1,4 +1,9 @@
 export type Rng = () => number;
+export type DiceCount = 1 | 2;
+
+export function diceSidesForCount(count: DiceCount): number {
+  return count === 2 ? 12 : 6;
+}
 
 export function rollInteger(sides: number, rng: Rng = Math.random): number {
   if (sides < 1) throw new Error('sides must be >= 1');

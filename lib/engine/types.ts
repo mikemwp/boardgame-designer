@@ -51,10 +51,13 @@ export interface CardPack {
   cards: Card[];
 }
 
+export type DiceCount = 1 | 2;
+
 export interface GameConfig {
   actionMode: ActionMode;
   diceEnabled: boolean;
   holdEnabled: boolean;
+  diceCount: DiceCount;
   diceSides: number;
   maxPlayers?: number;
   maxFloors?: number;
@@ -65,6 +68,7 @@ export function defaultGameConfig(): GameConfig {
     actionMode: 'both',
     diceEnabled: false,
     holdEnabled: false,
+    diceCount: 1,
     diceSides: 6,
   };
 }

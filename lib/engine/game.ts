@@ -1,7 +1,7 @@
 import { defaultGameConfig, type GameConfig, type TokenPos } from './types';
 import { getFloor, type Board } from './board';
 import { moveToken, type PlayerState } from './players';
-import { type Rng } from './dice';
+import { diceSidesForCount, type Rng } from './dice';
 import { applyAction, countsTowardReveal, dealFromPack, type CardState } from './cards';
 import { canExitHold, createHoldState, recordHoldReveal, type HoldState } from './hold';
 import { allowedMoveValues, sampleMoveValue, walkSteps } from './movement';
@@ -117,7 +117,7 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       if (!active) return state;
       const player = state.players.players.find((p) => p.id === active);
       if (!player) return state;
-      const sides = state.config.diceSides;
+      const sides = diceSidesForCount(state.config.diceCount);
       const allowed = allowedMoveValues(
         state.board,
         player.token,

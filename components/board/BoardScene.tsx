@@ -3,6 +3,7 @@
 import { Entity } from '@playcanvas/react';
 import { Camera, Light } from '@playcanvas/react/components';
 import type { GameState } from '@/lib/engine/game';
+import { tokenPosToWorld } from '@/lib/view/board-layout';
 import { DiceRollLayer } from './DiceRollLayer';
 import { FloorStack } from './FloorStack';
 import { PlayCanvasViewport } from './PlayCanvasViewport';
@@ -10,6 +11,10 @@ import { PlayerTokens } from './PlayerTokens';
 
 export function BoardScene({ game, usePhysics }: { game: GameState; usePhysics?: boolean }) {
   const physicsEnabled = usePhysics ?? game.config.diceEnabled;
+  const activePlayer = game.players.players.find((p) => p.id === game.players.activePlayerId);
+  const spawnAt = activePlayer
+    ? tokenPosToWorld(game.board, activePlayer.token)
+    : { x: 0, y: 0, z: 0 };
 
   return (
     <div className="h-[480px] w-full rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
@@ -25,7 +30,12 @@ export function BoardScene({ game, usePhysics }: { game: GameState; usePhysics?:
         </Entity>
         <FloorStack board={game.board} usePhysics={physicsEnabled} />
         <PlayerTokens board={game.board} players={game.players.players} lastRoll={game.lastRoll} />
-        <DiceRollLayer enabled={game.config.diceEnabled} lastRoll={game.lastRoll} />
+        <DiceRollLayer
+          enabled={game.config.diceEnabled}
+          lastRoll={game.lastRoll}
+          diceCount={game.config.diceCount}
+          spawnAt={spawnAt}
+        />
       </PlayCanvasViewport>
     </div>
   );

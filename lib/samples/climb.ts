@@ -63,5 +63,5 @@ export const climbSample: GameBootstrap = {
     token: { floorId: 'lobby', cellId: 'lobby-c0' },
   }),
   cards: createCardState(cards),
-  config: { diceEnabled: true, holdEnabled: true, actionMode: 'both', diceSides: 6 },
+  config: { diceEnabled: true, holdEnabled: true, actionMode: 'both', diceCount: 1, diceSides: 6 },
 };
