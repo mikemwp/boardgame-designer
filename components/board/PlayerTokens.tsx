@@ -21,10 +21,14 @@ export function PlayerTokens({
   board,
   players,
   lastRoll,
+  onSlideStart,
+  onSlideComplete,
 }: {
   board: Board;
   players: Player[];
   lastRoll: LastRoll | null;
+  onSlideStart?: () => void;
+  onSlideComplete?: () => void;
 }) {
   const [positions, setPositions] = useState<Record<string, Vec3>>(() =>
     initialPositions(board, players),
@@ -64,9 +68,13 @@ export function PlayerTokens({
 
       let i = 0;
       let from = positionsRef.current[player.id] ?? tokenPosToWorld(board, prev);
+      onSlideStart?.();
       const runLeg = () => {
         const to = waypoints[i];
-        if (!to) return;
+        if (!to) {
+          onSlideComplete?.();
+          return;
+        }
         const distance = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
         const start = performance.now();
         const duration = Math.max(80, slideDurationSeconds(distance) * 1000);
@@ -79,7 +87,11 @@ export function PlayerTokens({
           } else {
             from = to;
             i += 1;
-            if (i < waypoints.length) runLeg();
+            if (i < waypoints.length) {
+              runLeg();
+            } else {
+              onSlideComplete?.();
+            }
           }
         };
         animRef.current = requestAnimationFrame(tick);

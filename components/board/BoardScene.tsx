@@ -3,18 +3,22 @@
 import { Entity } from '@playcanvas/react';
 import { Camera, Light } from '@playcanvas/react/components';
 import type { GameState } from '@/lib/engine/game';
-import { tokenPosToWorld } from '@/lib/view/board-layout';
-import { DiceRollLayer } from './DiceRollLayer';
 import { FloorStack } from './FloorStack';
 import { PlayCanvasViewport } from './PlayCanvasViewport';
 import { PlayerTokens } from './PlayerTokens';
 
-export function BoardScene({ game, usePhysics }: { game: GameState; usePhysics?: boolean }) {
-  const physicsEnabled = usePhysics ?? game.config.diceEnabled;
-  const activePlayer = game.players.players.find((p) => p.id === game.players.activePlayerId);
-  const spawnAt = activePlayer
-    ? tokenPosToWorld(game.board, activePlayer.token)
-    : { x: 0, y: 0, z: 0 };
+export function BoardScene({
+  game,
+  usePhysics,
+  onTokenSlideStart,
+  onTokenSlideComplete,
+}: {
+  game: GameState;
+  usePhysics?: boolean;
+  onTokenSlideStart?: () => void;
+  onTokenSlideComplete?: () => void;
+}) {
+  const physicsEnabled = usePhysics ?? false;
 
   return (
     <div className="h-[480px] w-full rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
@@ -29,12 +33,12 @@ export function BoardScene({ game, usePhysics }: { game: GameState; usePhysics?:
           <Light type="omni" intensity={0.8} />
         </Entity>
         <FloorStack board={game.board} usePhysics={physicsEnabled} />
-        <PlayerTokens board={game.board} players={game.players.players} lastRoll={game.lastRoll} />
-        <DiceRollLayer
-          enabled={game.config.diceEnabled}
+        <PlayerTokens
+          board={game.board}
+          players={game.players.players}
           lastRoll={game.lastRoll}
-          diceCount={game.config.diceCount}
-          spawnAt={spawnAt}
+          onSlideStart={onTokenSlideStart}
+          onSlideComplete={onTokenSlideComplete}
         />
       </PlayCanvasViewport>
     </div>
