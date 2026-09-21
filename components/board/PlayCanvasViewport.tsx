@@ -3,7 +3,14 @@
 import { ApplicationWithoutCanvas } from '@playcanvas/react';
 import { useApp } from '@playcanvas/react/hooks';
 import { FILLMODE_NONE, RESOLUTION_FIXED } from 'playcanvas';
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { PlayCanvasDeviceSetup } from '@/components/board/PlayCanvasDeviceSetup';
+import { PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS } from '@/lib/view/playcanvas-graphics';
+import {
+  acquirePlayCanvasSlot,
+  waitForStableReady,
+  waitUntilPlayCanvasSlotFree,
+} from '@/lib/view/playcanvas-lifecycle';
 
 function CanvasResizeSync() {
   const app = useApp();
@@ -41,9 +48,12 @@ export function PlayCanvasViewport({
   usePhysics?: boolean;
   className?: string;
 }) {
+  const slotId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [ready, setReady] = useState(false);
+  const releaseSlotRef = useRef<(() => void) | null>(null);
+  const [sized, setSized] = useState(false);
+  const [appReady, setAppReady] = useState(false);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -56,9 +66,9 @@ export function PlayCanvasViewport({
       if (w > 0 && h > 0) {
         canvas.width = w;
         canvas.height = h;
-        setReady(true);
+        setSized(true);
       } else {
-        setReady(false);
+        setSized(false);
       }
     };
 
@@ -68,17 +78,48 @@ export function PlayCanvasViewport({
     return () => observer.disconnect();
   }, []);
 
+  useLayoutEffect(() => {
+    if (!sized) {
+      setAppReady(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const stable = await waitForStableReady(() => !cancelled && sized, 2);
+      if (!stable || cancelled) return;
+
+      await waitUntilPlayCanvasSlotFree(2);
+      if (cancelled || !sized) return;
+
+      const release = acquirePlayCanvasSlot(slotId);
+      if (!release || cancelled) return;
+
+      releaseSlotRef.current = release;
+      setAppReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+      setAppReady(false);
+      releaseSlotRef.current?.();
+      releaseSlotRef.current = null;
+    };
+  }, [sized, slotId]);
+
   return (
     <div ref={containerRef} className={className} data-testid="pc-viewport">
       <canvas ref={canvasRef} className="block h-full w-full" aria-label="Interactive 3D Scene" />
-      {ready && (
+      {appReady && (
         <ApplicationWithoutCanvas
           canvasRef={canvasRef}
           usePhysics={usePhysics}
           fillMode={FILLMODE_NONE}
           resolutionMode={RESOLUTION_FIXED}
-          graphicsDeviceOptions={{ alpha: false, antialias: false }}
+          graphicsDeviceOptions={PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS}
         >
+          <PlayCanvasDeviceSetup />
           <CanvasResizeSync />
           {children}
         </ApplicationWithoutCanvas>

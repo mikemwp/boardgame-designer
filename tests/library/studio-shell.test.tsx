@@ -11,6 +11,10 @@ vi.mock('@/components/board/FloorPreview', () => ({
   FloorPreview: () => <div data-testid="floor-preview" />,
 }));
 
+vi.mock('@/lib/view/playcanvas-lifecycle', () => ({
+  waitUntilPlayCanvasSlotFree: vi.fn(async () => {}),
+}));
+
 const NOW = '2026-09-21T12:00:00.000Z';
 
 async function flushTestViewport() {

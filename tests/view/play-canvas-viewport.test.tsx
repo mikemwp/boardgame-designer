@@ -14,6 +14,16 @@ class MockResizeObserver {
 const appMounts = vi.fn();
 let lastGraphicsDeviceOptions: Record<string, unknown> | undefined;
 
+vi.mock('@/lib/view/playcanvas-lifecycle', () => ({
+  waitForStableReady: vi.fn(async (isReady: () => boolean) => isReady()),
+  waitUntilPlayCanvasSlotFree: vi.fn(async () => {}),
+  acquirePlayCanvasSlot: vi.fn(() => () => {}),
+}));
+
+vi.mock('@/components/board/PlayCanvasDeviceSetup', () => ({
+  PlayCanvasDeviceSetup: () => null,
+}));
+
 vi.mock('@playcanvas/react', () => ({
   ApplicationWithoutCanvas: ({
     children,
@@ -32,6 +42,7 @@ vi.mock('@playcanvas/react/hooks', () => ({
   useApp: () => null,
 }));
 
+import { PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS } from '@/lib/view/playcanvas-graphics';
 import { PlayCanvasViewport } from '@/components/board/PlayCanvasViewport';
 
 function fireResize(width: number, height: number) {
@@ -43,6 +54,12 @@ function fireResize(width: number, height: number) {
       [{ target: container } as ResizeObserverEntry],
       {} as ResizeObserver,
     );
+  });
+}
+
+async function flushViewportInit() {
+  await act(async () => {
+    await Promise.resolve();
   });
 }
 
@@ -58,7 +75,7 @@ describe('PlayCanvasViewport', () => {
     vi.unstubAllGlobals();
   });
 
-  it('does not mount PlayCanvas until the canvas has non-zero size', () => {
+  it('does not mount PlayCanvas until the canvas has non-zero size', async () => {
     render(
       <PlayCanvasViewport>
         <span>scene</span>
@@ -69,12 +86,13 @@ describe('PlayCanvasViewport', () => {
     expect(appMounts).not.toHaveBeenCalled();
 
     fireResize(640, 480);
+    await flushViewportInit();
 
     expect(screen.getByTestId('pc-application')).toBeDefined();
     expect(appMounts).toHaveBeenCalledTimes(1);
   });
 
-  it('unmounts PlayCanvas when the container collapses to zero size', () => {
+  it('unmounts PlayCanvas when the container collapses to zero size', async () => {
     render(
       <PlayCanvasViewport>
         <span>scene</span>
@@ -82,14 +100,16 @@ describe('PlayCanvasViewport', () => {
     );
 
     fireResize(640, 480);
+    await flushViewportInit();
     expect(screen.getByTestId('pc-application')).toBeDefined();
 
     fireResize(0, 0);
+    await flushViewportInit();
 
     expect(screen.queryByTestId('pc-application')).toBeNull();
   });
 
-  it('disables antialias to avoid MSAA framebuffer failures', () => {
+  it('passes no-MSAA graphics device options', async () => {
     render(
       <PlayCanvasViewport>
         <span>scene</span>
@@ -97,7 +117,9 @@ describe('PlayCanvasViewport', () => {
     );
 
     fireResize(640, 480);
+    await flushViewportInit();
 
-    expect(lastGraphicsDeviceOptions).toEqual({ alpha: false, antialias: false });
+    expect(lastGraphicsDeviceOptions).toEqual(PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS);
+    expect(lastGraphicsDeviceOptions?.antialias).toBe(false);
   });
 });

@@ -15,6 +15,7 @@ import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
 import { cloneJson, fromStoredBootstrap } from '@/lib/library/bootstrap';
 import type { NewGameSource } from '@/lib/library/types';
+import { waitUntilPlayCanvasSlotFree } from '@/lib/view/playcanvas-lifecycle';
 
 export function StudioShell(options: UseLibraryOptions = {}) {
   const { active, activeId, drafts, ready, newGame, openGame, saveActive } =
@@ -89,8 +90,15 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setTestViewportReady(false);
       return;
     }
-    const frame = requestAnimationFrame(() => setTestViewportReady(true));
-    return () => cancelAnimationFrame(frame);
+    let cancelled = false;
+    (async () => {
+      await waitUntilPlayCanvasSlotFree(3);
+      if (!cancelled) setTestViewportReady(true);
+    })();
+    return () => {
+      cancelled = true;
+      setTestViewportReady(false);
+    };
   }, [mode, testNonce]);
 
   if (!ready) {
