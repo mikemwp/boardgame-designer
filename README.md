@@ -17,22 +17,38 @@ npm run dev
 
 Open [http://127.0.0.1:4318](http://127.0.0.1:4318) with your browser.
 
+## Layout designer
+
+The studio opens in **Design**. The HTML grid authors the active draft. A PlayCanvas preview shows **the floor being edited** (not the whole stack, not first-person). HUD slots in the grid refuse drops.
+
+1. Floor tabs rename and add floors (no max). Each non-empty floor must be a looping corridor of at least four 4-adjacent squares.
+2. Palette: **Select**, **Corridor square**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a square and pointer-up on an empty slot to move. Stair converts a corridor cell and must link a destination floor + landing square before **Test**.
+3. Inspector: floor name, pack (from cards already in the draft — import under **Test**), start square, stair destination. Stair squares never hold packs.
+4. **Save** writes the working layout even if stairs or loops are invalid.
+5. **Test** is blocked with a named list until the layout is valid. Then it remounts the existing play HUD on that draft (not a public URL). **Design** returns to the grid. Live publish is not included.
+
+Rooms, inner maps, doors, first-person, and the card template editor are not in this slice.
+
 ## Game library
 
 Drafts live in this browser (`localStorage` key `building-board.library.v1`). There is no account and no public slug in this slice.
 
-1. First visit seeds **Climb (sample)** and opens it in the HUD.
+1. First visit seeds **Climb (sample)** and opens it in **Design**.
 2. **New** creates another named draft from **Climb sample** or **Empty board**. It does not overwrite other drafts. The current draft is saved first.
 3. **Save** writes the active draft (board, starting players, card deck including CSV imports, feature-toggle config) and keeps the current play session on screen.
 4. **Open** lists local drafts only. Choosing one remounts play from that draft’s saved definition (token back at start, no card up). Live publish is not included.
 
-Invalid stairs would still be savable later; this slice does not add Test or Publish buttons.
+**Test** plays the current draft after layout validation. Publish live is not included.
 
 ## Architecture
 
 - **`lib/engine/*`** — Authoritative game rules and state (no PlayCanvas imports). Commands flow in; events flow out.
+- **`lib/engine/layout.ts`** — Grid occupancy, corridor loops, start square. No PlayCanvas.
+- **`lib/designer/*`** — Board mutations and Test validation. No PlayCanvas.
 - **`lib/library/*`** — Local draft documents (New / Save / Open). No PlayCanvas, no backend.
 - **`components/board/*`** — PlayCanvas React view layer: floor stack and sliding tokens.
+- **`components/board/FloorPreview.tsx`** — PlayCanvas preview of the floor being edited.
+- **`components/designer/*`** — HTML layout grid over the library draft.
 - **`components/hud/*`** — DOM + shadcn HUD: cards, player bar, import dialog, feature toggles.
 - **`components/library/*`** — Studio chrome over the existing HUD.
 - **`hooks/use-game-store.ts`** — React bridge connecting engine `dispatch` to UI state.
@@ -54,11 +70,11 @@ A sample file ships at `public/samples/climb-cards.csv`.
 
 ## Play the Climb sample
 
-1. `npm run dev` and open http://127.0.0.1:4318 — you should see **Climb (sample)** in the library bar.
-2. Click **Roll dice**. HUD dice tumble to the engine integer, **then** the token slides, **then** the dice disappear and a card deals only if you **stop** on a packed corridor cell. Toggle **HUD spinner** to spin a uniform 1–6 (or **Spinner 1–12**) instead of 1d6 / 2d6.
-3. **Play** counts as a pack reveal. **Pass** dismisses the card and does not.
-4. Floor 1 hold (toggle **Per-floor hold**): you cannot land on that floor’s up stair until one climb card is revealed on that hold. If every face would hit that stair, last roll is **0 — stairs held**.
-5. **New → Empty board** still shows **Roll dice** / HUD spinner on a 6-cell Ground loop with no climb cards.
+1. `npm run dev` and open http://127.0.0.1:4318 — library bar shows **Climb (sample)** in **Design**. Click **Test**, then **Roll dice**. HUD dice tumble to the engine integer, **then** the token slides, **then** the dice disappear and a card deals only if you **stop** on a packed corridor cell. Toggle **HUD spinner** to spin a uniform 1–6 (or **Spinner 1–12**) instead of 1d6 / 2d6.
+2. **Play** counts as a pack reveal. **Pass** dismisses the card and does not.
+3. Floor 1 hold (toggle **Per-floor hold**): you cannot land on that floor’s up stair until one climb card is revealed on that hold. If every face would hit that stair, last roll is **0 — stairs held**.
+4. **New → Empty board** still shows **Roll dice** / HUD spinner on a 6-cell Ground loop with no climb cards.
+5. **Design** on Climb: Lobby / Floor 1 / Floor 2 tabs, 3D preview of the selected floor, pack `climb` on content squares, up stairs already linked. **New → Empty board** is a Ground loop you can edit, Save, then Test.
 
 ## Feature flags
 

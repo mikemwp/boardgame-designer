@@ -2,12 +2,22 @@ export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
 export type CellKind = 'corridor' | 'stair';
 
+export interface HudRect {
+  col: number;
+  row: number;
+  width: number;
+  height: number;
+}
+
 export interface Cell {
   id: string;
   index: number;
   kind?: CellKind;
   packId?: string;
   stairId?: string;
+  col?: number;
+  row?: number;
+  start?: boolean;
 }
 
 export interface Stair {
@@ -25,6 +35,9 @@ export interface Floor {
   cells: Cell[];
   holdEnabled?: boolean;
   holdQuotas?: Record<string, number>;
+  columns?: number;
+  rows?: number;
+  hud?: HudRect;
 }
 
 export interface TokenPos {

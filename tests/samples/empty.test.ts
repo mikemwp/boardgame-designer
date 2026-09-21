@@ -32,4 +32,19 @@ describe('emptyBootstrap', () => {
     a.board.floors[0]!.label = 'Mutated';
     expect(b.board.floors[0]!.label).toBe('Ground');
   });
+
+  it('bakes grid coordinates outside the HUD and marks the start square', () => {
+    const boot = emptyBootstrap();
+    const floor = boot.board.floors[0]!;
+    expect(floor.columns).toBe(8);
+    expect(floor.cells[0]?.start).toBe(true);
+    expect(floor.cells.map((c) => ({ col: c.col, row: c.row }))).toEqual([
+      { col: 0, row: 0 },
+      { col: 1, row: 0 },
+      { col: 2, row: 0 },
+      { col: 2, row: 1 },
+      { col: 1, row: 1 },
+      { col: 0, row: 1 },
+    ]);
+  });
 });

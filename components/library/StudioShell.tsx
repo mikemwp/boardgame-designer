@@ -1,16 +1,19 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { LayoutDesigner } from '@/components/designer/LayoutDesigner';
+import type { DesignerTool } from '@/components/designer/DesignerPalette';
 import { GameHud } from '@/components/hud/GameHud';
-import { LibraryBar } from '@/components/library/LibraryBar';
+import { LibraryBar, type StudioMode } from '@/components/library/LibraryBar';
 import { NewGameDialog } from '@/components/library/NewGameDialog';
 import { OpenGameDialog } from '@/components/library/OpenGameDialog';
+import { validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
+import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
-import {
-  captureBootstrap,
-  fromStoredBootstrap,
-} from '@/lib/library/bootstrap';
+import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
+import type { PlayerState } from '@/lib/engine/players';
+import { cloneJson, fromStoredBootstrap } from '@/lib/library/bootstrap';
 import type { NewGameSource } from '@/lib/library/types';
 
 export function StudioShell(options: UseLibraryOptions = {}) {
@@ -19,24 +22,64 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [snapshot, setSnapshot] = useState<GameState | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [openOpen, setOpenOpen] = useState(false);
+  const [mode, setMode] = useState<StudioMode>('design');
+  const [workingBoard, setWorkingBoard] = useState<Board | null>(null);
+  const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
+  const [selectedFloorId, setSelectedFloorId] = useState<string>('');
+  const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+  const [tool, setTool] = useState<DesignerTool>('select');
+  const [issues, setIssues] = useState<LayoutIssue[]>([]);
+  const [testNonce, setTestNonce] = useState(0);
 
-  const persistActive = useCallback(() => {
-    if (!active || !snapshot) return;
-    saveActive(captureBootstrap(snapshot, active.bootstrap.players));
-  }, [active, snapshot, saveActive]);
+  useEffect(() => {
+    if (!active) {
+      setWorkingBoard(null);
+      setWorkingPlayers(null);
+      return;
+    }
+    const board = ensureBoardLayout(cloneJson(active.bootstrap.board));
+    setWorkingBoard(board);
+    setWorkingPlayers(cloneJson(active.bootstrap.players));
+    setSelectedFloorId(board.floors[0]?.id ?? '');
+    setSelectedCellId(null);
+    setIssues([]);
+    setMode('design');
+    setSnapshot(null);
+  }, [active?.id]);
+
+  const persistWorking = useCallback(() => {
+    if (!active || !workingBoard || !workingPlayers) return;
+    saveActive({
+      board: cloneJson(workingBoard),
+      players: applyStartToPlayers(cloneJson(workingPlayers), workingBoard),
+      cards: snapshot?.cards.deck ?? active.bootstrap.cards,
+      config: snapshot?.config ?? active.bootstrap.config,
+    });
+  }, [active, workingBoard, workingPlayers, snapshot, saveActive]);
 
   const onCreate = (input: { name: string; source: NewGameSource }) => {
-    persistActive();
+    persistWorking();
     newGame(input);
-    setSnapshot(null);
     setNewOpen(false);
   };
 
   const onOpenDraft = (id: string) => {
-    persistActive();
+    persistWorking();
     openGame(id);
-    setSnapshot(null);
     setOpenOpen(false);
+  };
+
+  const onTest = () => {
+    if (!workingBoard) return;
+    const nextIssues = validateLayout(workingBoard);
+    setIssues(nextIssues);
+    if (nextIssues.length > 0) {
+      setMode('design');
+      return;
+    }
+    persistWorking();
+    setTestNonce((n) => n + 1);
+    setMode('test');
   };
 
   if (!ready) {
@@ -49,24 +92,43 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         activeName={active?.name ?? 'No game'}
         savedAt={active?.updatedAt}
         canSave={Boolean(active)}
+        mode={mode}
         onNew={() => setNewOpen(true)}
-        onSave={persistActive}
+        onSave={persistWorking}
         onOpen={() => setOpenOpen(true)}
+        onDesign={() => setMode('design')}
+        onTest={onTest}
       />
-      {active ? (
-        <GameHud
-          key={active.id}
-          bootstrap={fromStoredBootstrap(active.bootstrap)}
-          onStateChange={setSnapshot}
-        />
+      {active && workingBoard && workingPlayers ? (
+        mode === 'design' ? (
+          <LayoutDesigner
+            board={workingBoard}
+            cards={snapshot?.cards.deck ?? active.bootstrap.cards}
+            selectedFloorId={selectedFloorId || workingBoard.floors[0]!.id}
+            selectedCellId={selectedCellId}
+            tool={tool}
+            issues={issues}
+            onBoardChange={setWorkingBoard}
+            onSelectFloor={setSelectedFloorId}
+            onSelectCell={setSelectedCellId}
+            onToolChange={setTool}
+          />
+        ) : (
+          <GameHud
+            key={`${active.id}-test-${testNonce}`}
+            bootstrap={fromStoredBootstrap({
+              board: workingBoard,
+              players: applyStartToPlayers(workingPlayers, workingBoard),
+              cards: snapshot?.cards.deck ?? active.bootstrap.cards,
+              config: snapshot?.config ?? active.bootstrap.config,
+            })}
+            onStateChange={setSnapshot}
+          />
+        )
       ) : (
         <p className="text-slate-400">Create a game to start playing.</p>
       )}
-      <NewGameDialog
-        open={newOpen}
-        onOpenChange={setNewOpen}
-        onCreate={onCreate}
-      />
+      <NewGameDialog open={newOpen} onOpenChange={setNewOpen} onCreate={onCreate} />
       <OpenGameDialog
         open={openOpen}
         onOpenChange={setOpenOpen}

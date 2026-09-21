@@ -39,4 +39,18 @@ describe('Cell and Floor slice-2 fields', () => {
     };
     expect(floor.holdQuotas?.climb).toBe(1);
   });
+
+  it('allows optional designer grid fields', () => {
+    const floor: Floor = {
+      id: 'ground',
+      index: 0,
+      label: 'Ground',
+      columns: 8,
+      rows: 6,
+      hud: { col: 2, row: 2, width: 4, height: 2 },
+      cells: [{ id: 'ground-c0', index: 0, col: 0, row: 0, start: true }],
+    };
+    expect(floor.hud?.col).toBe(2);
+    expect(floor.cells[0]?.start).toBe(true);
+  });
 });

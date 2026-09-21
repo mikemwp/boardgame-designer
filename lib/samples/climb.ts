@@ -1,20 +1,36 @@
 import { createBoard } from '@/lib/engine/board';
 import { createCardState } from '@/lib/engine/cards';
 import type { GameBootstrap } from '@/lib/engine/game';
+import {
+  defaultLoopPositions,
+  DEFAULT_COLUMNS,
+  DEFAULT_HUD,
+  DEFAULT_ROWS,
+} from '@/lib/engine/layout';
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
 import type { Cell } from '@/lib/engine/types';
 
 export const CLIMB_LABEL = 'Climb (sample)';
 
-function loopCells(floorId: string, stairId: string | null, packAt: number[]): Cell[] {
+function loopCells(
+  floorId: string,
+  stairId: string | null,
+  packAt: number[],
+  markStart: boolean,
+): Cell[] {
+  const positions = defaultLoopPositions(6);
   return [0, 1, 2, 3, 4, 5].map((index) => {
     const isStair = stairId !== null && index === 3;
+    const pos = positions[index]!;
     return {
       id: `${floorId}-c${index}`,
       index,
       kind: isStair ? 'stair' : 'corridor',
       stairId: isStair ? stairId : undefined,
       packId: !isStair && packAt.includes(index) ? 'climb' : undefined,
+      col: pos.col,
+      row: pos.row,
+      start: markStart && index === 0,
     };
   });
 }
@@ -25,7 +41,10 @@ const floors = [
     index: 0,
     label: 'Lobby',
     holdEnabled: false,
-    cells: loopCells('lobby', 's-lobby-f1', [1, 4]),
+    columns: DEFAULT_COLUMNS,
+    rows: DEFAULT_ROWS,
+    hud: { ...DEFAULT_HUD },
+    cells: loopCells('lobby', 's-lobby-f1', [1, 4], true),
   },
   {
     id: 'f1',
@@ -33,14 +52,20 @@ const floors = [
     label: 'Floor 1',
     holdEnabled: true,
     holdQuotas: { climb: 1 },
-    cells: loopCells('f1', 's-f1-f2', [0, 2, 5]),
+    columns: DEFAULT_COLUMNS,
+    rows: DEFAULT_ROWS,
+    hud: { ...DEFAULT_HUD },
+    cells: loopCells('f1', 's-f1-f2', [0, 2, 5], false),
   },
   {
     id: 'f2',
     index: 2,
     label: 'Floor 2',
     holdEnabled: false,
-    cells: loopCells('f2', null, [1, 4]),
+    columns: DEFAULT_COLUMNS,
+    rows: DEFAULT_ROWS,
+    hud: { ...DEFAULT_HUD },
+    cells: loopCells('f2', null, [1, 4], false),
   },
 ];
 

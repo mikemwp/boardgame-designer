@@ -40,4 +40,19 @@ describe('climb sample', () => {
     const next = dispatch(game, { type: 'ROLL_DICE' });
     expect(next.lastRoll).not.toBeNull();
   });
+
+  it('bakes a start square on lobby-c0 and grid coords on every cell', () => {
+    const lobby = climbSample.board.floors[0]!;
+    expect(lobby.cells[0]?.id).toBe('lobby-c0');
+    expect(lobby.cells[0]?.start).toBe(true);
+    expect(lobby.columns).toBe(8);
+    for (const floor of climbSample.board.floors) {
+      expect(floor.hud).toEqual({ col: 2, row: 2, width: 4, height: 2 });
+      for (const cell of floor.cells) {
+        expect(typeof cell.col).toBe('number');
+        expect(typeof cell.row).toBe('number');
+      }
+    }
+    expect(climbSample.board.floors[1]?.cells.some((c) => c.start)).toBe(false);
+  });
 });

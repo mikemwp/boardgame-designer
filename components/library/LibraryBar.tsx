@@ -2,20 +2,28 @@
 
 import { Button } from '@/components/ui/button';
 
+export type StudioMode = 'design' | 'test';
+
 export function LibraryBar({
   activeName,
   savedAt,
   canSave,
+  mode,
   onNew,
   onSave,
   onOpen,
+  onDesign,
+  onTest,
 }: {
   activeName: string;
   savedAt?: string;
   canSave: boolean;
+  mode: StudioMode;
   onNew: () => void;
   onSave: () => void;
   onOpen: () => void;
+  onDesign: () => void;
+  onTest: () => void;
 }) {
   return (
     <div
@@ -39,6 +47,22 @@ export function LibraryBar({
         </Button>
         <Button type="button" variant="outline" onClick={onOpen}>
           Open
+        </Button>
+        <Button
+          type="button"
+          variant={mode === 'design' ? 'secondary' : 'outline'}
+          aria-pressed={mode === 'design'}
+          onClick={onDesign}
+        >
+          Design
+        </Button>
+        <Button
+          type="button"
+          variant={mode === 'test' ? 'secondary' : 'outline'}
+          aria-pressed={mode === 'test'}
+          onClick={onTest}
+        >
+          Test
         </Button>
       </div>
     </div>
