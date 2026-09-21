@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { StudioShell } from '@/components/library/StudioShell';
 import { loadLibrary, memoryStorage } from '@/lib/library/storage';
 
@@ -12,6 +12,12 @@ vi.mock('@/components/board/FloorPreview', () => ({
 }));
 
 const NOW = '2026-09-21T12:00:00.000Z';
+
+async function flushTestViewport() {
+  await act(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  });
+}
 
 function renderStudio(storage = memoryStorage(), id = 'seed-1', now = NOW, createId = () => 'n1') {
   const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
@@ -26,12 +32,14 @@ function renderStudio(storage = memoryStorage(), id = 'seed-1', now = NOW, creat
 }
 
 describe('StudioShell', () => {
-  it('opens in Design on Climb and Test reveals Roll dice', () => {
+  it('opens in Design on Climb and Test reveals Roll dice', async () => {
     renderStudio();
     expect(screen.getByText('Climb (sample)')).toBeDefined();
     expect(screen.getByTestId('floor-preview')).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
+    await flushTestViewport();
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
     expect(screen.getByText('No card drawn')).toBeDefined();
     expect(screen.queryByTestId('floor-preview')).toBeNull();
@@ -50,7 +58,7 @@ describe('StudioShell', () => {
     expect(screen.getByTestId('library-saved-at').textContent).toContain('2026-09-21T13:00:00.000Z');
   });
 
-  it('New empty stays in Design, then Test plays a board with no climb passes', () => {
+  it('New empty stays in Design, then Test plays a board with no climb passes', async () => {
     renderStudio(memoryStorage(), 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
     fireEvent.click(screen.getByRole('button', { name: 'New' }));
     fireEvent.click(screen.getByLabelText('Empty board'));
@@ -59,11 +67,12 @@ describe('StudioShell', () => {
     expect(screen.getByText('Sandbox')).toBeDefined();
     expect(screen.getByTestId('floor-preview')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    await flushTestViewport();
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
     expect(screen.queryByText('Passes left: climb 1')).toBeNull();
   });
 
-  it('Open switches back to Climb and Design can return to the grid', () => {
+  it('Open switches back to Climb and Design can return to the grid', async () => {
     renderStudio(memoryStorage(), 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
     fireEvent.click(screen.getByRole('button', { name: 'New' }));
     fireEvent.click(screen.getByLabelText('Empty board'));
@@ -72,6 +81,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open Climb (sample)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    await flushTestViewport();
     expect(screen.getByText('Passes left: climb 1')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Design' }));
     expect(screen.getByTestId('floor-preview')).toBeDefined();

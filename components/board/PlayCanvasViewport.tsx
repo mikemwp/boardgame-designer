@@ -57,6 +57,8 @@ export function PlayCanvasViewport({
         canvas.width = w;
         canvas.height = h;
         setReady(true);
+      } else {
+        setReady(false);
       }
     };
 
@@ -67,7 +69,7 @@ export function PlayCanvasViewport({
   }, []);
 
   return (
-    <div ref={containerRef} className={className}>
+    <div ref={containerRef} className={className} data-testid="pc-viewport">
       <canvas ref={canvasRef} className="block h-full w-full" aria-label="Interactive 3D Scene" />
       {ready && (
         <ApplicationWithoutCanvas
@@ -75,7 +77,7 @@ export function PlayCanvasViewport({
           usePhysics={usePhysics}
           fillMode={FILLMODE_NONE}
           resolutionMode={RESOLUTION_FIXED}
-          graphicsDeviceOptions={{ alpha: false, antialias: true }}
+          graphicsDeviceOptions={{ alpha: false, antialias: false }}
         >
           <CanvasResizeSync />
           {children}

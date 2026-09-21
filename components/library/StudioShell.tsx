@@ -30,6 +30,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [tool, setTool] = useState<DesignerTool>('select');
   const [issues, setIssues] = useState<LayoutIssue[]>([]);
   const [testNonce, setTestNonce] = useState(0);
+  const [testViewportReady, setTestViewportReady] = useState(false);
 
   useEffect(() => {
     if (!active) {
@@ -78,9 +79,19 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       return;
     }
     persistWorking();
+    setTestViewportReady(false);
     setTestNonce((n) => n + 1);
     setMode('test');
   };
+
+  useEffect(() => {
+    if (mode !== 'test') {
+      setTestViewportReady(false);
+      return;
+    }
+    const frame = requestAnimationFrame(() => setTestViewportReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, [mode, testNonce]);
 
   if (!ready) {
     return <p className="text-slate-400">Loading library…</p>;
@@ -113,7 +124,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onSelectCell={setSelectedCellId}
             onToolChange={setTool}
           />
-        ) : (
+        ) : testViewportReady ? (
           <GameHud
             key={`${active.id}-test-${testNonce}`}
             bootstrap={fromStoredBootstrap({
@@ -124,7 +135,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             })}
             onStateChange={setSnapshot}
           />
-        )
+        ) : null
       ) : (
         <p className="text-slate-400">Create a game to start playing.</p>
       )}
