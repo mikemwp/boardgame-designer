@@ -128,3 +128,98 @@
     @apply font-sans;
   }
 }
+
+.hud-die-scene {
+  width: 72px;
+  height: 72px;
+  perspective: 400px;
+}
+
+.hud-die {
+  width: 72px;
+  height: 72px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 180ms ease-out;
+}
+
+.hud-die--tumble {
+  animation: hud-die-tumble 1.2s linear;
+}
+
+@keyframes hud-die-tumble {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  100% { transform: rotateX(720deg) rotateY(540deg) rotateZ(360deg); }
+}
+
+.hud-die-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 2px solid #334155;
+  backface-visibility: hidden;
+}
+
+.hud-die-face--1 { transform: rotateY(0deg) translateZ(36px); }
+.hud-die-face--2 { transform: rotateY(90deg) translateZ(36px); }
+.hud-die-face--3 { transform: rotateX(-90deg) translateZ(36px); }
+.hud-die-face--4 { transform: rotateX(90deg) translateZ(36px); }
+.hud-die-face--5 { transform: rotateY(-90deg) translateZ(36px); }
+.hud-die-face--6 { transform: rotateY(180deg) translateZ(36px); }
+
+.hud-spinner {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
+}
+
+.hud-spinner-pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 16px solid #f8fafc;
+  transform: translateX(-50%);
+}
+
+.hud-spinner-wheel {
+  width: 180px;
+  height: 180px;
+  border-radius: 9999px;
+  border: 4px solid #94a3b8;
+  background: conic-gradient(from -15deg, #1e293b, #334155, #1e293b);
+  position: relative;
+  transition: transform 200ms ease-out;
+}
+
+.hud-spinner-wheel--spin {
+  animation: hud-spinner-spin 1.4s cubic-bezier(0.12, 0.7, 0.2, 1);
+}
+
+@keyframes hud-spinner-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(1440deg); }
+}
+
+.hud-spinner-tick {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 20px;
+  margin-left: -10px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  transform-origin: 10px 82px;
+}
