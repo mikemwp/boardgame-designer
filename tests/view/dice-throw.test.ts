@@ -38,9 +38,11 @@ describe('diceDisplayFaces', () => {
     expect(diceDisplayFaces(4, 1)).toEqual([4]);
   });
 
-  it('shows two d6 faces in 2-dice mode for spinner values 1-12', () => {
-    expect(diceDisplayFaces(1, 2)).toEqual([1, 1]);
-    expect(diceDisplayFaces(7, 2)).toEqual([1, 2]);
-    expect(diceDisplayFaces(12, 2)).toEqual([6, 2]);
+  it('uses engine faces for 2-dice mode when provided', () => {
+    expect(diceDisplayFaces(7, 2, [3, 4])).toEqual([3, 4]);
+  });
+
+  it('falls back to a 2d6 split when faces are missing', () => {
+    expect(diceDisplayFaces(7, 2)).toEqual([1, 6]);
   });
 });

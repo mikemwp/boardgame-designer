@@ -3,7 +3,6 @@ import { createBoard } from '@/lib/engine/board';
 import { createCardState } from '@/lib/engine/cards';
 import { createGame, dispatch } from '@/lib/engine/game';
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
-import { diceSidesForCount } from '@/lib/engine/dice';
 import { climbSample } from '@/lib/samples/climb';
 import type { GameBootstrap } from '@/lib/engine/game';
 
@@ -133,18 +132,23 @@ describe('ROLL_DICE', () => {
     expect(next.players.players[0]?.token.cellId).toBe('l1');
   });
 
-  it('samples 1-12 in 2-dice mode (spinner, not 2-12)', () => {
+  it('sums two d6 in 2-dice mode (2-12, not spinner 1-12)', () => {
     const game = createGame(loopBootstrap(), { diceCount: 2, rng: () => 0 });
     const next = dispatch(game, { type: 'ROLL_DICE' });
     expect(next.lastRoll?.sides).toBe(12);
-    expect(next.lastRoll?.value).toBe(1);
-    expect(diceSidesForCount(2)).toBe(12);
+    expect(next.lastRoll?.value).toBe(2);
+    expect(next.lastRoll?.faces).toEqual([1, 1]);
   });
 
-  it('can roll 12 in 2-dice mode', () => {
-    const game = createGame(loopBootstrap(), { diceCount: 2, rng: () => 0.999 });
+  it('can roll 12 as 6+6 in 2-dice mode', () => {
+    let i = 0;
+    const game = createGame(loopBootstrap(), {
+      diceCount: 2,
+      rng: () => (i++ === 0 ? 0.999 : 0.999),
+    });
     const next = dispatch(game, { type: 'ROLL_DICE' });
     expect(next.lastRoll?.value).toBe(12);
+    expect(next.lastRoll?.faces).toEqual([6, 6]);
   });
 });
 

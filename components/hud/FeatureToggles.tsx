@@ -25,16 +25,11 @@ export function FeatureToggles({
         />
       </div>
       <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="two-dice-toggle">2 dice (1–12)</Label>
+        <Label htmlFor="two-dice-toggle">2 dice (2–12)</Label>
         <Switch
           id="two-dice-toggle"
           checked={config.diceCount === 2}
-          onCheckedChange={(checked) =>
-            onChange({
-              diceCount: checked ? 2 : 1,
-              diceSides: checked ? 12 : 6,
-            })
-          }
+          onCheckedChange={(checked) => onChange({ diceCount: checked ? 2 : 1 })}
         />
       </div>
       <div className="flex items-center justify-between gap-4">

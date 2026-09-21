@@ -27,13 +27,16 @@ export function computeThrowImpulse(rng: () => number): ThrowImpulse {
   };
 }
 
-export function diceDisplayFaces(value: number, diceCount: 1 | 2): number[] {
+export function diceDisplayFaces(
+  value: number,
+  diceCount: 1 | 2,
+  faces?: number[],
+): number[] {
+  if (faces && faces.length > 0) return faces;
   if (diceCount === 1) {
     return [Math.min(6, Math.max(1, value))];
   }
-  const faceA = ((value - 1) % 6) + 1;
-  const faceB = Math.min(6, Math.floor((value - 1) / 6) + 1);
-  return [faceA, faceB];
+  return [1, Math.max(1, value - 1)];
 }
 
 export function diceSpawnOffsets(diceCount: 1 | 2): Array<[number, number]> {

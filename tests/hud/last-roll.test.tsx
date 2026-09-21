@@ -10,13 +10,18 @@ describe('LastRoll', () => {
   });
 
   it('shows a held zero', () => {
-    render(<LastRoll lastRoll={{ value: 0, sides: 6, id: 1 }} />);
+    render(<LastRoll lastRoll={{ value: 0, sides: 6, id: 1, faces: [] }} />);
     expect(screen.getByText(/stairs held/i)).toBeDefined();
   });
 
   it('shows the face and sides', () => {
-    render(<LastRoll lastRoll={{ value: 4, sides: 6, id: 2 }} />);
+    render(<LastRoll lastRoll={{ value: 4, sides: 6, id: 2, faces: [4] }} />);
     expect(screen.getByText('Last roll: 4 (d6)')).toBeDefined();
+  });
+
+  it('shows 2d6 sum when two faces were rolled', () => {
+    render(<LastRoll lastRoll={{ value: 7, sides: 12, id: 3, faces: [3, 4] }} />);
+    expect(screen.getByText('Last roll: 3 + 4 = 7 (2d6)')).toBeDefined();
   });
 });
 

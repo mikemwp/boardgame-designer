@@ -67,14 +67,15 @@ export function isIllegalLanding(
 export function allowedMoveValues(
   board: Board,
   from: TokenPos,
-  sides: number,
+  maxSteps: number,
   hold: HoldState | null,
   holdEnabled: boolean,
+  minSteps = 1,
 ): number[] {
   const floor = getFloor(board, from.floorId);
-  if (!floor || sides < 1) return [];
+  if (!floor || maxSteps < minSteps) return [];
   const allowed: number[] = [];
-  for (let value = 1; value <= sides; value += 1) {
+  for (let value = minSteps; value <= maxSteps; value += 1) {
     const landing = walkSteps(floor, from.cellId, value);
     if (!landing) continue;
     if (!isIllegalLanding(board, landing, from.floorId, hold, holdEnabled)) {

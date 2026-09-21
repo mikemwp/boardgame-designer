@@ -28,11 +28,11 @@ export function DiceRollLayer({
   diceCount: DiceCount;
   spawnAt: Vec3;
 }) {
-  const [roll, setRoll] = useState<{ value: number; rolling: boolean; id: number } | null>(null);
+  const [roll, setRoll] = useState<{ value: number; rolling: boolean; id: number; faces: number[] } | null>(null);
 
   useEffect(() => {
     if (!enabled || !shouldShowDie(lastRoll) || !lastRoll) return;
-    setRoll({ value: lastRoll.value, rolling: true, id: lastRoll.id });
+    setRoll({ value: lastRoll.value, rolling: true, id: lastRoll.id, faces: lastRoll.faces });
     const timer = window.setTimeout(() => {
       setRoll((current) => (current ? { ...current, rolling: false } : null));
     }, SETTLE_MS);
@@ -41,7 +41,7 @@ export function DiceRollLayer({
 
   if (!enabled || !roll) return null;
 
-  const faces = diceDisplayFaces(roll.value, diceCount);
+  const faces = diceDisplayFaces(roll.value, diceCount, roll.faces);
   const offsets = diceSpawnOffsets(diceCount);
   const base = spawnPositionAboveFloor(spawnAt);
 

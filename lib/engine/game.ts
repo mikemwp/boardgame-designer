@@ -1,16 +1,17 @@
 import { defaultGameConfig, type GameConfig, type TokenPos } from './types';
 import { getFloor, type Board } from './board';
 import { moveToken, type PlayerState } from './players';
-import { diceSidesForCount, type Rng } from './dice';
+import { movementRangeForCount, rollDiceMovement, type Rng } from './dice';
 import { applyAction, countsTowardReveal, dealFromPack, type CardState } from './cards';
 import { canExitHold, createHoldState, recordHoldReveal, type HoldState } from './hold';
-import { allowedMoveValues, sampleMoveValue, walkSteps } from './movement';
+import { allowedMoveValues, walkSteps } from './movement';
 import type { GameCommand, GameEvent } from './events';
 
 export interface LastRoll {
   value: number;
   sides: number;
   id: number;
+  faces: number[];
 }
 
 export interface GameState {
@@ -117,16 +118,22 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       if (!active) return state;
       const player = state.players.players.find((p) => p.id === active);
       if (!player) return state;
-      const sides = diceSidesForCount(state.config.diceCount);
+      const { min, max } = movementRangeForCount(state.config.diceCount);
       const allowed = allowedMoveValues(
         state.board,
         player.token,
-        sides,
+        max,
         state.hold,
         state.config.holdEnabled,
+        min,
       );
-      const value = sampleMoveValue(allowed, state.rng);
-      const lastRoll: LastRoll = { value, sides, id: (state.lastRoll?.id ?? 0) + 1 };
+      const { value, faces, sides } = rollDiceMovement(state.config.diceCount, allowed, state.rng);
+      const lastRoll: LastRoll = {
+        value,
+        sides,
+        faces,
+        id: (state.lastRoll?.id ?? 0) + 1,
+      };
       const rolled: GameState = {
         ...state,
         lastRoll,
