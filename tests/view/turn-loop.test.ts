@@ -30,6 +30,14 @@ describe('isRollLocked', () => {
     expect(isRollLocked({ tokenSliding: true, awaitingAction: false })).toBe(true);
   });
 
+  it('locks while HUD dice or spinner is playing', () => {
+    expect(isRollLocked({
+      tokenSliding: false,
+      awaitingAction: false,
+      movementVizActive: true,
+    })).toBe(true);
+  });
+
   it('locks while awaiting Play or Pass', () => {
     expect(isRollLocked({ tokenSliding: false, awaitingAction: true })).toBe(true);
   });
@@ -46,6 +54,14 @@ describe('isRollLocked', () => {
 describe('shouldShowDealtCard', () => {
   it('hides the card while sliding', () => {
     expect(shouldShowDealtCard({ tokenSliding: true, currentCard: card })).toBe(false);
+  });
+
+  it('hides the card while HUD movement viz is playing', () => {
+    expect(shouldShowDealtCard({
+      tokenSliding: false,
+      currentCard: card,
+      movementVizActive: true,
+    })).toBe(false);
   });
 
   it('shows the card after slide completes', () => {

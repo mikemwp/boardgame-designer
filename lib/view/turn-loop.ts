@@ -14,7 +14,9 @@ export function hasResolvableCard(opts: {
 export function isRollLocked(opts: {
   tokenSliding: boolean;
   awaitingAction: boolean;
+  movementVizActive?: boolean;
 }): boolean {
+  if (opts.movementVizActive) return true;
   if (opts.tokenSliding) return true;
   return opts.awaitingAction;
 }
@@ -22,7 +24,9 @@ export function isRollLocked(opts: {
 export function shouldShowDealtCard(opts: {
   tokenSliding: boolean;
   currentCard: Card | null;
+  movementVizActive?: boolean;
 }): boolean {
   if (!opts.currentCard) return false;
+  if (opts.movementVizActive) return false;
   return !opts.tokenSliding;
 }
