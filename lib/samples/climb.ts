@@ -18,8 +18,8 @@ function loopCells(
   packAt: number[],
   markStart: boolean,
 ): Cell[] {
-  const positions = defaultLoopPositions(6);
-  return [0, 1, 2, 3, 4, 5].map((index) => {
+  const positions = defaultLoopPositions(8);
+  return [0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
     const isStair = stairId !== null && index === 3;
     const pos = positions[index]!;
     return {

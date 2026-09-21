@@ -27,26 +27,26 @@ describe('placeCorridor', () => {
     const hudRow = floor.hud!.row;
     expect(isHudSlot(floor, hudCol, hudRow)).toBe(true);
     expect(placeCorridor(board, 'ground', hudCol, hudRow, 'ground-c9')).toEqual(board);
-    expect(placeCorridor(board, 'ground', 0, 0, 'ground-c9')).toEqual(board);
-    const next = placeCorridor(board, 'ground', 0, 2, 'ground-c9');
+    expect(placeCorridor(board, 'ground', 3, 4, 'ground-c9')).toEqual(board);
+    const next = placeCorridor(board, 'ground', 0, 3, 'ground-c9');
     expect(next.floors[0]?.cells.some((c) => c.id === 'ground-c9')).toBe(true);
     expect(next.floors[0]?.cells.find((c) => c.id === 'ground-c9')).toMatchObject({
       kind: 'corridor',
       col: 0,
-      row: 2,
+      row: 3,
     });
   });
 });
 
 describe('moveCell and eraseCell', () => {
   it('moves a cell onto an empty slot and erase drops it', () => {
-    const moved = moveCell(groundBoard(), 'ground', 'ground-c5', 0, 2);
-    expect(moved.floors[0]?.cells.find((c) => c.id === 'ground-c5')).toMatchObject({
-      col: 0,
-      row: 2,
+    const moved = moveCell(groundBoard(), 'ground', 'ground-c7', 1, 1);
+    expect(moved.floors[0]?.cells.find((c) => c.id === 'ground-c7')).toMatchObject({
+      col: 1,
+      row: 1,
     });
-    const erased = eraseCell(moved, 'ground', 'ground-c5');
-    expect(erased.floors[0]?.cells.some((c) => c.id === 'ground-c5')).toBe(false);
+    const erased = eraseCell(moved, 'ground', 'ground-c7');
+    expect(erased.floors[0]?.cells.some((c) => c.id === 'ground-c7')).toBe(false);
   });
 });
 
@@ -65,7 +65,7 @@ describe('floors', () => {
     const added = addFloor(groundBoard(), 'floor-1', 'Cellar');
     expect(added.floors.map((f) => f.id)).toEqual(['ground', 'floor-1']);
     expect(added.floors[1]?.index).toBe(1);
-    expect(added.floors[1]?.cells).toHaveLength(6);
+    expect(added.floors[1]?.cells).toHaveLength(8);
     const renamed = renameFloor(added, 'floor-1', 'Basement');
     expect(renamed.floors[1]?.label).toBe('Basement');
     const deleted = deleteFloor(renamed, 'floor-1');

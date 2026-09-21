@@ -3,20 +3,79 @@ import type { PlayerState } from '@/lib/engine/players';
 import type { Cell, Floor, HudRect } from '@/lib/engine/types';
 
 export const DEFAULT_COLUMNS = 8;
-export const DEFAULT_ROWS = 6;
+export const DEFAULT_ROWS = 7;
 export const DEFAULT_HUD: HudRect = { col: 2, row: 2, width: 4, height: 2 };
 
-export function defaultLoopPositions(count: number): Array<{ col: number; row: number }> {
-  const width = Math.max(2, Math.ceil(count / 2));
+/** Tiles along each edge of the square ring (4*n - 4 corridor cells total). */
+export function squareRingTilesPerSide(cellCount: number): number {
+  return Math.max(2, Math.ceil((cellCount + 4) / 4));
+}
+
+export function squareRingCellCount(tilesPerSide: number): number {
+  return 4 * tilesPerSide - 4;
+}
+
+function walkSquareRing(
+  left: number,
+  top: number,
+  tilesPerSide: number,
+): Array<{ col: number; row: number }> {
+  const right = left + tilesPerSide - 1;
+  const bottom = top + tilesPerSide - 1;
   const positions: Array<{ col: number; row: number }> = [];
-  for (let i = 0; i < width; i += 1) {
-    positions.push({ col: i, row: 0 });
+  for (let col = left; col <= right; col += 1) positions.push({ col, row: top });
+  for (let row = top + 1; row < bottom; row += 1) positions.push({ col: right, row });
+  for (let col = right; col >= left; col -= 1) positions.push({ col, row: bottom });
+  for (let row = bottom - 1; row > top; row -= 1) positions.push({ col: left, row });
+  return positions;
+}
+
+export function squareRingPositions(
+  hud: HudRect,
+  tilesPerSide: number,
+  columns = DEFAULT_COLUMNS,
+  rows = DEFAULT_ROWS,
+): Array<{ col: number; row: number }> {
+  if (tilesPerSide < 2) return [];
+  const floor: Floor = { id: '', index: 0, label: '', cells: [], hud };
+  const hudCenterCol = hud.col + hud.width / 2;
+  const hudCenterRow = hud.row + hud.height / 2;
+
+  let best: Array<{ col: number; row: number }> | null = null;
+  let bestDistance = Infinity;
+
+  for (let top = 0; top < rows; top += 1) {
+    for (let left = 0; left < columns; left += 1) {
+      const positions = walkSquareRing(left, top, tilesPerSide);
+      const inBounds = positions.every(
+        (pos) => pos.col >= 0 && pos.col < columns && pos.row >= 0 && pos.row < rows,
+      );
+      if (!inBounds) continue;
+      if (!positions.every((pos) => !isHudSlot(floor, pos.col, pos.row))) continue;
+
+      const ringCenterCol = left + (tilesPerSide - 1) / 2;
+      const ringCenterRow = top + (tilesPerSide - 1) / 2;
+      const distance =
+        Math.abs(ringCenterCol - hudCenterCol) + Math.abs(ringCenterRow - hudCenterRow);
+      if (distance < bestDistance) {
+        best = positions;
+        bestDistance = distance;
+      }
+    }
   }
-  const bottomCount = Math.max(0, count - width);
-  for (let i = 0; i < bottomCount; i += 1) {
-    positions.push({ col: width - 1 - i, row: 1 });
-  }
-  return positions.slice(0, count);
+
+  return best ?? walkSquareRing(0, 0, tilesPerSide);
+}
+
+export function defaultLoopPositions(
+  cellCount = 8,
+  hud: HudRect = DEFAULT_HUD,
+): Array<{ col: number; row: number }> {
+  const tilesPerSide = squareRingTilesPerSide(cellCount);
+  const ring = squareRingPositions(hud, tilesPerSide);
+  const expected = squareRingCellCount(tilesPerSide);
+  if (cellCount === expected) return ring;
+  return ring.slice(0, cellCount);
 }
 
 export function isHudSlot(floor: Floor, col: number, row: number): boolean {
@@ -39,7 +98,7 @@ export function createLoopedFloor(
   id: string,
   label: string,
   index: number,
-  cellCount = 6,
+  cellCount = 8,
 ): Floor {
   const positions = defaultLoopPositions(cellCount);
   const cells: Cell[] = positions.map((pos, i) => ({
@@ -115,7 +174,7 @@ export function ensureFloorLayout(floor: Floor): Floor {
   const columns = floor.columns ?? DEFAULT_COLUMNS;
   const rows = floor.rows ?? DEFAULT_ROWS;
   const hud = floor.hud ?? { ...DEFAULT_HUD };
-  const positions = defaultLoopPositions(floor.cells.length);
+  const positions = defaultLoopPositions(floor.cells.length, hud);
   const cells = floor.cells.map((cell, i) => ({
     ...cell,
     col: cell.col ?? positions[i]?.col ?? 0,

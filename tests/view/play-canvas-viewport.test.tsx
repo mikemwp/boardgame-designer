@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 
 let resizeObserverCallback: ResizeObserverCallback | null = null;
 
@@ -45,20 +45,24 @@ vi.mock('@playcanvas/react/hooks', () => ({
 import { PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS } from '@/lib/view/playcanvas-graphics';
 import { PlayCanvasViewport } from '@/components/board/PlayCanvasViewport';
 
-function fireResize(width: number, height: number) {
+async function fireResize(width: number, height: number) {
   const container = document.querySelector('[data-testid="pc-viewport"]') as HTMLDivElement;
   Object.defineProperty(container, 'clientWidth', { configurable: true, value: width });
   Object.defineProperty(container, 'clientHeight', { configurable: true, value: height });
-  act(() => {
+  await act(async () => {
     resizeObserverCallback?.(
       [{ target: container } as ResizeObserverEntry],
       {} as ResizeObserver,
     );
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   });
 }
 
 async function flushViewportInit() {
   await act(async () => {
+    for (let i = 0; i < 4; i += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
     await Promise.resolve();
   });
 }
@@ -75,6 +79,27 @@ describe('PlayCanvasViewport', () => {
     vi.unstubAllGlobals();
   });
 
+  it('mounts PlayCanvas on first paint when layout settles without a resize', async () => {
+    render(
+      <PlayCanvasViewport>
+        <span>scene</span>
+      </PlayCanvasViewport>,
+    );
+
+    const container = screen.getByTestId('pc-viewport');
+    Object.defineProperty(container, 'clientWidth', { configurable: true, value: 800 });
+    Object.defineProperty(container, 'clientHeight', { configurable: true, value: 600 });
+
+    await act(async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await flushViewportInit();
+    });
+
+    await waitFor(() => expect(screen.getByTestId('pc-application')).toBeDefined());
+    expect(appMounts).toHaveBeenCalledTimes(1);
+  });
+
   it('does not mount PlayCanvas until the canvas has non-zero size', async () => {
     render(
       <PlayCanvasViewport>
@@ -85,10 +110,10 @@ describe('PlayCanvasViewport', () => {
     expect(screen.queryByTestId('pc-application')).toBeNull();
     expect(appMounts).not.toHaveBeenCalled();
 
-    fireResize(640, 480);
+    await fireResize(640, 480);
     await flushViewportInit();
 
-    expect(screen.getByTestId('pc-application')).toBeDefined();
+    await waitFor(() => expect(screen.getByTestId('pc-application')).toBeDefined());
     expect(appMounts).toHaveBeenCalledTimes(1);
   });
 
@@ -99,11 +124,11 @@ describe('PlayCanvasViewport', () => {
       </PlayCanvasViewport>,
     );
 
-    fireResize(640, 480);
+    await fireResize(640, 480);
     await flushViewportInit();
-    expect(screen.getByTestId('pc-application')).toBeDefined();
+    await waitFor(() => expect(screen.getByTestId('pc-application')).toBeDefined());
 
-    fireResize(0, 0);
+    await fireResize(0, 0);
     await flushViewportInit();
 
     expect(screen.queryByTestId('pc-application')).toBeNull();
@@ -116,8 +141,9 @@ describe('PlayCanvasViewport', () => {
       </PlayCanvasViewport>,
     );
 
-    fireResize(640, 480);
+    await fireResize(640, 480);
     await flushViewportInit();
+    await waitFor(() => expect(screen.getByTestId('pc-application')).toBeDefined());
 
     expect(lastGraphicsDeviceOptions).toEqual(PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS);
     expect(lastGraphicsDeviceOptions?.antialias).toBe(false);

@@ -23,7 +23,7 @@ export function FloorStack({
     <>
       {board.floors.flatMap((floor) =>
         floor.cells.map((cell) => {
-          const pos = cellToWorld(floor.index, cell.index, floor.cells.length);
+          const pos = cellToWorld(floor.index, cell, floor.hud);
           const stair = cell.kind === 'stair';
           const selected = cell.id === selectedCellId;
           const material = selected ? selectedMat : stair ? stairMat : corridorMat;
@@ -32,7 +32,7 @@ export function FloorStack({
               key={cell.id}
               name={cell.id}
               position={[pos.x, pos.y, pos.z]}
-              scale={[1.1, 0.2, 1.1]}
+              scale={[1, 0.2, 1]}
             >
               <Render type="box" material={material} />
               {usePhysics && (

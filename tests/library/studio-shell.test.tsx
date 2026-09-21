@@ -54,7 +54,7 @@ describe('StudioShell', () => {
     renderStudio(storage, 'seed-1', '2026-09-21T13:00:00.000Z');
     fireEvent.click(screen.getByRole('button', { name: 'Corridor square' }));
     fireEvent.click(screen.getByRole('button', { name: 'Stair' }));
-    fireEvent.click(screen.getByTestId('slot-2-0'));
+    fireEvent.click(screen.getByTestId('slot-5-4'));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(screen.getByTestId('layout-issues').textContent).toContain('stair has no destination');
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
@@ -95,7 +95,7 @@ describe('StudioShell', () => {
   it('Save persists a pack attached in Design into storage', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-21T14:00:00.000Z');
-    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.click(screen.getByTestId('slot-3-4'));
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'climb' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });

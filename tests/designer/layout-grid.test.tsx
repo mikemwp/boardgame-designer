@@ -16,14 +16,14 @@ describe('LayoutGrid', () => {
         onMoveCell={onMoveCell}
       />,
     );
-    fireEvent.click(screen.getByTestId('slot-0-2'));
-    expect(onSlotActivate).toHaveBeenCalledWith(0, 2);
+    fireEvent.click(screen.getByTestId('slot-0-4'));
+    expect(onSlotActivate).toHaveBeenCalledWith(0, 4);
     onSlotActivate.mockClear();
     fireEvent.click(screen.getByTestId(`slot-${floor.hud!.col}-${floor.hud!.row}`));
     expect(onSlotActivate).not.toHaveBeenCalled();
     expect(screen.getAllByLabelText('HUD — drops blocked').length).toBeGreaterThan(0);
-    fireEvent.pointerDown(screen.getByTestId('slot-0-1'));
-    fireEvent.pointerUp(screen.getByTestId('slot-0-2'));
-    expect(onMoveCell).toHaveBeenCalledWith('ground-c5', 0, 2);
+    fireEvent.pointerDown(screen.getByTestId('slot-3-5'));
+    fireEvent.pointerUp(screen.getByTestId('slot-1-1'));
+    expect(onMoveCell).toHaveBeenCalledWith('ground-c7', 1, 1);
   });
 });

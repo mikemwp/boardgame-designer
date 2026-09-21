@@ -12,6 +12,16 @@ import {
   waitUntilPlayCanvasSlotFree,
 } from '@/lib/view/playcanvas-lifecycle';
 
+function nextFrame(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => resolve());
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
 function CanvasResizeSync() {
   const app = useApp();
 
@@ -52,6 +62,7 @@ export function PlayCanvasViewport({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const releaseSlotRef = useRef<(() => void) | null>(null);
+  const hadSizeRef = useRef(false);
   const [sized, setSized] = useState(false);
   const [appReady, setAppReady] = useState(false);
 
@@ -60,22 +71,42 @@ export function PlayCanvasViewport({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    const syncSize = () => {
+    let frameId = 0;
+
+    const applySize = () => {
       const w = container.clientWidth;
       const h = container.clientHeight;
       if (w > 0 && h > 0) {
         canvas.width = w;
         canvas.height = h;
+        hadSizeRef.current = true;
         setSized(true);
-      } else {
+        return;
+      }
+      if (hadSizeRef.current) {
         setSized(false);
       }
     };
 
-    syncSize();
-    const observer = new ResizeObserver(syncSize);
+    const scheduleMeasure = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        applySize();
+      });
+    };
+
+    applySize();
+    scheduleMeasure();
+
+    const observer = new ResizeObserver(() => {
+      scheduleMeasure();
+    });
     observer.observe(container);
-    return () => observer.disconnect();
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
   }, []);
 
   useLayoutEffect(() => {
@@ -86,12 +117,22 @@ export function PlayCanvasViewport({
 
     let cancelled = false;
 
+    const hasDimensions = () => {
+      const container = containerRef.current;
+      return Boolean(
+        container && container.clientWidth > 0 && container.clientHeight > 0 && !cancelled,
+      );
+    };
+
     (async () => {
-      const stable = await waitForStableReady(() => !cancelled && sized, 2);
+      await nextFrame();
+      if (!hasDimensions()) return;
+
+      const stable = await waitForStableReady(hasDimensions, 1);
       if (!stable || cancelled) return;
 
       await waitUntilPlayCanvasSlotFree(2);
-      if (cancelled || !sized) return;
+      if (!hasDimensions()) return;
 
       const release = acquirePlayCanvasSlot(slotId);
       if (!release || cancelled) return;

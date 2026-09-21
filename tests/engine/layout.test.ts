@@ -20,14 +20,16 @@ import {
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
 
 describe('defaultLoopPositions', () => {
-  it('builds a 2-row rectangle so 6 cells wrap 4-adjacent', () => {
-    expect(defaultLoopPositions(6)).toEqual([
-      { col: 0, row: 0 },
-      { col: 1, row: 0 },
-      { col: 2, row: 0 },
-      { col: 2, row: 1 },
-      { col: 1, row: 1 },
-      { col: 0, row: 1 },
+  it('builds a square ring with equal sides around the HUD', () => {
+    expect(defaultLoopPositions(8)).toEqual([
+      { col: 3, row: 4 },
+      { col: 4, row: 4 },
+      { col: 5, row: 4 },
+      { col: 5, row: 5 },
+      { col: 5, row: 6 },
+      { col: 4, row: 6 },
+      { col: 3, row: 6 },
+      { col: 3, row: 5 },
     ]);
   });
 });
@@ -38,13 +40,13 @@ describe('createLoopedFloor', () => {
     expect(floor.columns).toBe(DEFAULT_COLUMNS);
     expect(floor.rows).toBe(DEFAULT_ROWS);
     expect(floor.hud).toEqual(DEFAULT_HUD);
-    expect(floor.cells).toHaveLength(6);
+    expect(floor.cells).toHaveLength(8);
     expect(floor.cells[0]).toMatchObject({
       id: 'ground-c0',
       index: 0,
       kind: 'corridor',
-      col: 0,
-      row: 0,
+      col: 3,
+      row: 4,
       start: true,
     });
     for (const cell of floor.cells) {
@@ -79,8 +81,8 @@ describe('ensureBoardLayout', () => {
     expect(ensured.floors[0]?.columns).toBe(8);
     expect(ensured.floors[0]?.cells[0]).toMatchObject({
       id: 'a',
-      col: 0,
-      row: 0,
+      col: 3,
+      row: 4,
       start: true,
     });
     expect(ensured.floors[0]?.cells[5]).toMatchObject({ col: 7, row: 5 });
@@ -93,7 +95,7 @@ describe('areAdjacent and cellAt', () => {
     expect(areAdjacent({ col: 0, row: 0 }, { col: 1, row: 0 })).toBe(true);
     expect(areAdjacent({ col: 0, row: 0 }, { col: 1, row: 1 })).toBe(false);
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    expect(cellAt(floor, 2, 0)?.id).toBe('ground-c2');
+    expect(cellAt(floor, 5, 4)?.id).toBe('ground-c2');
     expect(cellAt(floor, 3, 0)).toBeUndefined();
   });
 });
@@ -109,6 +111,8 @@ describe('orderCellsAlongLoop', () => {
       'ground-c3',
       'ground-c4',
       'ground-c5',
+      'ground-c6',
+      'ground-c7',
     ]);
     expect(ordered?.every((c, i) => c.index === i)).toBe(true);
   });

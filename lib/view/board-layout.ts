@@ -1,37 +1,67 @@
 import type { Board } from '@/lib/engine/board';
 import { getFloor } from '@/lib/engine/board';
+import { DEFAULT_HUD } from '@/lib/engine/layout';
 import { forwardPathCells, forwardPathSteps } from '@/lib/engine/movement';
-import type { TokenPos } from '@/lib/engine/types';
+import type { HudRect, TokenPos } from '@/lib/engine/types';
 
 const FLOOR_HEIGHT = 2;
-const CELL_SPACING = 1.5;
+export const TILE_SIZE = 1;
 
 export interface Vec3 { x: number; y: number; z: number }
 
-export function cellToWorld(floorIndex: number, cellIndex: number, cellCount = 6): Vec3 {
-  const n = Math.max(cellCount, 1);
-  if (n === 1) {
-    return { x: 0, y: floorIndex * FLOOR_HEIGHT, z: 0 };
-  }
-  const radius = (CELL_SPACING * n) / (2 * Math.PI) * 1.8;
-  const angle = (cellIndex / n) * Math.PI * 2;
+function hudOrigin(hud: HudRect = DEFAULT_HUD): { col: number; row: number } {
   return {
-    x: Math.cos(angle) * radius,
-    y: floorIndex * FLOOR_HEIGHT,
-    z: Math.sin(angle) * radius,
+    col: hud.col + hud.width / 2 - 0.5,
+    row: hud.row + hud.height / 2 - 0.5,
   };
+}
+
+export function gridToWorld(
+  floorIndex: number,
+  col: number,
+  row: number,
+  hud: HudRect = DEFAULT_HUD,
+): Vec3 {
+  const origin = hudOrigin(hud);
+  return {
+    x: (col - origin.col) * TILE_SIZE,
+    y: floorIndex * FLOOR_HEIGHT,
+    z: (row - origin.row) * TILE_SIZE,
+  };
+}
+
+export function adjacentWorldDistance(a: Vec3, b: Vec3): number {
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return Math.hypot(dx, dz);
+}
+
+export function cellToWorld(
+  floorIndex: number,
+  cell: { col?: number; row?: number; index: number },
+  hud: HudRect = DEFAULT_HUD,
+): Vec3 {
+  if (cell.col !== undefined && cell.row !== undefined) {
+    return gridToWorld(floorIndex, cell.col, cell.row, hud);
+  }
+  return { x: 0, y: floorIndex * FLOOR_HEIGHT, z: 0 };
 }
 
 export function tokenPosToWorld(
   board: {
-    floors: Array<{ id: string; index: number; cells: Array<{ id: string; index: number }> }>;
+    floors: Array<{
+      id: string;
+      index: number;
+      hud?: HudRect;
+      cells: Array<{ id: string; index: number; col?: number; row?: number }>;
+    }>;
   },
   token: { floorId: string; cellId: string },
 ): Vec3 {
   const floor = board.floors.find((f) => f.id === token.floorId);
   const cell = floor?.cells.find((c) => c.id === token.cellId);
   if (!floor || !cell) return { x: 0, y: 0, z: 0 };
-  return cellToWorld(floor.index, cell.index, floor.cells.length);
+  return cellToWorld(floor.index, cell, floor.hud);
 }
 
 export function worldWaypoints(board: Board, from: TokenPos, to: TokenPos, steps?: number): Vec3[] {

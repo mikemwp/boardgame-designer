@@ -7,10 +7,10 @@ describe('climb sample', () => {
     expect(CLIMB_LABEL).toContain('sample');
   });
 
-  it('provides three looping floors of six cells', () => {
+  it('provides three looping floors of eight cells on a square ring', () => {
     expect(climbSample.board.floors).toHaveLength(3);
     for (const floor of climbSample.board.floors) {
-      expect(floor.cells).toHaveLength(6);
+      expect(floor.cells).toHaveLength(8);
     }
   });
 
