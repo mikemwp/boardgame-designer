@@ -23,6 +23,17 @@ describe('LastRoll', () => {
     render(<LastRoll lastRoll={{ value: 7, sides: 12, id: 3, faces: [3, 4] }} />);
     expect(screen.getByText('Last roll: 3 + 4 = 7 (2d6)')).toBeDefined();
   });
+
+  it('shows spinner 1-12 copy, not 2d6 faces', () => {
+    render(
+      <LastRoll
+        lastRoll={{ value: 7, sides: 12, id: 4, faces: [7] }}
+        movementViz="spinner"
+      />,
+    );
+    expect(screen.getByText('Last spin: 7 (1–12)')).toBeDefined();
+    expect(screen.queryByText(/2d6/)).toBeNull();
+  });
 });
 
 describe('HoldStatus', () => {

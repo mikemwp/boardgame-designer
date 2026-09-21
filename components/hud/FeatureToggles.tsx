@@ -13,19 +13,20 @@ export function FeatureToggles({
   config: GameConfig;
   onChange: (patch: Partial<GameConfig>) => void;
 }) {
+  const spinner = config.movementViz === 'spinner';
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-slate-800 p-4">
       <h2 className="text-sm font-medium text-slate-200">Features</h2>
       <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="dice-toggle">3D dice</Label>
+        <Label htmlFor="spinner-toggle">HUD spinner</Label>
         <Switch
-          id="dice-toggle"
-          checked={config.diceEnabled}
-          onCheckedChange={(checked) => onChange({ diceEnabled: checked })}
+          id="spinner-toggle"
+          checked={spinner}
+          onCheckedChange={(checked) => onChange({ movementViz: checked ? 'spinner' : 'dice' })}
         />
       </div>
       <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="two-dice-toggle">2 dice (2–12)</Label>
+        <Label htmlFor="two-dice-toggle">{spinner ? 'Spinner 1–12' : '2 dice (2–12)'}</Label>
         <Switch
           id="two-dice-toggle"
           checked={config.diceCount === 2}
@@ -46,7 +47,7 @@ export function FeatureToggles({
           id="action-mode"
           className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
           value={config.actionMode}
-          onChange={(e) => onChange({ actionMode: e.target.value as ActionMode })}
+          onChange={(e) => onChange({ actionMode: e.currentTarget.value as ActionMode })}
         >
           {ACTION_MODES.map((mode) => (
             <option key={mode} value={mode}>{mode}</option>

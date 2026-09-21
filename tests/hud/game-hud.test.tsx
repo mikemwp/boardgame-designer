@@ -1,14 +1,36 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('@/components/board/BoardScene', () => ({
-  BoardScene: () => <div data-testid="board" />,
+  BoardScene: ({
+    allowSlide,
+    onTokenSlideComplete,
+  }: {
+    allowSlide?: boolean;
+    onTokenSlideComplete?: () => void;
+  }) => (
+    <div data-testid="board" data-allow-slide={allowSlide ? 'yes' : 'no'}>
+      {allowSlide ? (
+        <button type="button" onClick={() => onTokenSlideComplete?.()}>
+          Finish slide
+        </button>
+      ) : null}
+    </div>
+  ),
 }));
 
 import { GameHud } from '@/components/hud/GameHud';
 import { climbSample } from '@/lib/samples/climb';
+import { HUD_DICE_TUMBLE_MS } from '@/lib/view/hud-dice';
 
 describe('GameHud', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('has Roll dice and no Climb stair debug control', () => {
     render(<GameHud bootstrap={climbSample} />);
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
@@ -22,12 +44,38 @@ describe('GameHud', () => {
     expect(screen.getByText('Passes left: climb 1')).toBeDefined();
   });
 
-  it('locks Roll until Play or Pass, then unlocks after Play', () => {
+  it('plays HUD dice, then token slide, then card, locking Roll until Play', () => {
     render(<GameHud bootstrap={{ ...climbSample, rng: () => 0 }} />);
     const roll = screen.getByRole('button', { name: 'Roll dice' });
     fireEvent.click(roll);
     expect(roll).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('hud-dice')).toBeDefined();
+    expect(screen.getByTestId('board').getAttribute('data-allow-slide')).toBe('no');
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS);
+    });
+    expect(screen.getByTestId('hud-dice')).toBeDefined();
+    expect(screen.getByTestId('board').getAttribute('data-allow-slide')).toBe('yes');
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    expect(screen.queryByTestId('hud-dice')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDefined();
+    expect(roll).toHaveProperty('disabled', true);
+
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     expect(roll).toHaveProperty('disabled', false);
+  });
+
+  it('uses Spin and a 1-12 spinner when HUD spinner is on', () => {
+    render(<GameHud bootstrap={{ ...climbSample, rng: () => 0 }} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'HUD spinner' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Spinner 1–12' }));
+    const spin = screen.getByRole('button', { name: 'Spin' });
+    fireEvent.click(spin);
+    expect(screen.getByTestId('hud-spinner')).toBeDefined();
+    expect(screen.getByLabelText(/Spinner showing/)).toBeDefined();
   });
 });
