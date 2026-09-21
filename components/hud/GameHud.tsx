@@ -23,14 +23,8 @@ export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
           activePlayerId={game.players.activePlayerId}
         />
         <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => dispatch({ type: 'ROLL_DICE' })}
-            disabled={!game.config.diceEnabled}
-          >
+          <Button onClick={() => dispatch({ type: 'ROLL_DICE' })}>
             Roll dice
-          </Button>
-          <Button variant="secondary" onClick={() => dispatch({ type: 'MOVE_SAMPLE_STAIR' })}>
-            Climb stair
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             Import cards
