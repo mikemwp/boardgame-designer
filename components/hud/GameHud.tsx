@@ -12,7 +12,7 @@ import { LastRoll } from '@/components/hud/LastRoll';
 import { MovementStage } from '@/components/hud/MovementStage';
 import { PlayerBar } from '@/components/hud/PlayerBar';
 import { useGameStore } from '@/hooks/use-game-store';
-import type { GameBootstrap } from '@/lib/engine/game';
+import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import {
   isMovementVizActive,
   phaseAfterNewRoll,
@@ -23,9 +23,19 @@ import {
 } from '@/lib/view/hud-movement';
 import { isRollLocked, shouldShowDealtCard } from '@/lib/view/turn-loop';
 
-export function GameHud({ bootstrap }: { bootstrap: GameBootstrap }) {
+export function GameHud({
+  bootstrap,
+  onStateChange,
+}: {
+  bootstrap: GameBootstrap;
+  onStateChange?: (game: GameState) => void;
+}) {
   const { game, dispatch, updateConfig, importCards } = useGameStore(bootstrap);
   const [importOpen, setImportOpen] = useState(false);
+
+  useEffect(() => {
+    onStateChange?.(game);
+  }, [game, onStateChange]);
   const [tokenSliding, setTokenSliding] = useState(false);
   const [phase, setPhase] = useState<MovementPhase>('idle');
   const seenRollId = useRef(0);
