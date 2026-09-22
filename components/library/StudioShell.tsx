@@ -9,6 +9,7 @@ import { LibraryBar, type StudioMode } from '@/components/library/LibraryBar';
 import { NewGameDialog } from '@/components/library/NewGameDialog';
 import { OpenGameDialog } from '@/components/library/OpenGameDialog';
 import { UnsavedChangesDialog } from '@/components/library/UnsavedChangesDialog';
+import { listDraftPackIds } from '@/lib/designer/packs';
 import { validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
@@ -17,12 +18,18 @@ import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
-import { cloneJson, fromStoredBootstrap } from '@/lib/library/bootstrap';
+import type { Card } from '@/lib/engine/types';
+import { cloneJson, fromStoredBootstrap, storedPackIds } from '@/lib/library/bootstrap';
 import type { NewGameInput } from '@/lib/library/types';
 import { waitUntilPlayCanvasSlotFree } from '@/lib/view/playcanvas-lifecycle';
 
-function snapshotKey(board: Board | null, players: PlayerState | null): string {
-  return JSON.stringify({ board, players });
+function snapshotKey(
+  board: Board | null,
+  players: PlayerState | null,
+  cards: Card[] = [],
+  packs: string[] = [],
+): string {
+  return JSON.stringify({ board, players, cards, packs });
 }
 
 export function StudioShell(options: UseLibraryOptions = {}) {
@@ -45,6 +52,8 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [mode, setMode] = useState<StudioMode>('design');
   const [workingBoard, setWorkingBoard] = useState<Board | null>(null);
   const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
+  const [workingCards, setWorkingCards] = useState<Card[]>([]);
+  const [workingPacks, setWorkingPacks] = useState<string[]>([]);
   const [selectedFloorId, setSelectedFloorId] = useState<string>('');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [tool, setTool] = useState<DesignerTool>('select');
@@ -58,41 +67,50 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     if (!active) {
       setWorkingBoard(null);
       setWorkingPlayers(null);
+      setWorkingCards([]);
+      setWorkingPacks([]);
       setDirty(false);
       savedKeyRef.current = '';
       return;
     }
     const board = ensureBoardLayout(cloneJson(active.bootstrap.board));
     const players = cloneJson(active.bootstrap.players);
+    const cards = cloneJson(active.bootstrap.cards);
+    const packs = storedPackIds(active.bootstrap);
     setWorkingBoard(board);
     setWorkingPlayers(players);
+    setWorkingCards(cards);
+    setWorkingPacks(packs);
     setSelectedFloorId(board.floors[0]?.id ?? '');
     setSelectedCellId(null);
     setIssues([]);
     setMode('design');
     setSnapshot(null);
     setDirty(false);
-    savedKeyRef.current = snapshotKey(board, players);
+    savedKeyRef.current = snapshotKey(board, players, cards, packs);
   }, [active?.id]);
 
   const persistWorking = useCallback(
     (options?: { touchUpdatedAt?: boolean; bump?: 'none' | 'save' }) => {
       if (!active || !workingBoard || !workingPlayers) return;
+      const cards = cloneJson(workingCards);
+      const packs = listDraftPackIds(cards, workingPacks);
       saveActive(
         {
           board: cloneJson(workingBoard),
           players: applyStartToPlayers(cloneJson(workingPlayers), workingBoard),
-          cards: snapshot?.cards.deck ?? active.bootstrap.cards,
+          cards,
+          packs,
           config: snapshot?.config ?? active.bootstrap.config,
         },
         options,
       );
       if (options?.touchUpdatedAt !== false && options?.bump === 'save') {
-        savedKeyRef.current = snapshotKey(workingBoard, workingPlayers);
+        savedKeyRef.current = snapshotKey(workingBoard, workingPlayers, cards, packs);
         setDirty(false);
       }
     },
-    [active, workingBoard, workingPlayers, snapshot, saveActive],
+    [active, workingBoard, workingPlayers, workingCards, workingPacks, snapshot, saveActive],
   );
 
   const skipAutoSaveRef = useRef(true);
@@ -109,7 +127,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     if (!active || !workingBoard || !workingPlayers) return;
     const timer = window.setTimeout(() => persistWorking({ touchUpdatedAt: false }), 400);
     return () => window.clearTimeout(timer);
-  }, [active?.id, workingBoard, workingPlayers, persistWorking]);
+  }, [active?.id, workingBoard, workingPlayers, workingCards, workingPacks, persistWorking]);
 
   useEffect(() => {
     const onPageHide = () => persistWorking({ touchUpdatedAt: false });
@@ -117,12 +135,39 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     return () => window.removeEventListener('pagehide', onPageHide);
   }, [persistWorking]);
 
+  useEffect(() => {
+    if (!snapshot) return;
+    const deck = snapshot.cards.deck;
+    setWorkingCards((prev) => (JSON.stringify(prev) === JSON.stringify(deck) ? prev : cloneJson(deck)));
+    setWorkingPacks((prev) => listDraftPackIds(deck, prev));
+  }, [snapshot]);
+
+  const markDirtyIfChanged = (
+    board: Board | null,
+    players: PlayerState | null,
+    cards: Card[],
+    packs: string[],
+  ) => {
+    if (snapshotKey(board, players, cards, packs) !== savedKeyRef.current) {
+      setDirty(true);
+    }
+  };
+
   const onBoardChange = (board: Board) => {
     setWorkingBoard(board);
     if (active) markActiveEdited();
-    if (snapshotKey(board, workingPlayers) !== savedKeyRef.current) {
-      setDirty(true);
+    markDirtyIfChanged(board, workingPlayers, workingCards, workingPacks);
+  };
+
+  const onDraftChange = (next: { cards: Card[]; packs: string[]; board: Board }) => {
+    setWorkingCards(next.cards);
+    setWorkingPacks(next.packs);
+    if (next.board !== workingBoard) {
+      onBoardChange(next.board);
+      return;
     }
+    if (active) markActiveEdited();
+    markDirtyIfChanged(next.board, workingPlayers, next.cards, next.packs);
   };
 
   const requestLeave = (kind: 'new' | 'open') => {
@@ -161,6 +206,8 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     }
     setWorkingBoard(null);
     setWorkingPlayers(null);
+    setWorkingCards([]);
+    setWorkingPacks([]);
     setSnapshot(null);
     deleteActive();
     setDeleteOpen(false);
@@ -230,12 +277,14 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         mode === 'design' ? (
           <LayoutDesigner
             board={workingBoard}
-            cards={snapshot?.cards.deck ?? active.bootstrap.cards}
+            cards={workingCards}
+            packs={workingPacks}
             selectedFloorId={selectedFloorId || workingBoard.floors[0]!.id}
             selectedCellId={selectedCellId}
             tool={tool}
             issues={issues}
             onBoardChange={onBoardChange}
+            onDraftChange={onDraftChange}
             onSelectFloor={setSelectedFloorId}
             onSelectCell={setSelectedCellId}
             onToolChange={setTool}
@@ -246,7 +295,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             bootstrap={fromStoredBootstrap({
               board: workingBoard,
               players: applyStartToPlayers(workingPlayers, workingBoard),
-              cards: snapshot?.cards.deck ?? active.bootstrap.cards,
+              cards: workingCards,
               config: snapshot?.config ?? active.bootstrap.config,
             })}
             onStateChange={setSnapshot}

@@ -217,6 +217,46 @@ describe('StudioShell', () => {
     expect(reloaded.drafts.some((d) => d.name === 'Climb (sample)')).toBe(false);
   });
 
+  it('Save persists a Design-created pack with no CSV on an empty board', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-22T18:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New card' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tile Actions' }));
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'pack-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    const draft = getActive(reloaded);
+    expect(draft?.name).toBe('Sandbox');
+    expect(draft?.bootstrap.packs).toEqual(['pack-1']);
+    expect(draft?.bootstrap.cards).toEqual([
+      { id: 'pack-1-1', pack: 'pack-1', title: 'Card 1' },
+    ]);
+    const floor = draft?.bootstrap.board.floors[0];
+    expect(floor?.cells.find((c) => c.col === 0 && c.row === 0)?.packId).toBe('pack-1');
+  });
+
+  it('Save persists an empty pack with no cards', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-22T18:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(getActive(reloaded)?.bootstrap.packs).toEqual(['pack-1']);
+    expect(getActive(reloaded)?.bootstrap.cards).toEqual([]);
+  });
+
   it('prompts to save before New when the board is dirty', () => {
     renderStudio();
     fireEvent.click(screen.getByTestId('slot-0-0'));
