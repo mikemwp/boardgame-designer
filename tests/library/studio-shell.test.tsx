@@ -242,6 +242,34 @@ describe('StudioShell', () => {
     expect(floor?.cells.find((c) => c.col === 0 && c.row === 0)?.packId).toBe('pack-1');
   });
 
+  it('Save persists a room, door, pack, and end-room on an empty board', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-22T19:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Room' }));
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Door' }));
+    fireEvent.click(screen.getByTestId('slot-1-0'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tile Actions' }));
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'pack-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'End room' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    const floor = getActive(reloaded)?.bootstrap.board.floors[0];
+    expect(floor?.cells.find((c) => c.col === 1 && c.row === 1)).toMatchObject({
+      kind: 'room',
+      packId: 'pack-1',
+      end: true,
+    });
+    expect(floor?.cells.find((c) => c.col === 1 && c.row === 0)?.kind).toBe('door');
+  });
+
   it('Save persists an empty pack with no cards', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-22T18:00:00.000Z', () => 'empty-1');

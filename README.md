@@ -23,12 +23,12 @@ The studio opens in **Design**. The product title and library bar share one top 
 
 1. **Board shape** sits in the center of the level/tool row. **Square** uses a **Tiles** picker (3×3…12×12, default 8×8). **Rectangle** has separate length and width selectors (default 8×6, sides cannot be equal). Polar shapes stay hidden. New empty drafts are square 8×8 (28 perimeter cells, first tab **Level 1**). Climb stays square 3. Changing size rebuilds the perimeter loop with unique cell ids (no leftover `floor-1-c24` collisions).
 2. Level tabs (**Add level** / **Delete level**) plus the selected **Level name** sit on the toolbar. New levels are **Level 2**, **Level 3**, … Delete removes only the selected level and is disabled when one remains. Adding a level copies the selected level’s shape.
-3. Palette: **Select**, **Tile**, **HUD**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile leaves a free square you can place on again. Stair converts a corridor cell and must link a destination level + landing square before **Test**.
+3. Palette: **Select**, **Tile**, **Room**, **Door**, **HUD**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile leaves a free square you can place on again. **Room** goes on an inner/free square (not on the corridor loop). **Door** converts a corridor tile that touches a room so the room is enterable. Stair converts a corridor cell and must link a destination level + landing square before **Test**.
 4. Right pane tabs: **Tile Actions** (pack, start, end, stairs) and **Packs** (create / rename / delete packs and cards). Preview stays below. Level name is not in that pane.
-5. **Packs** can exist with zero cards — no CSV required. Tile Actions can attach that pack to a corridor tile. **New card** edits title and body only.
+5. **Packs** can exist with zero cards — no CSV required. Tile Actions can attach that pack to a corridor tile or a **room**. Landing on the room’s **door** deals that room pack; the token stays on the door. **New card** edits title and body only. Mark **End room** on a room with the existing End control.
 6. **Save** writes the working layout, pack catalog, and card deck even if stairs or loops are invalid. **Test** is blocked with a named list until the layout is valid, then remounts the play HUD. Live publish is not included.
 
-Rooms, inner maps, doors, first-person, timer cards, polar shape UI, and card templates are not in this slice.
+A room without a door, or a door that does not touch both a corridor and a room, blocks **Test**. Inner maps, first-person, publish live, HUD tile types, timer cards, polar shape UI, and card templates are not in this slice.
 
 ## Game library
 
