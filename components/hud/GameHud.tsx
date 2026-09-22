@@ -63,7 +63,7 @@ export function GameHud({
 
   useEffect(() => {
     setCardHoldReleased(false);
-  }, [visibleCard?.id]);
+  }, [game.cards.currentCard?.id]);
 
   const cardHoldActive = isCardHoldActive({
     currentCard: visibleCard,

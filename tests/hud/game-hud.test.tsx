@@ -125,5 +125,32 @@ describe('GameHud', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(roll).toHaveProperty('disabled', false);
   });
+
+  it('keeps Roll unlocked after a tumble hide/show of the same extra-button card', () => {
+    const bootstrap = {
+      ...climbSample,
+      rng: () => 0,
+      config: { ...climbSample.config, actionMode: 'neither' as const },
+      cards: {
+        ...climbSample.cards,
+        deck: [{ id: 't1', pack: 'climb', title: 'Extra', body: 'Tap', extraButton: 'Done' }],
+      },
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Roll dice' }));
+    act(() => { vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS); });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(roll).toHaveProperty('disabled', false);
+
+    fireEvent.click(roll);
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+    act(() => { vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS); });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+    expect(screen.getByText('Extra')).toBeDefined();
+    expect(roll).toHaveProperty('disabled', false);
+  });
 });
 
