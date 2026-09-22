@@ -77,6 +77,10 @@ describe('PackEditor', () => {
     expect(onUpdateCard).toHaveBeenCalledWith({ title: 'Door' });
     fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Knock' } });
     expect(onUpdateCard).toHaveBeenCalledWith({ body: 'Knock' });
+    fireEvent.change(screen.getByLabelText('Timer seconds'), { target: { value: '15' } });
+    expect(onUpdateCard).toHaveBeenCalledWith({ timerSeconds: 15 });
+    fireEvent.change(screen.getByLabelText('Extra button'), { target: { value: 'Done' } });
+    expect(onUpdateCard).toHaveBeenCalledWith({ extraButton: 'Done' });
     fireEvent.click(screen.getByRole('button', { name: 'Delete card' }));
     expect(onDeleteCard).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Delete pack' }));

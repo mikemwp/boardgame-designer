@@ -103,7 +103,7 @@ export function addCard(cards: Card[], card: Card): Card[] {
 export function updateCard(
   cards: Card[],
   cardId: string,
-  patch: Partial<Pick<Card, 'title' | 'body'>>,
+  patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton'>>,
 ): Card[] {
   if (patch.title !== undefined && patch.title.trim().length === 0) return cards;
   return cards.map((card) => {
@@ -114,6 +114,18 @@ export function updateCard(
       const body = patch.body.trim();
       if (body) next.body = body;
       else delete next.body;
+    }
+    if (patch.timerSeconds !== undefined) {
+      if (Number.isNaN(patch.timerSeconds) || patch.timerSeconds <= 0) {
+        delete next.timerSeconds;
+      } else {
+        next.timerSeconds = Math.floor(patch.timerSeconds);
+      }
+    }
+    if (patch.extraButton !== undefined) {
+      const extraButton = patch.extraButton.trim();
+      if (extraButton) next.extraButton = extraButton;
+      else delete next.extraButton;
     }
     return next;
   });

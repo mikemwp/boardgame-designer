@@ -101,4 +101,13 @@ describe('cards', () => {
     expect(cardsInPack(updated, 'notes')).toHaveLength(1);
     expect(deleteCard(updated, 'notes-1')).toEqual([]);
   });
+
+  it('stores a timer and extra button and clears them when blank', () => {
+    const added = addCard([], { id: 'notes-1', pack: 'notes', title: 'Clue' });
+    const timed = updateCard(added, 'notes-1', { timerSeconds: 8, extraButton: ' Done ' });
+    expect(timed[0]).toMatchObject({ timerSeconds: 8, extraButton: 'Done' });
+    const cleared = updateCard(timed, 'notes-1', { timerSeconds: 0, extraButton: '  ' });
+    expect(cleared[0]?.timerSeconds).toBeUndefined();
+    expect(cleared[0]?.extraButton).toBeUndefined();
+  });
 });

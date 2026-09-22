@@ -31,7 +31,7 @@ export function PackEditor({
   onRenamePack: (nextId: string) => void;
   onDeletePack: () => void;
   onCreateCard: () => void;
-  onUpdateCard: (patch: Partial<Pick<Card, 'title' | 'body'>>) => void;
+  onUpdateCard: (patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton'>>) => void;
   onDeleteCard: () => void;
 }) {
   const [draftPackId, setDraftPackId] = useState(selectedPackId ?? '');
@@ -137,6 +137,21 @@ export function PackEditor({
                 value={selectedCard.body ?? ''}
                 onChange={(e) => onUpdateCard({ body: e.target.value })}
                 className="min-h-20 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-sm text-slate-50 outline-none"
+              />
+              <Label htmlFor="card-timer">Timer seconds</Label>
+              <Input
+                id="card-timer"
+                type="number"
+                aria-label="Timer seconds"
+                value={selectedCard.timerSeconds ?? ''}
+                onChange={(e) => onUpdateCard({ timerSeconds: Number(e.target.value) })}
+              />
+              <Label htmlFor="card-extra-button">Extra button</Label>
+              <Input
+                id="card-extra-button"
+                aria-label="Extra button"
+                value={selectedCard.extraButton ?? ''}
+                onChange={(e) => onUpdateCard({ extraButton: e.target.value })}
               />
               <Button type="button" variant="outline" onClick={onDeleteCard}>
                 Delete card
