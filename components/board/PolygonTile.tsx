@@ -6,7 +6,7 @@ import { Render } from '@playcanvas/react/components';
 import { useApp } from '@playcanvas/react/hooks';
 import { Mesh, MeshInstance, StandardMaterial } from 'playcanvas';
 import type { Vec2 } from '@/lib/engine/shape-layout';
-import { trapezoidPrism } from '@/lib/view/tile-geometry';
+import { polygonCentroid, trapezoidPrism } from '@/lib/view/tile-geometry';
 
 export function PolygonTile({
   id,
@@ -26,7 +26,12 @@ export function PolygonTile({
 
   useEffect(() => {
     if (!app) return;
-    const { positions, indices } = trapezoidPrism(polygon, y);
+    const centroid = polygonCentroid(polygon);
+    const localPolygon = polygon.map((p) => ({
+      x: p.x - centroid.x,
+      z: p.z - centroid.z,
+    }));
+    const { positions, indices } = trapezoidPrism(localPolygon, 0);
     const mesh = new Mesh(app.graphicsDevice);
     mesh.setPositions(positions);
     mesh.setIndices(indices);
@@ -37,7 +42,7 @@ export function PolygonTile({
       mesh.destroy();
       setMeshInstance(null);
     };
-  }, [app, polygon, y, material]);
+  }, [app, polygon, material]);
 
   return (
     <Entity
@@ -45,11 +50,7 @@ export function PolygonTile({
       data-testid={`polygon-tile-${id}` as never}
       position={position}
     >
-      {app && meshInstance ? (
-        <Render type="asset" asset={meshInstance} />
-      ) : app ? (
-        <Render type="box" material={material as never} />
-      ) : null}
+      {meshInstance ? <Render meshInstances={[meshInstance]} /> : null}
     </Entity>
   );
 }

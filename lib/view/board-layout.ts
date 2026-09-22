@@ -2,7 +2,7 @@ import type { Board } from '@/lib/engine/board';
 import { getFloor } from '@/lib/engine/board';
 import { DEFAULT_HUD } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
-import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import { buildShapeLayout, shapeSlotBounds } from '@/lib/engine/shape-layout';
 import type { Cell, Floor, HudRect, TokenPos } from '@/lib/engine/types';
 import { forwardPathCells, forwardPathSteps } from '@/lib/engine/movement';
 import { polygonCentroid } from '@/lib/view/tile-geometry';
@@ -126,6 +126,11 @@ export function tokenPosToWorld(
   return cellToWorld(floor.index, cell, floor.hud, floor as Floor);
 }
 
+function isPolarFloor(floor: Board['floors'][0]): boolean {
+  const kind = inferShape(floor).kind;
+  return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
+}
+
 export function boardWorldBounds(board: Board): BoardWorldBounds {
   let minX = Infinity;
   let maxX = -Infinity;
@@ -136,6 +141,19 @@ export function boardWorldBounds(board: Board): BoardWorldBounds {
   let hasCells = false;
 
   for (const floor of board.floors) {
+    if (isPolarFloor(floor)) {
+      const shape = inferShape(floor);
+      const slotBounds = shapeSlotBounds(shape, 0.5);
+      const y = floor.index * FLOOR_HEIGHT;
+      hasCells = true;
+      minX = Math.min(minX, slotBounds.minX);
+      maxX = Math.max(maxX, slotBounds.maxX);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      minZ = Math.min(minZ, slotBounds.minZ);
+      maxZ = Math.max(maxZ, slotBounds.maxZ);
+    }
+
     for (const cell of floor.cells) {
       const poly = slotPolygon(floor, cell);
       if (poly.length > 0) {

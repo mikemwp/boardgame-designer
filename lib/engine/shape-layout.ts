@@ -33,6 +33,38 @@ export interface ShapeLayout {
   slots: TileSlot[];
 }
 
+export interface ShapeSlotBounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+export function shapeSlotBounds(shape: BoardShape, pad = 0): ShapeSlotBounds {
+  const layout = buildShapeLayout(shape);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const slot of layout.slots) {
+    for (const p of slot.polygon) {
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+      minZ = Math.min(minZ, p.z);
+      maxZ = Math.max(maxZ, p.z);
+    }
+  }
+  if (!Number.isFinite(minX)) {
+    return { minX: -1, maxX: 1, minZ: -1, maxZ: 1 };
+  }
+  return {
+    minX: minX - pad,
+    maxX: maxX + pad,
+    minZ: minZ - pad,
+    maxZ: maxZ + pad,
+  };
+}
+
 function boxPolygon(col: number, row: number): Vec2[] {
   const x = col;
   const z = row;

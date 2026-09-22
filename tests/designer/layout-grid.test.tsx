@@ -35,4 +35,16 @@ describe('LayoutGrid', () => {
     expect(screen.getByTestId('slot-ring-0')).toBeDefined();
     expect(container.querySelector('[aria-label="Layout grid"]')?.className ?? '').not.toMatch(/overflow-x-auto/);
   });
+
+  it('fits polar boards with a bounded aspect ratio instead of stretching full height', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 12 });
+    const { container } = render(
+      <LayoutGrid floor={floor} onSlotActivate={() => {}} onMoveCell={() => {}} />,
+    );
+    const svg = container.querySelector('svg');
+    expect(svg).toBeTruthy();
+    expect(svg?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
+    expect(svg?.style.aspectRatio).toBeTruthy();
+    expect(String(svg?.className ?? '')).not.toMatch(/\bh-full\b/);
+  });
 });

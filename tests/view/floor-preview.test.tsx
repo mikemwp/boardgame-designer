@@ -2,8 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 vi.mock('@/components/board/PlayCanvasViewport', () => ({
-  PlayCanvasViewport: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="pc-app">{children}</div>
+  PlayCanvasViewport: ({
+    children,
+    slotId,
+  }: {
+    children: React.ReactNode;
+    slotId?: string;
+  }) => (
+    <div data-testid="pc-app" data-slot-id={slotId}>{children}</div>
   ),
 }));
 
@@ -28,6 +34,19 @@ import { FloorPreview } from '@/components/board/FloorPreview';
 import { climbSample } from '@/lib/samples/climb';
 
 describe('FloorPreview', () => {
+  it('keeps a stable preview mount with minimum height', () => {
+    render(
+      <FloorPreview
+        board={climbSample.board}
+        floorId="lobby"
+        selectedCellId="lobby-c0"
+      />,
+    );
+    const preview = screen.getByTestId('floor-preview');
+    expect(preview.className).toMatch(/min-h-48/);
+    expect(screen.getByTestId('pc-app').getAttribute('data-slot-id')).toBe('design-floor-preview');
+  });
+
   it('renders only the selected floor cells and never a 3D die', () => {
     render(
       <FloorPreview

@@ -53,12 +53,15 @@ export function PlayCanvasViewport({
   children,
   usePhysics = false,
   className = 'relative h-full w-full',
+  slotId: slotIdProp,
 }: {
   children: ReactNode;
   usePhysics?: boolean;
   className?: string;
+  slotId?: string;
 }) {
-  const slotId = useId();
+  const generatedSlotId = useId();
+  const slotId = slotIdProp ?? generatedSlotId;
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const releaseSlotRef = useRef<(() => void) | null>(null);

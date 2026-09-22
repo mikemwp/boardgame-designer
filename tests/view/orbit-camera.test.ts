@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createBoard } from '@/lib/engine/board';
-import { defaultLoopPositions, DEFAULT_HUD } from '@/lib/engine/layout';
+import { createLoopedFloor, defaultLoopPositions, DEFAULT_HUD } from '@/lib/engine/layout';
 import type { Floor } from '@/lib/engine/types';
 import {
   boardWorldBounds,
@@ -58,5 +58,15 @@ describe('orbitCameraLimits', () => {
     const limits = orbitCameraLimits(bounds);
     expect(limits.pivot.x).toBeCloseTo((bounds.minX + bounds.maxX) / 2, 5);
     expect(limits.pivot.z).toBeCloseTo((bounds.minZ + bounds.maxZ) / 2, 5);
+  });
+
+  it('frames a full circle floor from slot layout even before every wedge is edited', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 12 });
+    const board = createBoard([floor], []);
+    const bounds = boardWorldBounds(board);
+    expect(bounds.maxX - bounds.minX).toBeGreaterThan(4);
+    expect(bounds.maxZ - bounds.minZ).toBeGreaterThan(4);
+    expect(Math.abs(bounds.minX + bounds.maxX)).toBeLessThan(0.01);
+    expect(Math.abs(bounds.minZ + bounds.maxZ)).toBeLessThan(0.01);
   });
 });
