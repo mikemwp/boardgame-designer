@@ -8,7 +8,7 @@ import { defaultGameConfig } from '@/lib/engine/types';
 export const EMPTY_LABEL = 'Empty board';
 
 export function emptyBootstrap(): GameBootstrap {
-  const floor = createLoopedFloor('ground', 'Ground', 0);
+  const floor = createLoopedFloor('ground', 'Level 1', 0);
   return {
     board: createBoard([floor], []),
     players: addPlayer(createPlayerState(), {

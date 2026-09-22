@@ -19,6 +19,7 @@ import {
   moveCellToSlot,
   nextCellId,
   nextFloorId,
+  nextLevelLabel,
   placeCorridor,
   placeCorridorOnSlot,
   placeHud,
@@ -58,7 +59,7 @@ export function LayoutDesigner({
   onToolChange: (tool: DesignerTool) => void;
 }) {
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
-  if (!floor) return <p className="text-slate-400">This draft has no floors.</p>;
+  if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
 
   const shapeKind = inferShape(floor).kind;
   const isPolar = shapeKind === 'circle' || shapeKind === 'hub-spoke' || shapeKind === 'hub-spoke-wheel';
@@ -146,9 +147,12 @@ export function LayoutDesigner({
   };
 
   return (
-    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_16rem]">
+    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]">
       <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2" data-testid="designer-toolbar">
+        <div
+          className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+          data-testid="designer-toolbar"
+        >
           <FloorTabs
             floors={board.floors}
             selectedFloorId={floor.id}
@@ -158,24 +162,27 @@ export function LayoutDesigner({
             }}
             onAdd={() => {
               const id = nextFloorId(board);
-              const next = addFloor(board, id, `Floor ${board.floors.length + 1}`, floor.shape);
+              const next = addFloor(board, id, nextLevelLabel(board.floors), floor.shape);
               onBoardChange(next);
               onSelectFloor(id);
               onSelectCell(null);
             }}
             onDelete={(id) => {
+              const idx = board.floors.findIndex((f) => f.id === id);
               const next = deleteFloor(board, id);
+              const pick = next.floors[Math.min(idx, next.floors.length - 1)] ?? next.floors[0];
               onBoardChange(next);
-              onSelectFloor(next.floors[0]?.id ?? id);
+              onSelectFloor(pick?.id ?? id);
               onSelectCell(null);
             }}
+            onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
           />
-          <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto" />
+          <BoardShapeFields
+            shape={normalizeShape(floor.shape)}
+            onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
+          />
+          <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto justify-end" />
         </div>
-        <BoardShapeFields
-          shape={normalizeShape(floor.shape)}
-          onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
-        />
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <LayoutGrid
             floor={floor}
@@ -193,41 +200,40 @@ export function LayoutDesigner({
         <ValidationList issues={issues} />
       </div>
       <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-        <div className="min-h-0 shrink overflow-y-auto">
-        <CellInspector
-          board={board}
-          floorId={floor.id}
-          cellId={selectedCellId}
-          packIds={listPackIds(cards)}
-          onRenameFloor={(label) => onBoardChange(renameFloor(board, floor.id, label))}
-          onSetPack={(packId) => {
-            if (!selectedCellId) return;
-            onBoardChange(setCellPack(board, floor.id, selectedCellId, packId));
-          }}
-          onSetStart={() => {
-            if (!selectedCellId) return;
-            onBoardChange(setStartCell(board, floor.id, selectedCellId));
-          }}
-          onSetEnd={() => {
-            if (!selectedCellId) return;
-            onBoardChange(setEndCell(board, floor.id, selectedCellId));
-          }}
-          onAttachStair={() => {
-            if (!selectedCellId) return;
-            onBoardChange(attachStair(board, floor.id, selectedCellId));
-          }}
-          onLinkStair={(toFloorId, toCellId) => {
-            const cell = floor.cells.find((c) => c.id === selectedCellId);
-            if (!cell?.stairId) return;
-            onBoardChange(linkStair(board, cell.stairId, toFloorId, toCellId));
-          }}
-          onClearStair={() => {
-            if (!selectedCellId) return;
-            onBoardChange(clearStair(board, floor.id, selectedCellId));
-          }}
-        />
+        <div className="h-64 shrink-0 overflow-y-auto" data-testid="tile-actions-pane">
+          <CellInspector
+            board={board}
+            floorId={floor.id}
+            cellId={selectedCellId}
+            packIds={listPackIds(cards)}
+            onSetPack={(packId) => {
+              if (!selectedCellId) return;
+              onBoardChange(setCellPack(board, floor.id, selectedCellId, packId));
+            }}
+            onSetStart={() => {
+              if (!selectedCellId) return;
+              onBoardChange(setStartCell(board, floor.id, selectedCellId));
+            }}
+            onSetEnd={() => {
+              if (!selectedCellId) return;
+              onBoardChange(setEndCell(board, floor.id, selectedCellId));
+            }}
+            onAttachStair={() => {
+              if (!selectedCellId) return;
+              onBoardChange(attachStair(board, floor.id, selectedCellId));
+            }}
+            onLinkStair={(toFloorId, toCellId) => {
+              const cell = floor.cells.find((c) => c.id === selectedCellId);
+              if (!cell?.stairId) return;
+              onBoardChange(linkStair(board, cell.stairId, toFloorId, toCellId));
+            }}
+            onClearStair={() => {
+              if (!selectedCellId) return;
+              onBoardChange(clearStair(board, floor.id, selectedCellId));
+            }}
+          />
         </div>
-        <div className="flex min-h-48 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="h-48 shrink-0 overflow-hidden" data-testid="preview-pane">
           <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
         </div>
       </aside>

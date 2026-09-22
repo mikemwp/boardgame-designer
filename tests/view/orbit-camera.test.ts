@@ -7,6 +7,11 @@ import {
   orbitCameraLimits,
   TILE_SIZE,
 } from '@/lib/view/board-layout';
+import {
+  orbitCameraPose,
+  PREVIEW_ORBIT_PITCH,
+  PREVIEW_ORBIT_PITCH_RANGE,
+} from '@/lib/view/orbit-camera';
 
 function ringFloor(id: string, index: number): Floor {
   const positions = defaultLoopPositions(8);
@@ -68,5 +73,19 @@ describe('orbitCameraLimits', () => {
     expect(bounds.maxZ - bounds.minZ).toBeGreaterThan(4);
     expect(Math.abs(bounds.minX + bounds.maxX)).toBeLessThan(0.01);
     expect(Math.abs(bounds.minZ + bounds.maxZ)).toBeLessThan(0.01);
+  });
+});
+
+describe('preview orbit camera', () => {
+  it('looks down from +Y onto the XZ board', () => {
+    const board = createBoard([ringFloor('lobby', 0)], []);
+    const limits = orbitCameraLimits(boardWorldBounds(board));
+    const pivot = { x: limits.pivot.x, y: limits.pivot.y, z: limits.pivot.z };
+    const pose = orbitCameraPose(pivot, limits.defaultDistance, PREVIEW_ORBIT_PITCH);
+    expect(PREVIEW_ORBIT_PITCH).toBeGreaterThan(70);
+    expect(pose.position[1]).toBeGreaterThan(pivot.y);
+    expect(pose.rotation[0]).toBe(-PREVIEW_ORBIT_PITCH);
+    expect(PREVIEW_ORBIT_PITCH_RANGE.max).toBeLessThan(90);
+    expect(PREVIEW_ORBIT_PITCH_RANGE.min).toBeGreaterThan(0);
   });
 });

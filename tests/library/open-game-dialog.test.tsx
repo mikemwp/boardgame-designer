@@ -20,6 +20,14 @@ const drafts = [
     bootstrap: toStoredBootstrap(emptyBootstrap()),
     now: '2026-09-21T13:00:00.000Z',
   }),
+  createDocument({
+    id: 'live',
+    name: 'Live climb',
+    source: 'empty',
+    bootstrap: toStoredBootstrap(emptyBootstrap()),
+    now: '2026-09-21T14:00:00.000Z',
+    published: true,
+  }),
 ];
 
 describe('OpenGameDialog', () => {
@@ -34,9 +42,10 @@ describe('OpenGameDialog', () => {
         onOpen={onOpen}
       />,
     );
-    expect(screen.getByText('Climb (sample)')).toBeDefined();
-    expect(screen.getByText('Sandbox')).toBeDefined();
-    expect(screen.queryByText(/live/i)).toBeNull();
+    expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
+    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    expect(screen.getByText('Live climb (Published) v1')).toBeDefined();
+    expect(screen.queryByText(/Drafts on this device/i)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Open Sandbox' }));
     expect(onOpen).toHaveBeenCalledWith('d2');
   });
@@ -51,6 +60,6 @@ describe('OpenGameDialog', () => {
         onOpen={() => {}}
       />,
     );
-    expect(screen.getByText('No drafts on this device.')).toBeDefined();
+    expect(screen.getByText('No games on this device.')).toBeDefined();
   });
 });

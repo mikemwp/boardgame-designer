@@ -49,7 +49,92 @@ describe('LayoutDesigner', () => {
     const toolbar = screen.getByTestId('designer-toolbar');
     expect(toolbar.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(true);
     expect(toolbar.contains(screen.getByRole('button', { name: 'Select' }))).toBe(true);
+    expect(toolbar.contains(screen.getByLabelText('Board shape'))).toBe(true);
+    expect(toolbar.contains(screen.getByLabelText('Level name'))).toBe(true);
     expect(screen.getByTestId('designer-palette').className).toMatch(/ml-auto/);
+  });
+
+  it('adds Level 2+ and keeps Level 1 after deleting later levels', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const onBoardChange = vi.fn();
+    const onSelectFloor = vi.fn();
+    const { rerender } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={onSelectFloor}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add level' }));
+    const withTwo = onBoardChange.mock.calls.at(-1)[0];
+    expect(withTwo.floors.map((f: { label: string }) => f.label)).toEqual(['Level 1', 'Level 2']);
+    rerender(
+      <LayoutDesigner
+        board={withTwo}
+        cards={[]}
+        selectedFloorId="floor-1"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={onSelectFloor}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add level' }));
+    const withThree = onBoardChange.mock.calls.at(-1)[0];
+    expect(withThree.floors.map((f: { label: string }) => f.label)).toEqual([
+      'Level 1',
+      'Level 2',
+      'Level 3',
+    ]);
+    rerender(
+      <LayoutDesigner
+        board={withThree}
+        cards={[]}
+        selectedFloorId="floor-2"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={onSelectFloor}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Level 3' }));
+    const afterFirstDelete = onBoardChange.mock.calls.at(-1)[0];
+    expect(afterFirstDelete.floors.map((f: { id: string; label: string }) => f.label)).toEqual([
+      'Level 1',
+      'Level 2',
+    ]);
+    expect(onSelectFloor).toHaveBeenLastCalledWith('floor-1');
+    rerender(
+      <LayoutDesigner
+        board={afterFirstDelete}
+        cards={[]}
+        selectedFloorId="floor-1"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={onSelectFloor}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Level 2' }));
+    const afterSecondDelete = onBoardChange.mock.calls.at(-1)[0];
+    expect(afterSecondDelete.floors.map((f: { label: string }) => f.label)).toEqual(['Level 1']);
+    expect(afterSecondDelete.floors[0].id).toBe('ground');
   });
 
   it('places a corridor on an empty slot with the corridor tool', () => {

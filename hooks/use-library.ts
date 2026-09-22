@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { toStoredBootstrap } from '@/lib/library/bootstrap';
+import { cloneJson, toStoredBootstrap } from '@/lib/library/bootstrap';
 import {
   addDraft,
   createDocument,
   deleteDraft,
   getActive,
   listDrafts,
+  publishDocument,
   saveDraft,
   setActive,
 } from '@/lib/library/state';
@@ -20,9 +21,10 @@ import {
 import type {
   GameDocument,
   LibraryState,
-  NewGameSource,
+  NewGameInput,
   StoredBootstrap,
 } from '@/lib/library/types';
+import { markEditedAfterPublish } from '@/lib/library/version';
 import { climbSample } from '@/lib/samples/climb';
 import { emptyBootstrap } from '@/lib/samples/empty';
 
@@ -60,17 +62,23 @@ export function useLibrary(options: UseLibraryOptions = {}) {
   );
 
   const newGame = useCallback(
-    (input: { name: string; source: NewGameSource }) => {
+    (input: NewGameInput) => {
       setState((current) => {
         if (!current) return current;
-        const bootstrap =
-          input.source === 'empty'
-            ? toStoredBootstrap(emptyBootstrap())
-            : toStoredBootstrap(climbSample);
+        let source: GameDocument['source'] = 'empty';
+        let bootstrap = toStoredBootstrap(emptyBootstrap());
+        if (input.source === 'climb') {
+          source = 'climb';
+          bootstrap = toStoredBootstrap(climbSample);
+        } else if (typeof input.source === 'object') {
+          const origin = current.drafts.find((d) => d.id === input.source.copyFrom);
+          source = 'copy';
+          bootstrap = origin ? cloneJson(origin.bootstrap) : bootstrap;
+        }
         const doc = createDocument({
           id: createId(),
           name: input.name.trim(),
-          source: input.source,
+          source,
           bootstrap,
           now: now(),
         });
@@ -95,22 +103,50 @@ export function useLibrary(options: UseLibraryOptions = {}) {
   );
 
   const saveActive = useCallback(
-    (bootstrap: StoredBootstrap, options?: { touchUpdatedAt?: boolean }) => {
+    (bootstrap: StoredBootstrap, options?: { touchUpdatedAt?: boolean; bump?: 'none' | 'save' }) => {
       setState((current) => {
         if (!current?.activeId) return current;
-        const next = saveDraft(
-          current,
-          current.activeId,
-          bootstrap,
-          now(),
-          options?.touchUpdatedAt ?? true,
-        );
+        const next = saveDraft(current, current.activeId, bootstrap, now(), {
+          touchUpdatedAt: options?.touchUpdatedAt ?? true,
+          bump: options?.bump ?? 'none',
+        });
         writeLibrary(storage, next);
         return next;
       });
     },
     [now, storage],
   );
+
+  const markActiveEdited = useCallback(() => {
+    setState((current) => {
+      if (!current?.activeId) return current;
+      const active = getActive(current);
+      if (!active) return current;
+      const edited = markEditedAfterPublish(active);
+      if (edited === active) return current;
+      const next = {
+        ...current,
+        drafts: current.drafts.map((d) => (d.id === active.id ? edited : d)),
+      };
+      writeLibrary(storage, next);
+      return next;
+    });
+  }, [storage]);
+
+  const publishActive = useCallback(() => {
+    setState((current) => {
+      if (!current?.activeId) return current;
+      const active = getActive(current);
+      if (!active) return current;
+      const published = publishDocument(active, now());
+      const next = {
+        ...current,
+        drafts: current.drafts.map((d) => (d.id === active.id ? published : d)),
+      };
+      writeLibrary(storage, next);
+      return next;
+    });
+  }, [now, storage]);
 
   const deleteActive = useCallback(() => {
     setState((current) => {
@@ -129,6 +165,8 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     newGame,
     openGame,
     saveActive,
+    markActiveEdited,
+    publishActive,
     deleteActive,
     persist,
   };

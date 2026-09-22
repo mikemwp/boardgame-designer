@@ -13,6 +13,26 @@ describe('BoardShapeFields', () => {
     expect(labels).toEqual(['Square', 'Rectangle']);
   });
 
+  it('uses a Tiles size picker for square boards', () => {
+    render(
+      <BoardShapeFields shape={normalizeShape({ kind: 'square', tilesPerSide: 8 })} onChange={() => {}} />,
+    );
+    const tiles = screen.getByLabelText('Tiles') as HTMLSelectElement;
+    expect(Array.from(tiles.options).map((opt) => opt.textContent)).toEqual([
+      '3×3',
+      '4×4',
+      '5×5',
+      '6×6',
+      '7×7',
+      '8×8',
+      '9×9',
+      '10×10',
+      '11×11',
+      '12×12',
+    ]);
+    expect(screen.queryByText('Tiles per side')).toBeNull();
+  });
+
   it('keeps board shape and tile fields on one horizontal row', () => {
     const { container } = render(
       <BoardShapeFields

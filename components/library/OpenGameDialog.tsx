@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { GameDocument } from '@/lib/library/types';
+import { documentStatus, formatGameTitle } from '@/lib/library/version';
 
 export function OpenGameDialog({
   open,
@@ -28,12 +28,9 @@ export function OpenGameDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Open game</DialogTitle>
-          <DialogDescription>
-            Drafts on this device. Publishing is not in this slice.
-          </DialogDescription>
         </DialogHeader>
         {drafts.length === 0 ? (
-          <p className="text-sm text-slate-400">No drafts on this device.</p>
+          <p className="text-sm text-slate-400">No games on this device.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {drafts.map((draft) => (
@@ -46,8 +43,10 @@ export function OpenGameDialog({
                   aria-label={`Open ${draft.name}`}
                   onClick={() => onOpen(draft.id)}
                 >
-                  <span>{draft.name}</span>
-                  <span className="text-xs text-slate-400">{draft.updatedAt}</span>
+                  <span>{formatGameTitle(draft)}</span>
+                  <span className="text-xs text-slate-400">
+                    {documentStatus(draft) === 'published' ? 'Published' : 'draft'}
+                  </span>
                 </Button>
               </li>
             ))}

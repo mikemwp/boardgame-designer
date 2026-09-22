@@ -4,21 +4,43 @@ import { FloorTabs } from '@/components/designer/FloorTabs';
 import { createLoopedFloor } from '@/lib/engine/layout';
 
 describe('FloorTabs', () => {
-  it('selects a floor, adds one, and will not delete the last floor', () => {
+  it('selects a level, adds one, and will not delete the last level', () => {
     const onSelect = vi.fn();
     const onAdd = vi.fn();
     const onDelete = vi.fn();
     render(
       <FloorTabs
-        floors={[createLoopedFloor('ground', 'Ground', 0)]}
+        floors={[createLoopedFloor('ground', 'Level 1', 0)]}
         selectedFloorId="ground"
         onSelect={onSelect}
         onAdd={onAdd}
         onDelete={onDelete}
+        onRename={() => {}}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Add floor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add level' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'Delete Ground' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Delete Level 1' })).toHaveProperty('disabled', true);
+    expect(screen.getByLabelText('Level name')).toBeDefined();
+  });
+
+  it('commits the selected level name on blur', () => {
+    const onRename = vi.fn();
+    render(
+      <FloorTabs
+        floors={[
+          createLoopedFloor('ground', 'Level 1', 0),
+          createLoopedFloor('floor-1', 'Level 2', 1),
+        ]}
+        selectedFloorId="floor-1"
+        onSelect={() => {}}
+        onAdd={() => {}}
+        onDelete={() => {}}
+        onRename={onRename}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Level name'), { target: { value: 'Attic' } });
+    fireEvent.blur(screen.getByLabelText('Level name'));
+    expect(onRename).toHaveBeenCalledWith('Attic');
   });
 });

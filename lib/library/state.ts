@@ -1,10 +1,12 @@
 import { toStoredBootstrap } from '@/lib/library/bootstrap';
 import type {
   GameDocument,
+  GameStatus,
   LibraryState,
   NewGameSource,
   StoredBootstrap,
 } from '@/lib/library/types';
+import { applySaveBump } from '@/lib/library/version';
 import { climbSample, CLIMB_LABEL } from '@/lib/samples/climb';
 
 export function createDocument(input: {
@@ -14,7 +16,12 @@ export function createDocument(input: {
   bootstrap: StoredBootstrap;
   now: string;
   published?: boolean;
+  status?: GameStatus;
+  version?: string | null;
+  publishedAt?: string;
+  lastSaved?: string;
 }): GameDocument {
+  const status: GameStatus = input.status ?? (input.published ? 'published' : 'draft');
   return {
     id: input.id,
     name: input.name,
@@ -22,7 +29,24 @@ export function createDocument(input: {
     bootstrap: input.bootstrap,
     createdAt: input.now,
     updatedAt: input.now,
-    ...(input.published ? { published: true } : {}),
+    lastSaved: input.lastSaved ?? input.now,
+    status,
+    version: input.version ?? (status === 'published' ? '1' : null),
+    ...(input.publishedAt ? { publishedAt: input.publishedAt } : {}),
+    ...(status === 'published' || input.published ? { published: true } : {}),
+  };
+}
+
+export function publishDocument(doc: GameDocument, now: string): GameDocument {
+  const version = doc.version ?? '1';
+  return {
+    ...doc,
+    status: 'published',
+    published: true,
+    version,
+    publishedAt: now,
+    lastSaved: now,
+    updatedAt: now,
   };
 }
 
@@ -54,20 +78,27 @@ export function saveDraft(
   id: string,
   bootstrap: StoredBootstrap,
   now: string,
-  touchUpdatedAt = true,
+  touchUpdatedAtOrOptions: boolean | { touchUpdatedAt?: boolean; bump?: 'none' | 'save' } = true,
 ): LibraryState {
   if (!state.drafts.some((d) => d.id === id)) return state;
+  const options =
+    typeof touchUpdatedAtOrOptions === 'boolean'
+      ? { touchUpdatedAt: touchUpdatedAtOrOptions, bump: 'none' as const }
+      : {
+          touchUpdatedAt: touchUpdatedAtOrOptions.touchUpdatedAt ?? true,
+          bump: touchUpdatedAtOrOptions.bump ?? 'none',
+        };
   return {
     ...state,
-    drafts: state.drafts.map((d) =>
-      d.id === id
-        ? {
-            ...d,
-            bootstrap,
-            ...(touchUpdatedAt ? { updatedAt: now } : {}),
-          }
-        : d,
-    ),
+    drafts: state.drafts.map((d) => {
+      if (d.id !== id) return d;
+      const bumped = options.bump === 'save' ? applySaveBump(d) : d;
+      return {
+        ...bumped,
+        bootstrap,
+        ...(options.touchUpdatedAt ? { updatedAt: now, lastSaved: now } : {}),
+      };
+    }),
   };
 }
 
@@ -118,7 +149,7 @@ function isStoredBootstrap(value: unknown): value is StoredBootstrap {
 }
 
 function isNewGameSource(value: unknown): value is NewGameSource {
-  return value === 'climb' || value === 'empty';
+  return value === 'climb' || value === 'empty' || value === 'copy';
 }
 
 function parseDocument(value: unknown): GameDocument | null {
@@ -128,14 +159,35 @@ function parseDocument(value: unknown): GameDocument | null {
   if (typeof value.createdAt !== 'string' || typeof value.updatedAt !== 'string') return null;
   if (!isNewGameSource(value.source)) return null;
   if (!isStoredBootstrap(value.bootstrap)) return null;
+  const published = value.published === true;
+  const status: GameStatus =
+    value.status === 'published' || value.status === 'draft'
+      ? value.status
+      : published
+        ? 'published'
+        : 'draft';
+  const version =
+    typeof value.version === 'string' && value.version.length > 0
+      ? value.version
+      : status === 'published'
+        ? '1'
+        : null;
+  const lastSaved =
+    typeof value.lastSaved === 'string' && value.lastSaved.length > 0
+      ? value.lastSaved
+      : value.updatedAt;
   return {
     id: value.id,
     name: value.name,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
+    lastSaved,
     source: value.source,
     bootstrap: value.bootstrap,
-    ...(value.published === true ? { published: true } : {}),
+    status,
+    version,
+    ...(typeof value.publishedAt === 'string' ? { publishedAt: value.publishedAt } : {}),
+    ...(published || status === 'published' ? { published: true } : {}),
   };
 }
 

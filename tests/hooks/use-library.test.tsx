@@ -187,6 +187,28 @@ describe('useLibrary', () => {
     expect(reloaded.activeId).toBeNull();
   });
 
+  it('newGame can copy an existing draft', () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        now: () => '2026-09-21T18:00:00.000Z',
+        createId: () => 'copy-1',
+      }),
+    );
+
+    act(() => {
+      result.current.newGame({ name: 'From Climb', source: { copyFrom: 'seed-1' } });
+    });
+
+    expect(result.current.active?.name).toBe('From Climb');
+    expect(result.current.active?.source).toBe('copy');
+    expect(result.current.active?.bootstrap.cards).toHaveLength(3);
+    expect(result.current.drafts).toHaveLength(2);
+  });
+
   it('newGame after an empty library does not reseed Climb', () => {
     const storage = memoryStorage();
     const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });

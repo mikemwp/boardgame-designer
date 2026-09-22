@@ -133,6 +133,16 @@ describe('floors', () => {
     expect(deleted.floors).toHaveLength(1);
     expect(deleteFloor(deleted, 'ground').floors).toHaveLength(1);
   });
+
+  it('deletes only the chosen level and keeps remaining order', () => {
+    let board = addFloor(groundBoard(), 'floor-1', 'Level 2');
+    board = addFloor(board, 'floor-2', 'Level 3');
+    board = addFloor(board, 'floor-3', 'Level 4');
+    const deleted = deleteFloor(board, 'floor-2');
+    expect(deleted.floors.map((f) => f.label)).toEqual(['Ground', 'Level 2', 'Level 4']);
+    expect(deleted.floors.map((f) => f.id)).toEqual(['ground', 'floor-1', 'floor-3']);
+    expect(deleted.floors[0]?.index).toBe(0);
+  });
 });
 
 describe('stairs', () => {
@@ -201,6 +211,16 @@ describe('applyFloorShape', () => {
   it('resizes 8×8 to 10×10 with HUD only in the true center', () => {
     const next = applyFloorShape(groundBoard(), 'ground', { kind: 'square', tilesPerSide: 10 });
     assertCartesianGeometry(next.floors[0]!, 10);
+  });
+
+  it('keeps unique cell ids after shrink then grow on a second level', () => {
+    let board = addFloor(groundBoard(), 'floor-1', 'Level 2');
+    board = placeCorridor(board, 'floor-1', 1, 1, 'floor-1-c21');
+    board = applyFloorShape(board, 'floor-1', { kind: 'square', tilesPerSide: 6 });
+    board = applyFloorShape(board, 'floor-1', { kind: 'square', tilesPerSide: 10 });
+    const ids = board.floors[1]!.cells.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).not.toContain(undefined);
   });
 });
 

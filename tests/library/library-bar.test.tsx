@@ -11,9 +11,9 @@ describe('LibraryBar', () => {
     const onTest = vi.fn();
     render(
       <LibraryBar
-        activeName="Climb (sample)"
-        savedAt="2026-09-21T12:00:00.000Z"
+        activeName="Climb (sample) (draft)"
         canSave
+        canTest
         mode="design"
         onNew={onNew}
         onSave={onSave}
@@ -24,7 +24,8 @@ describe('LibraryBar', () => {
         canDelete
       />,
     );
-    expect(screen.getByText('Climb (sample)')).toBeDefined();
+    expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
+    expect(screen.queryByTestId('library-saved-at')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'New' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
@@ -37,11 +38,12 @@ describe('LibraryBar', () => {
     expect(onTest).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Save when there is no active draft', () => {
+  it('disables Save, Test, and Delete when there is no active game', () => {
     render(
       <LibraryBar
-        activeName="No game"
+        activeName=""
         canSave={false}
+        canTest={false}
         mode="design"
         onNew={() => {}}
         onSave={() => {}}
@@ -53,14 +55,40 @@ describe('LibraryBar', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
+    expect(screen.queryByText('No game')).toBeNull();
+  });
+
+  it('uses the same outline style for Save as the other library buttons', () => {
+    render(
+      <LibraryBar
+        activeName="Sandbox (draft)"
+        canSave
+        canTest
+        mode="design"
+        onNew={() => {}}
+        onSave={() => {}}
+        onOpen={() => {}}
+        onDesign={() => {}}
+        onTest={() => {}}
+        onDelete={() => {}}
+        canDelete
+      />,
+    );
+    const save = screen.getByRole('button', { name: 'Save' });
+    const open = screen.getByRole('button', { name: 'Open' });
+    expect(save.className).toContain('hover:bg-slate-600');
+    expect(open.className).toContain('hover:bg-slate-600');
   });
 
   it('fires Delete when the active game is a draft', () => {
     const onDelete = vi.fn();
     render(
       <LibraryBar
-        activeName="Sandbox"
+        activeName="Sandbox (draft)"
         canSave
+        canTest
         canDelete
         mode="design"
         onNew={() => {}}
@@ -78,8 +106,9 @@ describe('LibraryBar', () => {
   it('disables Delete for a published game', () => {
     render(
       <LibraryBar
-        activeName="Live climb"
+        activeName="Live climb (Published) v1"
         canSave
+        canTest
         canDelete={false}
         published
         mode="design"

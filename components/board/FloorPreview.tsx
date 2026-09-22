@@ -21,7 +21,7 @@ export function FloorPreview({
 
   return (
     <div
-      className="flex h-full min-h-48 flex-1 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
       data-testid="floor-preview"
     >
       <PlayCanvasViewport
@@ -29,7 +29,7 @@ export function FloorPreview({
         slotId="design-floor-preview"
         className="relative min-h-0 flex-1 h-full w-full"
       >
-        <BoardOrbitCamera board={preview} />
+        <BoardOrbitCamera board={preview} view="top-down" />
         <Entity name="sun" rotation={[-55, 40, 0]}>
           <Light type="directional" intensity={1.5} />
         </Entity>

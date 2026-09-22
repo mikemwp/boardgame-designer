@@ -8,24 +8,40 @@ import { DeleteGameDialog } from '@/components/library/DeleteGameDialog';
 import { LibraryBar, type StudioMode } from '@/components/library/LibraryBar';
 import { NewGameDialog } from '@/components/library/NewGameDialog';
 import { OpenGameDialog } from '@/components/library/OpenGameDialog';
+import { UnsavedChangesDialog } from '@/components/library/UnsavedChangesDialog';
 import { validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
+import { formatGameTitle } from '@/lib/library/version';
 import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
 import { cloneJson, fromStoredBootstrap } from '@/lib/library/bootstrap';
-import type { NewGameSource } from '@/lib/library/types';
+import type { NewGameInput } from '@/lib/library/types';
 import { waitUntilPlayCanvasSlotFree } from '@/lib/view/playcanvas-lifecycle';
 
+function snapshotKey(board: Board | null, players: PlayerState | null): string {
+  return JSON.stringify({ board, players });
+}
+
 export function StudioShell(options: UseLibraryOptions = {}) {
-  const { active, activeId, drafts, ready, newGame, openGame, saveActive, deleteActive } =
-    useLibrary(options);
+  const {
+    active,
+    activeId,
+    drafts,
+    ready,
+    newGame,
+    openGame,
+    saveActive,
+    markActiveEdited,
+    deleteActive,
+  } = useLibrary(options);
   const [snapshot, setSnapshot] = useState<GameState | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [openOpen, setOpenOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [dirtyPrompt, setDirtyPrompt] = useState<'new' | 'open' | null>(null);
   const [mode, setMode] = useState<StudioMode>('design');
   const [workingBoard, setWorkingBoard] = useState<Board | null>(null);
   const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
@@ -35,25 +51,32 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [issues, setIssues] = useState<LayoutIssue[]>([]);
   const [testNonce, setTestNonce] = useState(0);
   const [testViewportReady, setTestViewportReady] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const savedKeyRef = useRef('');
 
   useEffect(() => {
     if (!active) {
       setWorkingBoard(null);
       setWorkingPlayers(null);
+      setDirty(false);
+      savedKeyRef.current = '';
       return;
     }
     const board = ensureBoardLayout(cloneJson(active.bootstrap.board));
+    const players = cloneJson(active.bootstrap.players);
     setWorkingBoard(board);
-    setWorkingPlayers(cloneJson(active.bootstrap.players));
+    setWorkingPlayers(players);
     setSelectedFloorId(board.floors[0]?.id ?? '');
     setSelectedCellId(null);
     setIssues([]);
     setMode('design');
     setSnapshot(null);
+    setDirty(false);
+    savedKeyRef.current = snapshotKey(board, players);
   }, [active?.id]);
 
   const persistWorking = useCallback(
-    (options?: { touchUpdatedAt?: boolean }) => {
+    (options?: { touchUpdatedAt?: boolean; bump?: 'none' | 'save' }) => {
       if (!active || !workingBoard || !workingPlayers) return;
       saveActive(
         {
@@ -64,6 +87,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         },
         options,
       );
+      if (options?.touchUpdatedAt !== false && options?.bump === 'save') {
+        savedKeyRef.current = snapshotKey(workingBoard, workingPlayers);
+        setDirty(false);
+      }
     },
     [active, workingBoard, workingPlayers, snapshot, saveActive],
   );
@@ -90,7 +117,32 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     return () => window.removeEventListener('pagehide', onPageHide);
   }, [persistWorking]);
 
-  const onCreate = (input: { name: string; source: NewGameSource }) => {
+  const onBoardChange = (board: Board) => {
+    setWorkingBoard(board);
+    if (active) markActiveEdited();
+    if (snapshotKey(board, workingPlayers) !== savedKeyRef.current) {
+      setDirty(true);
+    }
+  };
+
+  const requestLeave = (kind: 'new' | 'open') => {
+    if (dirty) {
+      setDirtyPrompt(kind);
+      return;
+    }
+    if (kind === 'new') setNewOpen(true);
+    else setOpenOpen(true);
+  };
+
+  const finishDirtyPrompt = (save: boolean) => {
+    const next = dirtyPrompt;
+    setDirtyPrompt(null);
+    if (save) persistWorking({ touchUpdatedAt: true, bump: 'save' });
+    if (next === 'new') setNewOpen(true);
+    if (next === 'open') setOpenOpen(true);
+  };
+
+  const onCreate = (input: NewGameInput) => {
     persistWorking();
     newGame(input);
     setNewOpen(false);
@@ -114,6 +166,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setDeleteOpen(false);
   };
 
+  const onSave = () => {
+    persistWorking({ touchUpdatedAt: true, bump: 'save' });
+  };
+
   const onTest = () => {
     if (!workingBoard) return;
     const nextIssues = validateLayout(workingBoard);
@@ -122,7 +178,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setMode('design');
       return;
     }
-    persistWorking();
+    persistWorking({ touchUpdatedAt: true, bump: 'save' });
     setTestViewportReady(false);
     setTestNonce((n) => n + 1);
     setMode('test');
@@ -150,23 +206,26 @@ export function StudioShell(options: UseLibraryOptions = {}) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" data-testid="studio-shell">
-      <LibraryBar
-        activeName={active?.name ?? 'No game'}
-        savedAt={active?.updatedAt}
-        canSave={Boolean(active)}
-        mode={mode}
-        onNew={() => setNewOpen(true)}
-        onSave={() => persistWorking({ touchUpdatedAt: true })}
-        onOpen={() => setOpenOpen(true)}
-        onDelete={() => {
-          if (!active || isPublished(active)) return;
-          setDeleteOpen(true);
-        }}
-        canDelete={Boolean(active) && !isPublished(active)}
-        published={isPublished(active)}
-        onDesign={() => setMode('design')}
-        onTest={onTest}
-      />
+      <div className="mb-2 flex shrink-0 items-center gap-3" data-testid="studio-header">
+        <h1 className="shrink-0 text-2xl font-semibold text-slate-50">Building Board Template</h1>
+        <LibraryBar
+          activeName={formatGameTitle(active)}
+          canSave={Boolean(active)}
+          canTest={Boolean(active)}
+          mode={mode}
+          onNew={() => requestLeave('new')}
+          onSave={onSave}
+          onOpen={() => requestLeave('open')}
+          onDelete={() => {
+            if (!active || isPublished(active)) return;
+            setDeleteOpen(true);
+          }}
+          canDelete={Boolean(active) && !isPublished(active)}
+          published={isPublished(active)}
+          onDesign={() => setMode('design')}
+          onTest={onTest}
+        />
+      </div>
       {active && workingBoard && workingPlayers ? (
         mode === 'design' ? (
           <LayoutDesigner
@@ -176,7 +235,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             selectedCellId={selectedCellId}
             tool={tool}
             issues={issues}
-            onBoardChange={setWorkingBoard}
+            onBoardChange={onBoardChange}
             onSelectFloor={setSelectedFloorId}
             onSelectCell={setSelectedCellId}
             onToolChange={setTool}
@@ -193,10 +252,13 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onStateChange={setSnapshot}
           />
         ) : null
-      ) : (
-        <p className="text-slate-400">Create a game to start playing.</p>
-      )}
-      <NewGameDialog open={newOpen} onOpenChange={setNewOpen} onCreate={onCreate} />
+      ) : null}
+      <NewGameDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        onCreate={onCreate}
+        games={drafts}
+      />
       <DeleteGameDialog
         open={deleteOpen}
         gameName={active?.name ?? 'this draft'}
@@ -209,6 +271,15 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         drafts={drafts}
         activeId={activeId}
         onOpen={onOpenDraft}
+      />
+      <UnsavedChangesDialog
+        open={dirtyPrompt !== null}
+        gameName={active?.name ?? 'This game'}
+        onOpenChange={(open) => {
+          if (!open) setDirtyPrompt(null);
+        }}
+        onSave={() => finishDirtyPrompt(true)}
+        onDiscard={() => finishDirtyPrompt(false)}
       />
     </div>
   );

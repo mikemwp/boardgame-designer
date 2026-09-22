@@ -48,6 +48,31 @@ export function nextCellId(floor: Floor): string {
   return `${floor.id}-c${i}`;
 }
 
+export function uniquifyCellIds(floorId: string, cells: Cell[]): Cell[] {
+  const used = new Set<string>();
+  let i = 0;
+  const nextUnused = () => {
+    while (used.has(`${floorId}-c${i}`)) i += 1;
+    const id = `${floorId}-c${i}`;
+    used.add(id);
+    i += 1;
+    return id;
+  };
+  return cells.map((cell) => {
+    if (!used.has(cell.id)) {
+      used.add(cell.id);
+      return cell;
+    }
+    return { ...cell, id: nextUnused() };
+  });
+}
+
+export function nextLevelLabel(floors: Floor[]): string {
+  let n = floors.length + 1;
+  while (floors.some((floor) => floor.label === `Level ${n}`)) n += 1;
+  return `Level ${n}`;
+}
+
 export function nextFloorId(board: Board): string {
   let i = board.floors.length;
   while (board.floors.some((floor) => floor.id === `floor-${i}`)) i += 1;
@@ -72,6 +97,7 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
       if (!prev) return cell;
       return { ...cell, id: prev.id, ...designerProps(prev) };
     });
+    mapped = uniquifyCellIds(floorId, mapped);
   } else {
     const oldByPos = new Map<string, Cell>();
     for (const cell of floor.cells) {
@@ -102,7 +128,7 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
       return !wasPerimeter;
     });
     const hud = template.cells.filter((cell) => cell.kind === 'hud');
-    mapped = [...ring, ...extras, ...hud];
+    mapped = uniquifyCellIds(floorId, [...ring, ...extras, ...hud]);
   }
 
   const keepStairIds = new Set(mapped.map((c) => c.stairId).filter(Boolean) as string[]);

@@ -19,14 +19,13 @@ Open [http://127.0.0.1:4318](http://127.0.0.1:4318) with your browser.
 
 ## Layout designer
 
-The studio opens in **Design**. Design and Test fit one viewport (no horizontal scrollbar). The Test 3D canvas is a pane, not full width. Tool and shape labels stay visible (not hover-only). The HTML grid or SVG authors the active draft. A PlayCanvas preview shows **the floor being edited** (not the whole stack, not first-person). HUD slots refuse drops.
+The studio opens in **Design**. The product title and library bar share one top row. Design and Test fit one viewport (no horizontal scrollbar). The Test 3D canvas is a pane, not full width. Tool and shape labels stay visible (not hover-only). The HTML grid authors the active draft. A PlayCanvas preview shows **the level being edited**, top-down on the XZ board (orbit and zoom still work). HUD slots refuse drops.
 
-1. **Board shape** per floor: **Square** (default 8×8, 3–12 tiles per side), **Rectangle** (default 8×6, 3–12, sides cannot be equal), **Circle** (default 12 wedges, 3–40, flat inner edge), **Hub/spoke** (12 hub / 4 spokes / 6 spoke tiles; hub loops; spoke ends need not loop), **Hub/spoke/wheel** (8 / 4 / 4 / 16; hub and wheel loop). New empty drafts are square 8×8 (28 perimeter cells). Climb stays square 3. Changing shape regenerates that floor’s tiles (keeps packs/stairs by index).
-2. Floor tabs rename and add floors (no max). Adding a floor copies the selected floor’s shape. Closed shapes must loop; only hub/spoke spoke ends may be dead-ends.
-3. Palette: **Select**, **Tile**, **HUD tile**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile (HUD, corridor, stair, start, end) leaves a free square you can place on again. Stair converts a corridor cell and must link a destination floor + landing square before **Test**. Changing tiles-per-side rebuilds the perimeter loop, one inner free row, and HUD only in the true center (never copied onto the loop).
-4. Inspector: floor name, pack (from cards already in the draft — import under **Test**), start square, stair destination. Stair squares never hold packs.
-5. **Save** writes the working layout even if stairs or loops are invalid.
-6. **Test** is blocked with a named list until the layout is valid (dangling stairs, missing start, empty floors, any closed region that does not loop). Then it remounts the existing play HUD on that draft (not a public URL). **Design** returns to the grid. Live publish is not included.
+1. **Board shape** sits in the center of the level/tool row. **Square** uses a **Tiles** picker (3×3…12×12, default 8×8). **Rectangle** has separate length and width selectors (default 8×6, sides cannot be equal). Polar shapes stay hidden. New empty drafts are square 8×8 (28 perimeter cells, first tab **Level 1**). Climb stays square 3. Changing size rebuilds the perimeter loop with unique cell ids.
+2. Level tabs (**Add level** / **Delete level**) plus the selected **Level name** sit on the toolbar. New levels are **Level 2**, **Level 3**, … Delete removes only the selected level and is disabled when one remains. Adding a level copies the selected level’s shape.
+3. Palette: **Select**, **Tile**, **HUD**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile leaves a free square you can place on again. Stair converts a corridor cell and must link a destination level + landing square before **Test**.
+4. Right pane: **Tile Actions** (pack, start, end, stairs) and a shorter fixed-height preview. Level name is not in that pane.
+5. **Save** writes the working layout even if stairs or loops are invalid. **Test** is blocked with a named list until the layout is valid, then remounts the play HUD. Live publish is not included.
 
 Rooms, inner maps, doors, first-person, and the card template editor are not in this slice.
 
@@ -34,11 +33,12 @@ Rooms, inner maps, doors, first-person, and the card template editor are not in 
 
 Drafts live in this browser (`localStorage` key `building-board.library.v1`). There is no account and no public slug in this slice.
 
-1. First visit seeds **Climb (sample)** and opens it in **Design**.
-2. **New** creates another named draft from **Climb sample** or **Empty board**. It does not overwrite other drafts. The current draft is saved first.
-3. **Save** writes the active draft (board, starting players, card deck including CSV imports, feature-toggle config) and keeps the current play session on screen.
-4. **Open** lists local drafts only. Choosing one remounts play from that draft’s saved definition (token back at start, no card up). Live publish is not included.
-5. **Delete** removes the active draft after confirm. Published games cannot be deleted. After delete, another draft is selected, or the studio returns to an empty create state.
+1. First visit seeds **Climb (sample)** and shows **Climb (sample) (draft)** in the centered title. An empty library shows no “No game” placeholder.
+2. **New** asks for a name (empty and focused) and starts from **Empty board** (default), any saved game (`(draft)` / `(Published)`), or **Climb sample** last. Unsaved changes prompt before New or Open.
+3. **Save** writes the active draft (board, starting players, card deck including CSV imports, feature-toggle config). Save, Test, and Delete are disabled when no game is loaded. Save matches the other outline buttons.
+4. **Open** lists draft and published games. Choosing one remounts play from that game’s saved definition (token back at start, no card up).
+5. **Delete** removes the active draft after confirm. Published games cannot be deleted. After delete, another game is selected, or the studio stays empty.
+6. Version A (stored now): first publish is **v1**; the first edit after publish becomes **(draft) v1.1**; each later Save or Test while unpublished bumps the minor; the next publish keeps that number. Documents record last saved, version, published date, and status.
 
 **Test** plays the current draft after layout validation. Publish live is not included.
 
@@ -72,11 +72,11 @@ A sample file ships at `public/samples/climb-cards.csv`.
 
 ## Play the Climb sample
 
-1. `npm run dev` and open http://127.0.0.1:4318 — library bar shows **Climb (sample)** in **Design**. Click **Test**, then **Roll dice**. HUD dice tumble to the engine integer, **then** the token slides, **then** the dice disappear and a card deals only if you **stop** on a packed corridor cell. Toggle **HUD spinner** to spin a uniform 1–6 (or **Spinner 1–12**) instead of 1d6 / 2d6.
+1. `npm run dev` and open http://127.0.0.1:4318 — the title row shows **Climb (sample) (draft)** in **Design**. Click **Test**, then **Roll dice**. HUD dice tumble to the engine integer, **then** the token slides, **then** the dice disappear and a card deals only if you **stop** on a packed corridor cell. Toggle **HUD spinner** to spin a uniform 1–6 (or **Spinner 1–12**) instead of 1d6 / 2d6.
 2. **Play** counts as a pack reveal. **Pass** dismisses the card and does not.
 3. Floor 1 hold (toggle **Per-floor hold**): you cannot land on that floor’s up stair until one climb card is revealed on that hold. If every face would hit that stair, last roll is **0 — stairs held**.
-4. **New → Empty board** still shows **Roll dice** / HUD spinner on a 28-cell square 8×8 Ground loop with no climb cards.
-5. **Design** on Climb: Lobby / Floor 1 / Floor 2 tabs, 3D preview of the selected floor, pack `climb` on content squares, up stairs already linked. **New → Empty board** is a Ground loop you can edit, Save, then Test.
+4. **New → Empty board** still shows **Roll dice** / HUD spinner on a 28-cell square 8×8 **Level 1** loop with no climb cards.
+5. **Design** on Climb: Lobby / Floor 1 / Floor 2 tabs, top-down 3D preview of the selected level, pack `climb` on content squares, up stairs already linked. **New → Empty board** is a Level 1 loop you can edit, Save, then Test.
 
 ## Feature flags
 

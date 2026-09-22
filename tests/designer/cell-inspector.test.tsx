@@ -6,19 +6,17 @@ import { createLoopedFloor } from '@/lib/engine/layout';
 import { addFloor, attachStair } from '@/lib/designer/mutate';
 
 describe('CellInspector', () => {
-  it('renames the floor, sets pack and start on a corridor', () => {
-    const onRenameFloor = vi.fn();
+  it('labels the pane Tile Actions and sets pack and start on a corridor', () => {
     const onSetPack = vi.fn();
     const onSetStart = vi.fn();
     const onSetEnd = vi.fn();
-    const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
     render(
       <CellInspector
         board={board}
         floorId="ground"
         cellId="ground-c1"
         packIds={['climb']}
-        onRenameFloor={onRenameFloor}
         onSetPack={onSetPack}
         onSetStart={onSetStart}
         onSetEnd={onSetEnd}
@@ -27,9 +25,9 @@ describe('CellInspector', () => {
         onClearStair={() => {}}
       />,
     );
-    fireEvent.change(screen.getByLabelText('Floor name'), { target: { value: 'Lobby' } });
-    fireEvent.blur(screen.getByLabelText('Floor name'));
-    expect(onRenameFloor).toHaveBeenCalledWith('Lobby');
+    expect(screen.getByText('Tile Actions')).toBeDefined();
+    expect(screen.queryByLabelText('Floor name')).toBeNull();
+    expect(screen.queryByLabelText('Level name')).toBeNull();
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'climb' } });
     expect(onSetPack).toHaveBeenCalledWith('climb');
     fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
@@ -51,7 +49,6 @@ describe('CellInspector', () => {
         floorId="ground"
         cellId="ground-c3"
         packIds={[]}
-        onRenameFloor={() => {}}
         onSetPack={() => {}}
         onSetStart={() => {}}
         onSetEnd={() => {}}
@@ -67,7 +64,6 @@ describe('CellInspector', () => {
         floorId="ground"
         cellId={hubCell.id}
         packIds={[]}
-        onRenameFloor={() => {}}
         onSetPack={() => {}}
         onSetStart={() => {}}
         onSetEnd={() => {}}
@@ -79,7 +75,7 @@ describe('CellInspector', () => {
     expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
   });
 
-  it('links a dangling stair to another floor', () => {
+  it('links a dangling stair to another level', () => {
     const onLinkStair = vi.fn();
     const two = addFloor(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'floor-1', 'Floor 1');
     const board = attachStair(two, 'ground', 'ground-c3');
@@ -89,7 +85,6 @@ describe('CellInspector', () => {
         floorId="ground"
         cellId="ground-c3"
         packIds={['climb']}
-        onRenameFloor={() => {}}
         onSetPack={() => {}}
         onSetStart={() => {}}
         onSetEnd={() => {}}
@@ -99,7 +94,7 @@ describe('CellInspector', () => {
       />,
     );
     expect(screen.getByText('Stair tiles never hold packs.')).toBeDefined();
-    fireEvent.change(screen.getByLabelText('Destination floor'), { target: { value: 'floor-1' } });
+    fireEvent.change(screen.getByLabelText('Destination level'), { target: { value: 'floor-1' } });
     fireEvent.change(screen.getByLabelText('Landing tile'), { target: { value: 'floor-1-c0' } });
     expect(onLinkStair).toHaveBeenCalledWith('floor-1', 'floor-1-c0');
   });

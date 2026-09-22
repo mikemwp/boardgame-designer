@@ -1,6 +1,5 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { normalizeShape, type BoardShape, type ShapeKind } from '@/lib/engine/shape';
 
@@ -16,6 +15,11 @@ const VISIBLE_SHAPE_OPTIONS = ALL_SHAPE_OPTIONS.filter(
   (opt) => opt.value === 'square' || opt.value === 'rectangle',
 );
 
+const SIZE_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 3);
+
+const fieldClass = 'flex min-w-[5.5rem] flex-col gap-1';
+const selectClass = 'h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm';
+
 export function BoardShapeFields({
   shape,
   onChange,
@@ -25,22 +29,16 @@ export function BoardShapeFields({
 }) {
   const normalized = normalizeShape(shape);
 
-  const updateNumber = (field: string, value: string) => {
-    onChange(normalizeShape({ ...normalized, [field]: Number(value) }));
-  };
-
-  const fieldClass = 'flex min-w-[5.5rem] flex-col gap-1';
-
   return (
     <div
-      className="flex flex-row flex-wrap items-end gap-x-3 gap-y-2"
+      className="flex flex-row flex-wrap items-end justify-center gap-x-3 gap-y-2"
       data-testid="board-shape-fields"
     >
       <div className="flex min-w-[8rem] flex-col gap-1">
         <Label>Board shape</Label>
         <select
           aria-label="Board shape"
-          className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+          className={selectClass}
           value={normalized.kind}
           onChange={(e) => onChange(normalizeShape({ kind: e.target.value as ShapeKind }))}
         >
@@ -52,15 +50,21 @@ export function BoardShapeFields({
 
       {normalized.kind === 'square' && (
         <div className={fieldClass}>
-          <Label>Tiles per side</Label>
-          <Input
-            type="number"
-            min={3}
-            max={12}
-            className="h-8"
+          <Label>Tiles</Label>
+          <select
+            aria-label="Tiles"
+            className={selectClass}
             value={normalized.tilesPerSide}
-            onChange={(e) => updateNumber('tilesPerSide', e.target.value)}
-          />
+            onChange={(e) =>
+              onChange(normalizeShape({ ...normalized, tilesPerSide: Number(e.target.value) }))
+            }
+          >
+            {SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}×{n}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -68,25 +72,37 @@ export function BoardShapeFields({
         <>
           <div className={fieldClass}>
             <Label>Length</Label>
-            <Input
-              type="number"
-              min={3}
-              max={12}
-              className="h-8"
+            <select
+              aria-label="Length"
+              className={selectClass}
               value={normalized.length}
-              onChange={(e) => updateNumber('length', e.target.value)}
-            />
+              onChange={(e) =>
+                onChange(normalizeShape({ ...normalized, length: Number(e.target.value) }))
+              }
+            >
+              {SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
           </div>
           <div className={fieldClass}>
             <Label>Width</Label>
-            <Input
-              type="number"
-              min={3}
-              max={12}
-              className="h-8"
+            <select
+              aria-label="Width"
+              className={selectClass}
               value={normalized.width}
-              onChange={(e) => updateNumber('width', e.target.value)}
-            />
+              onChange={(e) =>
+                onChange(normalizeShape({ ...normalized, width: Number(e.target.value) }))
+              }
+            >
+              {SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
           </div>
         </>
       )}
@@ -94,14 +110,20 @@ export function BoardShapeFields({
       {normalized.kind === 'circle' && (
         <div className={fieldClass}>
           <Label>Tiles</Label>
-          <Input
-            type="number"
-            min={3}
-            max={40}
-            className="h-8"
+          <select
+            aria-label="Tiles"
+            className={selectClass}
             value={normalized.tiles}
-            onChange={(e) => updateNumber('tiles', e.target.value)}
-          />
+            onChange={(e) =>
+              onChange(normalizeShape({ ...normalized, tiles: Number(e.target.value) }))
+            }
+          >
+            {Array.from({ length: 38 }, (_, i) => i + 3).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -109,36 +131,54 @@ export function BoardShapeFields({
         <>
           <div className={fieldClass}>
             <Label>Hub tiles</Label>
-            <Input
-              type="number"
-              min={3}
-              max={40}
-              className="h-8"
+            <select
+              aria-label="Hub tiles"
+              className={selectClass}
               value={normalized.hubTiles}
-              onChange={(e) => updateNumber('hubTiles', e.target.value)}
-            />
+              onChange={(e) =>
+                onChange(normalizeShape({ ...normalized, hubTiles: Number(e.target.value) }))
+              }
+            >
+              {Array.from({ length: 38 }, (_, i) => i + 3).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
           </div>
           <div className={fieldClass}>
             <Label>Spokes</Label>
-            <Input
-              type="number"
-              min={2}
-              max={12}
-              className="h-8"
+            <select
+              aria-label="Spokes"
+              className={selectClass}
               value={normalized.spokeCount}
-              onChange={(e) => updateNumber('spokeCount', e.target.value)}
-            />
+              onChange={(e) =>
+                onChange(normalizeShape({ ...normalized, spokeCount: Number(e.target.value) }))
+              }
+            >
+              {Array.from({ length: 11 }, (_, i) => i + 2).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
           </div>
           <div className={fieldClass}>
             <Label>Spoke tiles</Label>
-            <Input
-              type="number"
-              min={1}
-              max={12}
-              className="h-8"
+            <select
+              aria-label="Spoke tiles"
+              className={selectClass}
               value={normalized.spokeTiles}
-              onChange={(e) => updateNumber('spokeTiles', e.target.value)}
-            />
+              onChange={(e) =>
+                onChange(normalizeShape({ ...normalized, spokeTiles: Number(e.target.value) }))
+              }
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
           </div>
         </>
       )}
@@ -146,14 +186,20 @@ export function BoardShapeFields({
       {normalized.kind === 'hub-spoke-wheel' && (
         <div className={fieldClass}>
           <Label>Wheel tiles</Label>
-          <Input
-            type="number"
-            min={3}
-            max={40}
-            className="h-8"
+          <select
+            aria-label="Wheel tiles"
+            className={selectClass}
             value={normalized.wheelTiles}
-            onChange={(e) => updateNumber('wheelTiles', e.target.value)}
-          />
+            onChange={(e) =>
+              onChange(normalizeShape({ ...normalized, wheelTiles: Number(e.target.value) }))
+            }
+          >
+            {Array.from({ length: 38 }, (_, i) => i + 3).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </div>

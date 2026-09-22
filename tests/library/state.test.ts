@@ -138,6 +138,28 @@ describe('parseLibrary', () => {
     const parsed = parseLibrary(JSON.stringify({ version: 1, activeId: null, drafts: [] }));
     expect(parsed).toEqual({ version: 1, activeId: null, drafts: [] });
   });
+
+  it('migrates legacy documents to draft metadata', () => {
+    const good = createDocument({
+      id: 'ok',
+      name: 'Ok',
+      source: 'empty',
+      bootstrap: emptyStored(),
+      now: '2026-09-21T12:00:00.000Z',
+    });
+    const legacy = {
+      id: good.id,
+      name: good.name,
+      createdAt: good.createdAt,
+      updatedAt: good.updatedAt,
+      source: good.source,
+      bootstrap: good.bootstrap,
+    };
+    const parsed = parseLibrary(JSON.stringify({ version: 1, activeId: 'ok', drafts: [legacy] }));
+    expect(parsed?.drafts[0]?.status).toBe('draft');
+    expect(parsed?.drafts[0]?.version).toBeNull();
+    expect(parsed?.drafts[0]?.lastSaved).toBe(good.updatedAt);
+  });
 });
 
 describe('deleteDraft', () => {

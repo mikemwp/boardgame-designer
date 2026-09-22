@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
@@ -18,7 +17,6 @@ export function CellInspector({
   floorId,
   cellId,
   packIds,
-  onRenameFloor,
   onSetPack,
   onSetStart,
   onSetEnd,
@@ -30,7 +28,6 @@ export function CellInspector({
   floorId: string;
   cellId: string | null;
   packIds: string[];
-  onRenameFloor: (label: string) => void;
   onSetPack: (packId: string | undefined) => void;
   onSetStart: () => void;
   onSetEnd: () => void;
@@ -45,16 +42,8 @@ export function CellInspector({
   if (!floor) return null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-slate-800 p-3">
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="floor-name">Floor name</Label>
-        <Input
-          id="floor-name"
-          aria-label="Floor name"
-          defaultValue={floor.label}
-          onBlur={(e) => onRenameFloor(e.target.value)}
-        />
-      </div>
+    <div className="flex h-full flex-col gap-3 rounded-lg border border-slate-800 p-3" data-testid="tile-actions">
+      <p className="text-sm font-medium text-slate-100">Tile Actions</p>
       {!cell ? (
         <p className="text-sm text-slate-400">Select a tile to edit pack, stairs, start, or end.</p>
       ) : (
@@ -66,10 +55,10 @@ export function CellInspector({
               {stair ? (
                 <p className="text-sm">{stair.legal ? stairLabel(board, stair) : 'Stair has no destination.'}</p>
               ) : null}
-              <Label htmlFor="dest-floor">Destination floor</Label>
+              <Label htmlFor="dest-floor">Destination level</Label>
               <select
                 id="dest-floor"
-                aria-label="Destination floor"
+                aria-label="Destination level"
                 className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
                 value={stair?.toFloorId ?? ''}
                 onChange={(e) => {

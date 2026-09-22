@@ -7,38 +7,42 @@ import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
 import { useMemo } from 'react';
 import type { Board } from '@/lib/engine/board';
 import { boardWorldBounds, orbitCameraLimits } from '@/lib/view/board-layout';
+import {
+  orbitCameraPose,
+  PLAY_ORBIT_PITCH,
+  PREVIEW_ORBIT_PITCH,
+  PREVIEW_ORBIT_PITCH_RANGE,
+} from '@/lib/view/orbit-camera';
 
-const DEFAULT_PITCH = 32;
-const DEFAULT_YAW = 0;
+export {
+  orbitCameraPose,
+  PLAY_ORBIT_PITCH,
+  PREVIEW_ORBIT_PITCH,
+  PREVIEW_ORBIT_PITCH_RANGE,
+} from '@/lib/view/orbit-camera';
 
-function orbitCameraPose(
-  pivot: Vec3,
-  distance: number,
-  pitchDeg = DEFAULT_PITCH,
-  yawDeg = DEFAULT_YAW,
-): { position: [number, number, number]; rotation: [number, number, number] } {
-  const pitch = (pitchDeg * Math.PI) / 180;
-  const yaw = (yawDeg * Math.PI) / 180;
-  const ox = distance * Math.cos(pitch) * Math.sin(yaw);
-  const oy = distance * Math.sin(pitch);
-  const oz = distance * Math.cos(pitch) * Math.cos(yaw);
-  return {
-    position: [pivot.x + ox, pivot.y + oy, pivot.z + oz],
-    rotation: [-pitchDeg, yawDeg, 0],
-  };
-}
-
-export function BoardOrbitCamera({ board }: { board: Board }) {
+export function BoardOrbitCamera({
+  board,
+  view = 'play',
+}: {
+  board: Board;
+  view?: 'play' | 'top-down';
+}) {
   const orbit = useMemo(() => {
     const limits = orbitCameraLimits(boardWorldBounds(board));
     const pivot = new Vec3(limits.pivot.x, limits.pivot.y, limits.pivot.z);
+    const pitch = view === 'top-down' ? PREVIEW_ORBIT_PITCH : PLAY_ORBIT_PITCH;
+    const pitchRange =
+      view === 'top-down'
+        ? new Vec2(PREVIEW_ORBIT_PITCH_RANGE.min, PREVIEW_ORBIT_PITCH_RANGE.max)
+        : new Vec2(12, 88);
     return {
       pivot,
-      pose: orbitCameraPose(pivot, limits.defaultDistance),
+      pose: orbitCameraPose(pivot, limits.defaultDistance, pitch),
       zoomRange: new Vec2(limits.distanceMin, limits.distanceMax),
-      pitchRange: new Vec2(12, 88),
+      pitchRange,
     };
-  }, [board]);
+  }, [board, view]);
 
   return (
     <Entity name="camera" position={orbit.pose.position} rotation={orbit.pose.rotation}>

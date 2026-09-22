@@ -9,7 +9,7 @@ describe('emptyBootstrap', () => {
     const boot = emptyBootstrap();
     expect(boot.board.floors).toHaveLength(1);
     expect(boot.board.floors[0]?.id).toBe('ground');
-    expect(boot.board.floors[0]?.label).toBe('Ground');
+    expect(boot.board.floors[0]?.label).toBe('Level 1');
     expect(boot.board.floors[0]?.cells.filter((c) => c.kind === 'corridor')).toHaveLength(28);
     expect(boot.board.floors[0]?.cells.filter((c) => c.kind === 'hud')).toHaveLength(16);
     expect(boot.board.floors[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
@@ -33,13 +33,13 @@ describe('emptyBootstrap', () => {
     const a = emptyBootstrap();
     const b = emptyBootstrap();
     a.board.floors[0]!.label = 'Mutated';
-    expect(b.board.floors[0]!.label).toBe('Ground');
+    expect(b.board.floors[0]!.label).toBe('Level 1');
   });
 
   it('bakes grid coordinates outside the HUD without defaulting a start tile', () => {
     const boot = emptyBootstrap();
     const floor = boot.board.floors[0]!;
-    const template = createLoopedFloor('ground', 'Ground', 0);
+    const template = createLoopedFloor('ground', 'Level 1', 0);
     expect(floor.columns).toBe(8);
     expect(floor.cells.some((c) => c.start)).toBe(false);
     expect(floor.cells.map((c) => ({ col: c.col, row: c.row }))).toEqual(

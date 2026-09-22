@@ -7,7 +7,7 @@ export type DesignerTool = 'select' | 'corridor' | 'stair' | 'hud' | 'erase';
 const TOOLS: Array<{ id: DesignerTool; label: string }> = [
   { id: 'select', label: 'Select' },
   { id: 'corridor', label: 'Tile' },
-  { id: 'hud', label: 'HUD tile' },
+  { id: 'hud', label: 'HUD' },
   { id: 'stair', label: 'Stair' },
   { id: 'erase', label: 'Erase' },
 ];
