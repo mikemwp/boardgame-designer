@@ -1,0 +1,85 @@
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { PackEditor } from '@/components/designer/PackEditor';
+
+describe('PackEditor', () => {
+  it('shows empty copy then creates, edits, and deletes through callbacks', () => {
+    const onCreatePack = vi.fn();
+    const onRenamePack = vi.fn();
+    const onDeletePack = vi.fn();
+    const onCreateCard = vi.fn();
+    const onUpdateCard = vi.fn();
+    const onDeleteCard = vi.fn();
+    const onSelectPack = vi.fn();
+    const onSelectCard = vi.fn();
+
+    const { rerender } = render(
+      <PackEditor
+        packs={[]}
+        cards={[]}
+        selectedPackId={null}
+        selectedCardId={null}
+        onSelectPack={onSelectPack}
+        onSelectCard={onSelectCard}
+        onCreatePack={onCreatePack}
+        onRenamePack={onRenamePack}
+        onDeletePack={onDeletePack}
+        onCreateCard={onCreateCard}
+        onUpdateCard={onUpdateCard}
+        onDeleteCard={onDeleteCard}
+      />,
+    );
+    expect(screen.getByText(/Create a pack to attach to tiles/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
+    expect(onCreatePack).toHaveBeenCalled();
+
+    rerender(
+      <PackEditor
+        packs={['notes']}
+        cards={[]}
+        selectedPackId="notes"
+        selectedCardId={null}
+        onSelectPack={onSelectPack}
+        onSelectCard={onSelectCard}
+        onCreatePack={onCreatePack}
+        onRenamePack={onRenamePack}
+        onDeletePack={onDeletePack}
+        onCreateCard={onCreateCard}
+        onUpdateCard={onUpdateCard}
+        onDeleteCard={onDeleteCard}
+      />,
+    );
+    expect(screen.getByText('This pack has no cards yet.')).toBeDefined();
+    expect(screen.getByText('0 cards')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Pack id'), { target: { value: 'clues' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename pack' }));
+    expect(onRenamePack).toHaveBeenCalledWith('clues');
+    fireEvent.click(screen.getByRole('button', { name: 'New card' }));
+    expect(onCreateCard).toHaveBeenCalled();
+
+    rerender(
+      <PackEditor
+        packs={['notes']}
+        cards={[{ id: 'notes-1', pack: 'notes', title: 'Card 1', body: '' }]}
+        selectedPackId="notes"
+        selectedCardId="notes-1"
+        onSelectPack={onSelectPack}
+        onSelectCard={onSelectCard}
+        onCreatePack={onCreatePack}
+        onRenamePack={onRenamePack}
+        onDeletePack={onDeletePack}
+        onCreateCard={onCreateCard}
+        onUpdateCard={onUpdateCard}
+        onDeleteCard={onDeleteCard}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Door' } });
+    expect(onUpdateCard).toHaveBeenCalledWith({ title: 'Door' });
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Knock' } });
+    expect(onUpdateCard).toHaveBeenCalledWith({ body: 'Knock' });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete card' }));
+    expect(onDeleteCard).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete pack' }));
+    expect(onDeletePack).toHaveBeenCalled();
+  });
+});
