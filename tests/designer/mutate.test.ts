@@ -14,7 +14,10 @@ import {
   nextCellId,
   placeCorridor,
   placeCorridorOnSlot,
+  placeDoor,
   placeHud,
+  placeRoom,
+  clearDoor,
   renameFloor,
   setCellPack,
   setEndCell,
@@ -58,6 +61,35 @@ describe('placeHud', () => {
       col: hudCol,
       row: hudRow,
     });
+  });
+});
+
+describe('placeRoom and placeDoor', () => {
+  it('places a room on an inner square and converts an adjacent corridor to a door', () => {
+    const placed = placeRoom(groundBoard(), 'ground', 1, 1, 'ground-room');
+    const room = placed.floors[0]?.cells.find((c) => c.id === 'ground-room');
+    expect(room).toMatchObject({ kind: 'room', col: 1, row: 1 });
+    expect(placeRoom(placed, 'ground', 1, 1, 'ground-room-2')).toEqual(placed);
+
+    const neighbor = placed.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const withDoor = placeDoor(placed, 'ground', neighbor.id);
+    expect(withDoor.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('door');
+    expect(placeDoor(placed, 'ground', 'ground-c0').floors[0]?.cells.find((c) => c.id === 'ground-c0')?.kind).not.toBe(
+      'door',
+    );
+
+    const cleared = clearDoor(withDoor, 'ground', neighbor.id);
+    expect(cleared.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('corridor');
+  });
+
+  it('assigns a pack on a room and refuses a pack on a door', () => {
+    let board = placeRoom(groundBoard(), 'ground', 1, 1, 'ground-room');
+    const neighbor = board.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
+    board = placeDoor(board, 'ground', neighbor.id);
+    board = setCellPack(board, 'ground', 'ground-room', 'notes');
+    expect(board.floors[0]?.cells.find((c) => c.id === 'ground-room')?.packId).toBe('notes');
+    const refused = setCellPack(board, 'ground', neighbor.id, 'notes');
+    expect(refused.floors[0]?.cells.find((c) => c.id === neighbor.id)?.packId).toBeUndefined();
   });
 });
 

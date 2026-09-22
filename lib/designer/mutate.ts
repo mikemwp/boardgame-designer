@@ -1,6 +1,7 @@
 import { createBoard, type Board } from '@/lib/engine/board';
 import { uniquifyCellIds } from '@/lib/engine/cell-ids';
 import {
+  adjacentCells,
   cellAt,
   createLoopedFloor,
   inBounds,
@@ -168,6 +169,53 @@ export function placeHud(
   }));
 }
 
+export function placeRoom(
+  board: Board,
+  floorId: string,
+  col: number,
+  row: number,
+  cellId: string,
+): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  if (!floor || !inBounds(floor, col, row) || cellAt(floor, col, row)) {
+    return board;
+  }
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: [
+      ...current.cells,
+      {
+        id: cellId,
+        index: current.cells.length,
+        kind: 'room' as const,
+        col,
+        row,
+      },
+    ],
+  }));
+}
+
+export function placeDoor(board: Board, floorId: string, cellId: string): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  const cell = floor?.cells.find((c) => c.id === cellId);
+  if (!floor || !cell || cell.kind !== 'corridor') return board;
+  if (!adjacentCells(floor, cell).some((other) => other.kind === 'room')) return board;
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((c) => (c.id === cellId ? { ...c, kind: 'door' as const } : c)),
+  }));
+}
+
+export function clearDoor(board: Board, floorId: string, cellId: string): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  const cell = floor?.cells.find((c) => c.id === cellId);
+  if (!floor || !cell || cell.kind !== 'door') return board;
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((c) => (c.id === cellId ? { ...c, kind: 'corridor' as const } : c)),
+  }));
+}
+
 export function placeCorridor(
   board: Board,
   floorId: string,
@@ -296,7 +344,7 @@ export function setCellPack(
     ...current,
     cells: current.cells.map((cell) => {
       if (cell.id !== cellId) return cell;
-      if (cell.kind === 'stair') return cell;
+      if (cell.kind === 'stair' || cell.kind === 'door') return cell;
       return { ...cell, packId };
     }),
   }));
@@ -373,7 +421,9 @@ export function nextStairId(cellId: string): string {
 export function attachStair(board: Board, floorId: string, cellId: string): Board {
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
-  if (!floor || !cell || cell.kind === 'stair') return board;
+  if (!floor || !cell || cell.kind === 'stair' || cell.kind === 'room' || cell.kind === 'door') {
+    return board;
+  }
   const stairId = nextStairId(cellId);
   const floors = board.floors.map((current) => {
     if (current.id !== floorId) return current;
