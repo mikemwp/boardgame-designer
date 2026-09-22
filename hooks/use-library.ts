@@ -103,10 +103,16 @@ export function useLibrary(options: UseLibraryOptions = {}) {
   );
 
   const saveActive = useCallback(
-    (bootstrap: StoredBootstrap) => {
+    (bootstrap: StoredBootstrap, options?: { touchUpdatedAt?: boolean }) => {
       setState((current) => {
         if (!current?.activeId) return current;
-        const next = saveDraft(current, current.activeId, bootstrap, now());
+        const next = saveDraft(
+          current,
+          current.activeId,
+          bootstrap,
+          now(),
+          options?.touchUpdatedAt ?? true,
+        );
         writeLibrary(storage, next);
         return next;
       });

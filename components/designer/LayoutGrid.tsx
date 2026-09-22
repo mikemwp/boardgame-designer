@@ -1,10 +1,27 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cellAt, DEFAULT_COLUMNS, DEFAULT_ROWS, isHudSlot } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
 import { buildShapeLayout, DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
 import type { Floor } from '@/lib/engine/types';
+
+const GRID_GAP_PX = 4;
+const MAX_TILE_PX = 48;
+const MIN_TILE_PX = 16;
+
+function computeTileSize(
+  containerWidth: number,
+  containerHeight: number,
+  columns: number,
+  rows: number,
+): number {
+  if (containerWidth <= 0 || containerHeight <= 0) return MAX_TILE_PX;
+  const byWidth = (containerWidth - GRID_GAP_PX * (columns - 1)) / columns;
+  const byHeight = (containerHeight - GRID_GAP_PX * (rows - 1)) / rows;
+  const fit = Math.min(byWidth, byHeight, MAX_TILE_PX);
+  return Math.max(MIN_TILE_PX, Math.floor(fit));
+}
 
 function cellInSlot(
   floor: Floor,
@@ -41,8 +58,26 @@ export function LayoutGrid({
   onMoveCellToSlot?: (cellId: string, slotId: string) => void;
 }) {
   const dragId = useRef<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tileSize, setTileSize] = useState(MAX_TILE_PX);
   const shape = inferShape(floor);
   const isPolar = shape.kind === 'circle' || shape.kind === 'hub-spoke' || shape.kind === 'hub-spoke-wheel';
+  const columns = floor.columns ?? DEFAULT_COLUMNS;
+  const rows = floor.rows ?? DEFAULT_ROWS;
+
+  useEffect(() => {
+    if (isPolar) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect();
+      setTileSize(computeTileSize(width, height, columns, rows));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [columns, rows, isPolar]);
 
   if (isPolar) {
     const layout = buildShapeLayout(shape);
@@ -114,8 +149,6 @@ export function LayoutGrid({
     );
   }
 
-  const columns = floor.columns ?? DEFAULT_COLUMNS;
-  const rows = floor.rows ?? DEFAULT_ROWS;
   const slots: Array<{ col: number; row: number }> = [];
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < columns; col += 1) {
@@ -123,51 +156,67 @@ export function LayoutGrid({
     }
   }
 
+  const gridWidth = tileSize * columns + GRID_GAP_PX * (columns - 1);
+  const gridHeight = tileSize * rows + GRID_GAP_PX * (rows - 1);
+
   return (
     <div
-      className="grid min-w-0 w-full max-w-full gap-1"
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-      aria-label="Layout grid"
+      ref={containerRef}
+      className="flex min-h-0 w-full flex-1 items-center justify-center overflow-y-auto overflow-x-hidden p-2"
+      data-testid="layout-grid-container"
     >
-      {slots.map(({ col, row }) => {
-        const hud = isHudSlot(floor, col, row);
-        const cell = cellAt(floor, col, row);
-        const selected = cell?.id === selectedCellId;
-        let className = 'aspect-square w-full rounded border text-[10px] md:text-xs';
-        if (hud) className += ' border-slate-700 bg-slate-800 text-slate-500';
-        else if (cell?.kind === 'stair') className += ' border-amber-500 bg-amber-700 text-amber-50';
-        else if (cell) className += ' border-slate-500 bg-slate-600 text-slate-50';
-        else className += ' border-slate-800 bg-slate-950 text-slate-500';
-        if (selected) className += ' ring-2 ring-sky-400';
-        if (cell?.start) className += ' outline outline-1 outline-emerald-400';
-        if (cell?.end) className += ' outline outline-1 outline-rose-400';
-        return (
-          <button
-            key={`${col}-${row}`}
-            type="button"
-            data-testid={`slot-${col}-${row}`}
-            className={className}
-            aria-label={hud ? 'HUD — drops blocked' : cell ? cell.id : `Empty ${col},${row}`}
-            onPointerDown={() => {
-              if (cell) dragId.current = cell.id;
-            }}
-            onPointerUp={() => {
-              const from = dragId.current;
-              dragId.current = null;
-              if (from && !hud && !cell) {
-                onMoveCell(from, col, row);
-                return;
-              }
-            }}
-            onClick={() => {
-              if (hud) return;
-              onSlotActivate(col, row);
-            }}
-          >
-            {hud ? 'HUD' : cell?.kind === 'stair' ? 'Stair' : ''}
-          </button>
-        );
-      })}
+      <div
+        className="grid shrink-0 gap-1"
+        style={{
+          gridTemplateColumns: `repeat(${columns}, ${tileSize}px)`,
+          width: gridWidth,
+          height: gridHeight,
+        }}
+        aria-label="Layout grid"
+      >
+        {slots.map(({ col, row }) => {
+          const hudZone = isHudSlot(floor, col, row);
+          const cell = cellAt(floor, col, row);
+          const selected = cell?.id === selectedCellId;
+          let className = 'rounded border text-[10px] md:text-xs';
+          if (cell?.kind === 'hud') className += ' border-violet-400 bg-violet-900 text-violet-100';
+          else if (hudZone) className += ' border-slate-700 bg-slate-900 text-slate-500';
+          else if (cell?.kind === 'stair') className += ' border-amber-500 bg-amber-700 text-amber-50';
+          else if (cell) className += ' border-slate-500 bg-slate-600 text-slate-50';
+          else className += ' border-slate-800 bg-slate-950 text-slate-500';
+          if (selected) className += ' ring-2 ring-sky-400';
+          if (cell?.start) className += ' outline outline-1 outline-emerald-400';
+          if (cell?.end) className += ' outline outline-1 outline-rose-400';
+          const ariaLabel = cell
+            ? cell.id
+            : hudZone
+              ? 'HUD zone'
+              : `Empty ${col},${row}`;
+          return (
+            <button
+              key={`${col}-${row}`}
+              type="button"
+              data-testid={`slot-${col}-${row}`}
+              className={className}
+              style={{ width: tileSize, height: tileSize }}
+              aria-label={ariaLabel}
+              onPointerDown={() => {
+                if (cell) dragId.current = cell.id;
+              }}
+              onPointerUp={() => {
+                const from = dragId.current;
+                dragId.current = null;
+                if (from && !cell && !hudZone) {
+                  onMoveCell(from, col, row);
+                }
+              }}
+              onClick={() => onSlotActivate(col, row)}
+            >
+              {cell?.kind === 'hud' ? 'HUD' : cell?.kind === 'stair' ? 'Stair' : hudZone && !cell ? 'HUD' : ''}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

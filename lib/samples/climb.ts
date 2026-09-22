@@ -44,7 +44,10 @@ const floors = [
     rows: climbLayout.rows,
     hud: { ...climbLayout.hud },
     shape: climbShape,
-    cells: loopCells('lobby', 's-lobby-f1', [1, 4], true),
+    cells: [
+      ...loopCells('lobby', 's-lobby-f1', [1, 4], true),
+      { id: 'lobby-h0', index: 8, kind: 'hud' as const, col: 1, row: 1 },
+    ],
   },
   {
     id: 'f1',
@@ -56,7 +59,10 @@ const floors = [
     rows: climbLayout.rows,
     hud: { ...climbLayout.hud },
     shape: climbShape,
-    cells: loopCells('f1', 's-f1-f2', [0, 2, 5], false),
+    cells: [
+      ...loopCells('f1', 's-f1-f2', [0, 2, 5], false),
+      { id: 'f1-h0', index: 8, kind: 'hud' as const, col: 1, row: 1 },
+    ],
   },
   {
     id: 'f2',
@@ -67,7 +73,10 @@ const floors = [
     rows: climbLayout.rows,
     hud: { ...climbLayout.hud },
     shape: climbShape,
-    cells: loopCells('f2', null, [1, 4], false),
+    cells: [
+      ...loopCells('f2', null, [1, 4], false),
+      { id: 'f2-h0', index: 8, kind: 'hud' as const, col: 1, row: 1 },
+    ],
   },
 ];
 

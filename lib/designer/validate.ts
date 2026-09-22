@@ -1,5 +1,5 @@
 import type { Board } from '@/lib/engine/board';
-import { orderCellsAlongLoop } from '@/lib/engine/layout';
+import { orderCellsAlongLoop, loopCells, defaultHudFill } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
 import {
   buildShapeLayout,
@@ -15,7 +15,8 @@ export type LayoutIssueCode =
   | 'broken-spoke'
   | 'dangling-stair'
   | 'pack-on-stair'
-  | 'missing-start';
+  | 'missing-start'
+  | 'missing-hud';
 
 export interface LayoutIssue {
   code: LayoutIssueCode;
@@ -28,7 +29,7 @@ export interface LayoutIssue {
 function orderCellsAlongTopology(floor: { cells: Cell[]; shape?: Board['floors'][0]['shape'] }): Cell[] | null {
   const shape = inferShape(floor);
   const layout = buildShapeLayout(shape);
-  const ringCells = floor.cells
+  const ringCells = loopCells(floor)
     .filter((c) => c.region === 'ring' || (!c.region && shape.kind === 'circle'))
     .sort((a, b) => (a.slot ?? a.index) - (b.slot ?? b.index));
   if (ringCells.length < 4) return ringCells.length === 0 ? [] : null;
@@ -55,7 +56,7 @@ function orderCellsAlongTopology(floor: { cells: Cell[]; shape?: Board['floors']
 function validateFloorLoop(floor: Board['floors'][0]): LayoutIssue | null {
   const shape = inferShape(floor);
   if (shape.kind === 'square' || shape.kind === 'rectangle') {
-    if (!orderCellsAlongLoop(floor.cells)) {
+    if (!orderCellsAlongLoop(loopCells(floor))) {
       return {
         code: 'non-loop',
         message: `${floor.label} must be a looping corridor.`,
@@ -120,11 +121,21 @@ function validateFloorLoop(floor: Board['floors'][0]): LayoutIssue | null {
   return null;
 }
 
+function floorExpectsHudTiles(floor: Board['floors'][0]): boolean {
+  const shape = inferShape(floor);
+  if (shape.kind !== 'square' && shape.kind !== 'rectangle') return false;
+  return defaultHudFill(buildShapeLayout(shape)).length > 0;
+}
+
 export function validateLayout(board: Board): LayoutIssue[] {
   const issues: LayoutIssue[] = [];
   const hasStart = board.floors.some((floor) => floor.cells.some((cell) => cell.start));
   if (!hasStart) {
     issues.push({ code: 'missing-start', message: 'Mark a start tile.' });
+  }
+  const hasHud = board.floors.some((floor) => floor.cells.some((cell) => cell.kind === 'hud'));
+  if (board.floors.some(floorExpectsHudTiles) && !hasHud) {
+    issues.push({ code: 'missing-hud', message: 'Place at least one HUD tile.' });
   }
 
   for (const floor of board.floors) {

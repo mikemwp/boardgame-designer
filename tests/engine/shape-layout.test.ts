@@ -2,25 +2,33 @@ import { describe, it, expect } from 'vitest';
 import { buildShapeLayout, isHudSlotInLayout } from '@/lib/engine/shape-layout';
 
 describe('square layout', () => {
-  it('builds an 8×8 looping ring on a padded 10×10 grid', () => {
+  it('builds an 8×8 looping ring with a one-cell margin and HUD center', () => {
     const layout = buildShapeLayout({ kind: 'square', tilesPerSide: 8 });
-    expect(layout.columns).toBe(10);
-    expect(layout.rows).toBe(10);
+    expect(layout.columns).toBe(8);
+    expect(layout.rows).toBe(8);
     expect(layout.slots).toHaveLength(28);
-    expect(layout.hud).toEqual({ col: 2, row: 2, width: 6, height: 6 });
+    expect(layout.hud).toEqual({ col: 2, row: 2, width: 4, height: 4 });
     expect(layout.slots.every((s) => s.region === 'ring')).toBe(true);
     const first = layout.slots[0]!;
     const last = layout.slots[27]!;
     expect(last.nextId).toBe(first.id);
     expect(first.prevId).toBe(last.id);
-    expect(isHudSlotInLayout(layout, 4, 4)).toBe(true);
+    expect(isHudSlotInLayout(layout, 3, 3)).toBe(true);
     expect(isHudSlotInLayout(layout, first.col!, first.row!)).toBe(false);
-    expect(isHudSlotInLayout(layout, 0, 0)).toBe(false);
+    expect(isHudSlotInLayout(layout, 1, 1)).toBe(false);
+  });
+
+  it('builds a 12×12 board as 12 wide by 12 tall', () => {
+    const layout = buildShapeLayout({ kind: 'square', tilesPerSide: 12 });
+    expect(layout.columns).toBe(12);
+    expect(layout.rows).toBe(12);
+    expect(layout.slots).toHaveLength(44);
+    expect(layout.hud).toEqual({ col: 2, row: 2, width: 8, height: 8 });
   });
 
   it('loops a 3×3 square with 8 cells', () => {
     const layout = buildShapeLayout({ kind: 'square', tilesPerSide: 3 });
-    expect(layout.columns).toBe(5);
+    expect(layout.columns).toBe(3);
     expect(layout.slots).toHaveLength(8);
     expect(layout.slots[7]!.nextId).toBe(layout.slots[0]!.id);
   });
@@ -29,8 +37,8 @@ describe('square layout', () => {
 describe('rectangle layout', () => {
   it('builds an 8×6 loop that is not a square', () => {
     const layout = buildShapeLayout({ kind: 'rectangle', length: 8, width: 6 });
-    expect(layout.columns).toBe(10);
-    expect(layout.rows).toBe(8);
+    expect(layout.columns).toBe(8);
+    expect(layout.rows).toBe(6);
     expect(layout.slots).toHaveLength(24);
     const cols = new Set(layout.slots.map((s) => s.col));
     const rows = new Set(layout.slots.map((s) => s.row));

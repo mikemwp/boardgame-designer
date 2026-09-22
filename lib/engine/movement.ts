@@ -10,6 +10,15 @@ export function sortedCells(floor: { cells: Cell[] }): Cell[] {
   return [...floor.cells].sort((a, b) => a.index - b.index);
 }
 
+export function walkableCells(floor: { cells: Cell[] }): Cell[] {
+  return sortedCells(floor).filter((cell) => cell.kind !== 'hud');
+}
+
+function pathCells(floor: { cells: Cell[]; shape?: Floor['shape'] }): Cell[] {
+  if (usesGraph(floor)) return sortedCells(floor);
+  return walkableCells(floor);
+}
+
 function usesGraph(floor: { cells: Cell[]; shape?: Floor['shape'] }): boolean {
   const kind = inferShape(floor as Floor).kind;
   return kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
@@ -52,7 +61,7 @@ export function walkSteps(
   fromCellId: string,
   steps: number,
 ): Cell | null {
-  const cells = sortedCells(floor);
+  const cells = pathCells(floor);
   if (cells.length === 0) return null;
   if (steps === 0) return cells.find((c) => c.id === fromCellId) ?? null;
 
@@ -82,7 +91,7 @@ export function forwardPathCells(
   fromCellId: string,
   toCellId: string,
 ): Cell[] {
-  const cells = sortedCells(floor);
+  const cells = pathCells(floor);
   const start = cells.findIndex((c) => c.id === fromCellId);
   const end = cells.findIndex((c) => c.id === toCellId);
   if (start < 0 || end < 0 || start === end) return [];
@@ -122,7 +131,7 @@ export function forwardPathSteps(
   fromCellId: string,
   steps: number,
 ): Cell[] {
-  const cells = sortedCells(floor);
+  const cells = pathCells(floor);
   const start = cells.findIndex((c) => c.id === fromCellId);
   if (start < 0 || steps <= 0) return [];
 

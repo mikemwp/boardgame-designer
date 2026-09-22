@@ -1,7 +1,8 @@
 import { normalizeShape, type BoardShape } from '@/lib/engine/shape';
 import type { Cell, CellRegion, HudRect } from '@/lib/engine/types';
 
-export const GRID_PAD = 1;
+/** One-cell margin between the perimeter loop and the HUD center. */
+export const HUD_MARGIN = 1;
 export const RING_INNER_RADIUS = 1.6;
 export const RING_OUTER_RADIUS = 2.6;
 export const SPOKE_TILE = 1;
@@ -196,9 +197,9 @@ function hubSpokeSlots(
 }
 
 function cartesianLayout(length: number, width: number, region: CellRegion): ShapeLayout {
-  const columns = length + GRID_PAD * 2;
-  const rows = width + GRID_PAD * 2;
-  const positions = walkRectRing(GRID_PAD, GRID_PAD, length, width);
+  const columns = length;
+  const rows = width;
+  const positions = walkRectRing(0, 0, length, width);
   const slots: TileSlot[] = positions.map((pos, i) => ({
     id: `ring-${i}`,
     region,
@@ -208,6 +209,8 @@ function cartesianLayout(length: number, width: number, region: CellRegion): Sha
     polygon: boxPolygon(pos.col, pos.row),
   }));
   linkRing(slots);
+  const hudCol = HUD_MARGIN + 1;
+  const hudRow = HUD_MARGIN + 1;
   return {
     shape:
       length === width
@@ -216,10 +219,10 @@ function cartesianLayout(length: number, width: number, region: CellRegion): Sha
     columns,
     rows,
     hud: {
-      col: GRID_PAD + 1,
-      row: GRID_PAD + 1,
-      width: Math.max(0, length - 2),
-      height: Math.max(0, width - 2),
+      col: hudCol,
+      row: hudRow,
+      width: Math.max(0, length - (HUD_MARGIN + 1) * 2),
+      height: Math.max(0, width - (HUD_MARGIN + 1) * 2),
     },
     slots,
   };

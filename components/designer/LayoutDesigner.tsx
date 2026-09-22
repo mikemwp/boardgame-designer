@@ -21,6 +21,7 @@ import {
   nextFloorId,
   placeCorridor,
   placeCorridorOnSlot,
+  placeHud,
   renameFloor,
   setCellPack,
   setEndCell,
@@ -78,6 +79,16 @@ export function LayoutDesigner({
       }
       const id = nextCellId(floor);
       onBoardChange(placeCorridor(board, floor.id, col, row, id));
+      onSelectCell(id);
+      return;
+    }
+    if (tool === 'hud') {
+      if (existing) {
+        onSelectCell(existing.id);
+        return;
+      }
+      const id = nextCellId(floor);
+      onBoardChange(placeHud(board, floor.id, col, row, id));
       onSelectCell(id);
       return;
     }

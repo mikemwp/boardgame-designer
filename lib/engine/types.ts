@@ -1,6 +1,6 @@
 export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
-export type CellKind = 'corridor' | 'stair';
+export type CellKind = 'corridor' | 'stair' | 'hud';
 
 export type CellRegion = 'ring' | 'hub' | 'spoke' | 'wheel';
 

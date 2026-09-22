@@ -13,6 +13,7 @@ import {
   moveCellToSlot,
   placeCorridor,
   placeCorridorOnSlot,
+  placeHud,
   renameFloor,
   setCellPack,
   setEndCell,
@@ -24,30 +25,47 @@ function groundBoard() {
 }
 
 describe('placeCorridor', () => {
-  it('rejects HUD and occupied slots, then appends an empty square', () => {
+  it('rejects HUD and occupied slots, then appends on the perimeter', () => {
     const board = groundBoard();
     const floor = board.floors[0]!;
     const hudCol = floor.hud!.col;
     const hudRow = floor.hud!.row;
     expect(isHudSlot(floor, hudCol, hudRow)).toBe(true);
     expect(placeCorridor(board, 'ground', hudCol, hudRow, 'ground-c99')).toEqual(board);
-    expect(placeCorridor(board, 'ground', 1, 1, 'ground-c99')).toEqual(board);
-    const next = placeCorridor(board, 'ground', 0, 0, 'ground-c99');
+    expect(placeCorridor(board, 'ground', 0, 0, 'ground-c99')).toEqual(board);
+    const next = placeCorridor(board, 'ground', 1, 1, 'ground-c99');
     expect(next.floors[0]?.cells.some((c) => c.id === 'ground-c99')).toBe(true);
     expect(next.floors[0]?.cells.find((c) => c.id === 'ground-c99')).toMatchObject({
       kind: 'corridor',
-      col: 0,
-      row: 0,
+      col: 1,
+      row: 1,
+    });
+  });
+});
+
+describe('placeHud', () => {
+  it('places HUD tiles in the center and rejects corridor slots', () => {
+    const board = groundBoard();
+    const floor = board.floors[0]!;
+    const hudCol = floor.hud!.col;
+    const hudRow = floor.hud!.row;
+    expect(placeHud(board, 'ground', 1, 1, 'ground-h99')).toEqual(board);
+    const erased = eraseCell(board, 'ground', `ground-h0`);
+    const next = placeHud(erased, 'ground', hudCol, hudRow, 'ground-h99');
+    expect(next.floors[0]?.cells.find((c) => c.id === 'ground-h99')).toMatchObject({
+      kind: 'hud',
+      col: hudCol,
+      row: hudRow,
     });
   });
 });
 
 describe('moveCell and eraseCell', () => {
   it('moves a cell onto an empty slot and erase drops it', () => {
-    const moved = moveCell(groundBoard(), 'ground', 'ground-c27', 0, 0);
+    const moved = moveCell(groundBoard(), 'ground', 'ground-c27', 1, 1);
     expect(moved.floors[0]?.cells.find((c) => c.id === 'ground-c27')).toMatchObject({
-      col: 0,
-      row: 0,
+      col: 1,
+      row: 1,
     });
     const erased = eraseCell(moved, 'ground', 'ground-c27');
     expect(erased.floors[0]?.cells.some((c) => c.id === 'ground-c27')).toBe(false);
@@ -79,7 +97,7 @@ describe('floors', () => {
     const added = addFloor(groundBoard(), 'floor-1', 'Cellar');
     expect(added.floors.map((f) => f.id)).toEqual(['ground', 'floor-1']);
     expect(added.floors[1]?.index).toBe(1);
-    expect(added.floors[1]?.cells).toHaveLength(28);
+    expect(added.floors[1]?.cells.filter((c) => c.kind === 'corridor')).toHaveLength(28);
     const renamed = renameFloor(added, 'floor-1', 'Basement');
     expect(renamed.floors[1]?.label).toBe('Basement');
     const deleted = deleteFloor(renamed, 'floor-1');

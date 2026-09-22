@@ -10,10 +10,11 @@ describe('climb sample', () => {
     expect(CLIMB_LABEL).toContain('sample');
   });
 
-  it('provides three looping floors of eight cells on a square ring', () => {
+  it('provides three looping floors of eight corridor cells plus a HUD tile on a square ring', () => {
     expect(climbSample.board.floors).toHaveLength(3);
     for (const floor of climbSample.board.floors) {
-      expect(floor.cells).toHaveLength(8);
+      expect(floor.cells.filter((c) => c.kind !== 'hud')).toHaveLength(8);
+      expect(floor.cells.some((c) => c.kind === 'hud')).toBe(true);
       expect(floor.shape).toEqual({ kind: 'square', tilesPerSide: 3 });
     }
   });
@@ -52,7 +53,7 @@ describe('climb sample', () => {
     expect(lobby.columns).toBe(climbLayout.columns);
     for (const floor of climbSample.board.floors) {
       expect(floor.hud).toEqual(climbLayout.hud);
-      for (let i = 0; i < floor.cells.length; i += 1) {
+      for (let i = 0; i < 8; i += 1) {
         const slot = climbLayout.slots[i]!;
         expect(floor.cells[i]?.col).toBe(slot.col);
         expect(floor.cells[i]?.row).toBe(slot.row);

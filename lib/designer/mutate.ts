@@ -70,6 +70,32 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
   );
 }
 
+export function placeHud(
+  board: Board,
+  floorId: string,
+  col: number,
+  row: number,
+  cellId: string,
+): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  if (!floor || !inBounds(floor, col, row) || !isHudSlot(floor, col, row) || cellAt(floor, col, row)) {
+    return board;
+  }
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: [
+      ...current.cells,
+      {
+        id: cellId,
+        index: current.cells.length,
+        kind: 'hud' as const,
+        col,
+        row,
+      },
+    ],
+  }));
+}
+
 export function placeCorridor(
   board: Board,
   floorId: string,

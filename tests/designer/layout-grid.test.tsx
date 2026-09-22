@@ -5,17 +5,17 @@ import { createLoopedFloor } from '@/lib/engine/layout';
 import { DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
 
 describe('LayoutGrid', () => {
-  it('renders cartesian slots as square tiles', () => {
+  it('renders cartesian slots with computed tile size', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     render(
       <LayoutGrid floor={floor} onSlotActivate={() => {}} onMoveCell={() => {}} />,
     );
-    const slot = screen.getByTestId('slot-1-1');
-    expect(slot.className).toMatch(/aspect-square/);
-    expect(slot.textContent).toBe('');
+    const slot = screen.getByTestId('slot-0-0');
+    expect(slot.style.width).toBeTruthy();
+    expect(slot.style.height).toBeTruthy();
   });
 
-  it('activates empty slots, ignores HUD, and moves with pointer down/up', () => {
+  it('activates empty slots, ignores HUD zones for corridor moves, and moves with pointer down/up', () => {
     const onSlotActivate = vi.fn();
     const onMoveCell = vi.fn();
     const floor = createLoopedFloor('ground', 'Ground', 0);
@@ -27,15 +27,15 @@ describe('LayoutGrid', () => {
         onMoveCell={onMoveCell}
       />,
     );
-    fireEvent.click(screen.getByTestId('slot-0-0'));
-    expect(onSlotActivate).toHaveBeenCalledWith(0, 0);
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    expect(onSlotActivate).toHaveBeenCalledWith(1, 1);
     onSlotActivate.mockClear();
-    fireEvent.click(screen.getByTestId('slot-4-4'));
-    expect(onSlotActivate).not.toHaveBeenCalled();
-    expect(screen.getAllByLabelText('HUD — drops blocked').length).toBeGreaterThan(0);
-    fireEvent.pointerDown(screen.getByTestId('slot-1-8'));
-    fireEvent.pointerUp(screen.getByTestId('slot-0-0'));
-    expect(onMoveCell).toHaveBeenCalledWith('ground-c21', 0, 0);
+    fireEvent.click(screen.getByTestId('slot-2-2'));
+    expect(onSlotActivate).toHaveBeenCalledWith(2, 2);
+    expect(screen.getAllByText('HUD').length).toBeGreaterThan(0);
+    fireEvent.pointerDown(screen.getByTestId('slot-0-7'));
+    fireEvent.pointerUp(screen.getByTestId('slot-1-1'));
+    expect(onMoveCell).toHaveBeenCalledWith('ground-c21', 1, 1);
   });
 
   it('renders circle wedges as slots and does not set overflow-x-auto', () => {

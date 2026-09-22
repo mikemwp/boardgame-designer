@@ -49,15 +49,21 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setSnapshot(null);
   }, [active?.id]);
 
-  const persistWorking = useCallback(() => {
-    if (!active || !workingBoard || !workingPlayers) return;
-    saveActive({
-      board: cloneJson(workingBoard),
-      players: applyStartToPlayers(cloneJson(workingPlayers), workingBoard),
-      cards: snapshot?.cards.deck ?? active.bootstrap.cards,
-      config: snapshot?.config ?? active.bootstrap.config,
-    });
-  }, [active, workingBoard, workingPlayers, snapshot, saveActive]);
+  const persistWorking = useCallback(
+    (options?: { touchUpdatedAt?: boolean }) => {
+      if (!active || !workingBoard || !workingPlayers) return;
+      saveActive(
+        {
+          board: cloneJson(workingBoard),
+          players: applyStartToPlayers(cloneJson(workingPlayers), workingBoard),
+          cards: snapshot?.cards.deck ?? active.bootstrap.cards,
+          config: snapshot?.config ?? active.bootstrap.config,
+        },
+        options,
+      );
+    },
+    [active, workingBoard, workingPlayers, snapshot, saveActive],
+  );
 
   const skipAutoSaveRef = useRef(true);
 
@@ -71,12 +77,12 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       return;
     }
     if (!active || !workingBoard || !workingPlayers) return;
-    const timer = window.setTimeout(() => persistWorking(), 400);
+    const timer = window.setTimeout(() => persistWorking({ touchUpdatedAt: false }), 400);
     return () => window.clearTimeout(timer);
   }, [active?.id, workingBoard, workingPlayers, persistWorking]);
 
   useEffect(() => {
-    const onPageHide = () => persistWorking();
+    const onPageHide = () => persistWorking({ touchUpdatedAt: false });
     window.addEventListener('pagehide', onPageHide);
     return () => window.removeEventListener('pagehide', onPageHide);
   }, [persistWorking]);
@@ -135,7 +141,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         canSave={Boolean(active)}
         mode={mode}
         onNew={() => setNewOpen(true)}
-        onSave={persistWorking}
+        onSave={() => persistWorking({ touchUpdatedAt: true })}
         onOpen={() => setOpenOpen(true)}
         onDesign={() => setMode('design')}
         onTest={onTest}

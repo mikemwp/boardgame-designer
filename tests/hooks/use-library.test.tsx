@@ -33,6 +33,25 @@ describe('useLibrary', () => {
     expect(climbSample.cards.deck).toHaveLength(3);
   });
 
+  it('saveActive can persist bootstrap without advancing updatedAt', () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        now: () => '2026-09-22T16:00:00.000Z',
+        createId: () => 'x',
+      }),
+    );
+
+    act(() => {
+      result.current.saveActive(toStoredBootstrap(emptyBootstrap()), { touchUpdatedAt: false });
+    });
+
+    expect(result.current.active?.updatedAt).toBe(NOW);
+  });
+
   it('saveActive writes imported cards into the active draft', () => {
     const storage = memoryStorage();
     const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });

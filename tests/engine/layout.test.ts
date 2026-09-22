@@ -10,6 +10,7 @@ import {
   ensureBoardLayout,
   isHudSlot,
   listPackIds,
+  loopCells,
   orderCellsAlongLoop,
   previewBoardForFloor,
   stairLabel,
@@ -32,9 +33,10 @@ describe('createLoopedFloor', () => {
   it('uses the default square 8 shape, keeps cells off the HUD, and does not default a start tile', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     expect(floor.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
-    expect(floor.columns).toBe(10);
-    expect(floor.rows).toBe(10);
-    expect(floor.cells).toHaveLength(28);
+    expect(floor.columns).toBe(8);
+    expect(floor.rows).toBe(8);
+    expect(floor.cells.filter((c) => c.kind === 'corridor')).toHaveLength(28);
+    expect(floor.cells.filter((c) => c.kind === 'hud')).toHaveLength(16);
     expect(floor.cells[0]).toMatchObject({
       id: 'ground-c0',
       index: 0,
@@ -42,7 +44,7 @@ describe('createLoopedFloor', () => {
       region: 'ring',
     });
     expect(floor.cells.some((c) => c.start)).toBe(false);
-    for (const cell of floor.cells) {
+    for (const cell of floor.cells.filter((c) => c.kind === 'corridor')) {
       expect(isHudSlot(floor, cell.col!, cell.row!)).toBe(false);
     }
     const later = createLoopedFloor('floor-1', 'Floor 1', 1);
@@ -92,15 +94,15 @@ describe('areAdjacent and cellAt', () => {
     expect(areAdjacent({ col: 0, row: 0 }, { col: 1, row: 0 })).toBe(true);
     expect(areAdjacent({ col: 0, row: 0 }, { col: 1, row: 1 })).toBe(false);
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    expect(cellAt(floor, 1, 1)?.id).toBe('ground-c0');
-    expect(cellAt(floor, 3, 0)).toBeUndefined();
+    expect(cellAt(floor, 0, 0)?.id).toBe('ground-c0');
+    expect(cellAt(floor, 1, 1)).toBeUndefined();
   });
 });
 
 describe('orderCellsAlongLoop', () => {
   it('rewrites index around the start cell for the default square 8 loop', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    const ordered = orderCellsAlongLoop(floor.cells);
+    const ordered = orderCellsAlongLoop(loopCells(floor));
     expect(ordered).toHaveLength(28);
     expect(ordered?.[0]?.id).toBe('ground-c0');
     expect(ordered?.every((c, i) => c.index === i)).toBe(true);

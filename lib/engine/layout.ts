@@ -4,9 +4,35 @@ import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { DEFAULT_SHAPE, inferShape, normalizeShape } from '@/lib/engine/shape';
 import type { BoardShape, Cell, Floor, HudRect } from '@/lib/engine/types';
 
+export function hudPositions(hud: HudRect): Array<{ col: number; row: number }> {
+  if (hud.width <= 0 || hud.height <= 0) return [];
+  const positions: Array<{ col: number; row: number }> = [];
+  for (let row = hud.row; row < hud.row + hud.height; row += 1) {
+    for (let col = hud.col; col < hud.col + hud.width; col += 1) {
+      positions.push({ col, row });
+    }
+  }
+  return positions;
+}
+
+export function defaultHudFill(layout: ReturnType<typeof buildShapeLayout>): Array<{ col: number; row: number }> {
+  const fromRect = hudPositions(layout.hud);
+  if (fromRect.length > 0) return fromRect;
+  if (layout.shape.kind !== 'square' && layout.shape.kind !== 'rectangle') return [];
+  const col = Math.floor(layout.columns / 2);
+  const row = Math.floor(layout.rows / 2);
+  const onRing = layout.slots.some((slot) => slot.col === col && slot.row === row);
+  if (onRing || layout.columns > 4) return [];
+  return [{ col, row }];
+}
+
+export function loopCells(floor: Floor): Cell[] {
+  return floor.cells.filter((cell) => cell.kind !== 'hud');
+}
+
 export const DEFAULT_COLUMNS = 8;
 export const DEFAULT_ROWS = 7;
-export const DEFAULT_HUD: HudRect = { col: 2, row: 2, width: 4, height: 2 };
+export const DEFAULT_HUD: HudRect = { col: 2, row: 2, width: 4, height: 4 };
 
 /** Tiles along each edge of the square ring (4*n - 4 corridor cells total). */
 export function squareRingTilesPerSide(cellCount: number): number {
@@ -59,7 +85,7 @@ export function createLoopedFloor(
 ): Floor {
   const shape = normalizeShape(shapeInput);
   const layout = buildShapeLayout(shape);
-  const cells: Cell[] = layout.slots.map((slot, i) => ({
+  const ringCells: Cell[] = layout.slots.map((slot, i) => ({
     id: `${id}-c${i}`,
     index: i,
     kind: 'corridor',
@@ -69,12 +95,19 @@ export function createLoopedFloor(
     spokeIndex: slot.spokeIndex,
     slot: slot.slot,
   }));
+  const hudCells: Cell[] = defaultHudFill(layout).map((pos, i) => ({
+    id: `${id}-h${i}`,
+    index: ringCells.length + i,
+    kind: 'hud' as const,
+    col: pos.col,
+    row: pos.row,
+  }));
   return {
     id,
     index,
     label,
     holdEnabled: false,
-    cells,
+    cells: [...ringCells, ...hudCells],
     columns: layout.columns,
     rows: layout.rows,
     hud: { ...layout.hud },
@@ -127,8 +160,13 @@ export function orderCellsAlongLoop(cells: Cell[]): Cell[] | null {
 }
 
 export function retileFloor(floor: Floor): Floor {
-  const ordered = orderCellsAlongLoop(floor.cells);
-  return ordered ? { ...floor, cells: ordered } : floor;
+  const ordered = orderCellsAlongLoop(loopCells(floor));
+  if (!ordered) return floor;
+  const hudCells = floor.cells.filter((cell) => cell.kind === 'hud');
+  return {
+    ...floor,
+    cells: [...ordered, ...hudCells.map((cell, i) => ({ ...cell, index: ordered.length + i }))],
+  };
 }
 
 export function ensureFloorLayout(floor: Floor): Floor {

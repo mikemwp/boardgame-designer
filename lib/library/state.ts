@@ -48,12 +48,19 @@ export function saveDraft(
   id: string,
   bootstrap: StoredBootstrap,
   now: string,
+  touchUpdatedAt = true,
 ): LibraryState {
   if (!state.drafts.some((d) => d.id === id)) return state;
   return {
     ...state,
     drafts: state.drafts.map((d) =>
-      d.id === id ? { ...d, bootstrap, updatedAt: now } : d,
+      d.id === id
+        ? {
+            ...d,
+            bootstrap,
+            ...(touchUpdatedAt ? { updatedAt: now } : {}),
+          }
+        : d,
     ),
   };
 }

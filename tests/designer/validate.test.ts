@@ -58,14 +58,14 @@ describe('validateLayout', () => {
     const broken = placeCorridor(
       createBoard([createLoopedFloor('ground', 'Ground', 0)], []),
       'ground',
-      0,
-      0,
+      1,
+      1,
       'ground-c99',
     );
     expect(validateLayout(broken).some((i) => i.code === 'non-loop')).toBe(true);
   });
 
-  it('blocks an empty floor and a missing start', () => {
+  it('blocks an empty floor, a missing start, and a missing HUD tile', () => {
     let board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     for (const id of [...board.floors[0]!.cells.map((c) => c.id)]) {
       board = eraseCell(board, 'ground', id);
@@ -73,7 +73,9 @@ describe('validateLayout', () => {
     const issues = validateLayout(board);
     expect(issues.some((i) => i.code === 'empty-floor')).toBe(true);
     expect(issues.some((i) => i.code === 'missing-start')).toBe(true);
+    expect(issues.some((i) => i.code === 'missing-hud')).toBe(true);
     expect(issues.find((i) => i.code === 'missing-start')?.message).toBe('Mark a start tile.');
+    expect(issues.find((i) => i.code === 'missing-hud')?.message).toBe('Place at least one HUD tile.');
   });
 
   it('does not require an end tile for test play', () => {

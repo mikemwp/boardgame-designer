@@ -69,9 +69,9 @@ describe('LayoutDesigner', () => {
         onToolChange={() => {}}
       />,
     );
-    fireEvent.click(screen.getByTestId('slot-0-2'));
+    fireEvent.click(screen.getByTestId('slot-1-1'));
     expect(onBoardChange).toHaveBeenCalled();
     const next = onBoardChange.mock.calls[0][0];
-    expect(next.floors[0].cells.some((c: { col?: number; row?: number }) => c.col === 0 && c.row === 2)).toBe(true);
+    expect(next.floors[0].cells.some((c: { col?: number; row?: number }) => c.col === 1 && c.row === 1)).toBe(true);
   });
 });
