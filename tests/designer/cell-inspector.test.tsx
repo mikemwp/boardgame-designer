@@ -36,6 +36,27 @@ describe('CellInspector', () => {
     expect(onSetEnd).toHaveBeenCalled();
   });
 
+  it('points empty packs at the Packs tab instead of Test import only', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <CellInspector
+        board={board}
+        floorId="ground"
+        cellId="ground-c1"
+        packIds={[]}
+        onSetPack={() => {}}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+      />,
+    );
+    expect(
+      screen.getByText('No packs in this draft. Create a pack in Packs, or import a CSV in Test.'),
+    ).toBeDefined();
+  });
+
   it('labels end as stair or room from the selected cell', () => {
     const board = attachStair(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 'ground-c3');
     const hubBoard = createBoard(

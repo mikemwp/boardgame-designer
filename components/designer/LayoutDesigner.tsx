@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { FloorPreview } from '@/components/board/FloorPreview';
 import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { CellInspector } from '@/components/designer/CellInspector';
 import { DesignerPalette, type DesignerTool } from '@/components/designer/DesignerPalette';
 import { FloorTabs } from '@/components/designer/FloorTabs';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
+import { PackEditor } from '@/components/designer/PackEditor';
 import { ValidationList } from '@/components/designer/ValidationList';
 import {
   addFloor,
@@ -28,36 +30,57 @@ import {
   setEndCell,
   setStartCell,
 } from '@/lib/designer/mutate';
+import {
+  addCard,
+  createPack,
+  deleteCard,
+  deletePack,
+  listDraftPackIds,
+  nextCardId,
+  nextPackId,
+  renamePack,
+  updateCard,
+} from '@/lib/designer/packs';
 import type { LayoutIssue } from '@/lib/designer/validate';
 import type { Board } from '@/lib/engine/board';
 import { cellAt, listPackIds } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { inferShape } from '@/lib/engine/shape';
+import type { Card } from '@/lib/engine/types';
 
 export function LayoutDesigner({
   board,
   cards,
+  packs,
   selectedFloorId,
   selectedCellId,
   tool,
   issues,
   onBoardChange,
+  onDraftChange,
   onSelectFloor,
   onSelectCell,
   onToolChange,
 }: {
   board: Board;
-  cards: Array<{ pack: string }>;
+  cards: Card[];
+  packs?: string[];
   selectedFloorId: string;
   selectedCellId: string | null;
   tool: DesignerTool;
   issues: LayoutIssue[];
   onBoardChange: (board: Board) => void;
+  onDraftChange?: (next: { cards: Card[]; packs: string[]; board: Board }) => void;
   onSelectFloor: (id: string) => void;
   onSelectCell: (id: string | null) => void;
   onToolChange: (tool: DesignerTool) => void;
 }) {
+  const [sideTab, setSideTab] = useState<'actions' | 'packs'>('actions');
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const catalog = listDraftPackIds(cards, packs ?? []);
+  const draftCards = cards;
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
   if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
 
@@ -200,12 +223,37 @@ export function LayoutDesigner({
         <ValidationList issues={issues} />
       </div>
       <aside className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden max-lg:min-h-[36rem]">
+        <div className="flex gap-1" data-testid="designer-side-tabs" role="tablist" aria-label="Designer side pane">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sideTab === 'actions'}
+            className={`rounded-md px-2 py-1 text-sm ${
+              sideTab === 'actions' ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
+            }`}
+            onClick={() => setSideTab('actions')}
+          >
+            Tile Actions
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sideTab === 'packs'}
+            className={`rounded-md px-2 py-1 text-sm ${
+              sideTab === 'packs' ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
+            }`}
+            onClick={() => setSideTab('packs')}
+          >
+            Packs
+          </button>
+        </div>
         <div className="min-h-0 flex-1 basis-0 overflow-y-auto" data-testid="tile-actions-pane">
+          {sideTab === 'actions' ? (
           <CellInspector
             board={board}
             floorId={floor.id}
             cellId={selectedCellId}
-            packIds={listPackIds(cards)}
+            packIds={listPackIds(cards, catalog)}
             onSetPack={(packId) => {
               if (!selectedCellId) return;
               onBoardChange(setCellPack(board, floor.id, selectedCellId, packId));
@@ -232,6 +280,84 @@ export function LayoutDesigner({
               onBoardChange(clearStair(board, floor.id, selectedCellId));
             }}
           />
+          ) : (
+          <PackEditor
+            packs={catalog}
+            cards={draftCards}
+            selectedPackId={selectedPackId}
+            selectedCardId={selectedCardId}
+            onSelectPack={(id) => {
+              setSelectedPackId(id);
+              setSelectedCardId(null);
+            }}
+            onSelectCard={setSelectedCardId}
+            onCreatePack={() => {
+              const id = nextPackId(catalog);
+              const nextPacks = createPack(catalog, id);
+              onDraftChange?.({ cards: draftCards, packs: nextPacks, board });
+              setSelectedPackId(id);
+              setSelectedCardId(null);
+            }}
+            onRenamePack={(nextId) => {
+              if (!selectedPackId) return;
+              const next = renamePack({
+                packIds: catalog,
+                cards: draftCards,
+                board,
+                from: selectedPackId,
+                to: nextId,
+              });
+              onDraftChange?.(next);
+              if (next.board !== board) onBoardChange(next.board);
+              setSelectedPackId(next.packIds.includes(nextId.trim()) ? nextId.trim() : selectedPackId);
+            }}
+            onDeletePack={() => {
+              if (!selectedPackId) return;
+              const next = deletePack({
+                packIds: catalog,
+                cards: draftCards,
+                board,
+                packId: selectedPackId,
+              });
+              onDraftChange?.(next);
+              if (next.board !== board) onBoardChange(next.board);
+              setSelectedPackId(next.packIds[0] ?? null);
+              setSelectedCardId(null);
+            }}
+            onCreateCard={() => {
+              if (!selectedPackId) return;
+              const n = draftCards.filter((card) => card.pack === selectedPackId).length + 1;
+              const card: Card = {
+                id: nextCardId(draftCards, selectedPackId),
+                pack: selectedPackId,
+                title: `Card ${n}`,
+              };
+              onDraftChange?.({
+                cards: addCard(draftCards, card),
+                packs: catalog,
+                board,
+              });
+              setSelectedCardId(card.id);
+            }}
+            onUpdateCard={(patch) => {
+              if (!selectedCardId) return;
+              onDraftChange?.({
+                cards: updateCard(draftCards, selectedCardId, patch),
+                packs: catalog,
+                board,
+              });
+            }}
+            onDeleteCard={() => {
+              if (!selectedCardId) return;
+              onDraftChange?.({
+                cards: deleteCard(draftCards, selectedCardId),
+                packs: catalog,
+                board,
+              });
+              setSelectedCardId(null);
+            }}
+          />
+          )}
         </div>
         <div className="min-h-0 flex-1 basis-0 overflow-hidden" data-testid="preview-pane">
           <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />

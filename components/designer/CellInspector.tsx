@@ -101,7 +101,7 @@ export function CellInspector({
             <>
               {packIds.length === 0 ? (
                 <p className="text-sm text-slate-400">
-                  No packs in this draft. Open Test and import cards, then attach a pack here.
+                  No packs in this draft. Create a pack in Packs, or import a CSV in Test.
                 </p>
               ) : (
                 <>

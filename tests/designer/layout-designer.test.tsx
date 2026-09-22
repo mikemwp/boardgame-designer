@@ -259,4 +259,31 @@ describe('LayoutDesigner', () => {
       ),
     ).toBe(true);
   });
+
+  it('creates a pack from the Packs tab so Tile Actions can assign it', () => {
+    const onDraftChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        packs={[]}
+        selectedFloorId="ground"
+        selectedCellId="ground-c1"
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onDraftChange={onDraftChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
+    expect(onDraftChange).toHaveBeenCalled();
+    const next = onDraftChange.mock.calls[0][0];
+    expect(next.packs).toEqual(['pack-1']);
+    expect(next.cards).toEqual([]);
+  });
 });
