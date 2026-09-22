@@ -1,5 +1,5 @@
 import type { Board } from '@/lib/engine/board';
-import { orderCellsAlongLoop, loopCells, defaultHudFill } from '@/lib/engine/layout';
+import { adjacentCells, orderCellsAlongLoop, loopCells, defaultHudFill } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
 import {
   buildShapeLayout,
@@ -16,7 +16,9 @@ export type LayoutIssueCode =
   | 'dangling-stair'
   | 'pack-on-stair'
   | 'missing-start'
-  | 'missing-hud';
+  | 'missing-hud'
+  | 'room-without-door'
+  | 'door-not-connecting';
 
 export interface LayoutIssue {
   code: LayoutIssueCode;
@@ -172,6 +174,32 @@ export function validateLayout(board: Board): LayoutIssue[] {
           issues.push({
             code: 'pack-on-stair',
             message: `${floor.label}: stair squares cannot hold a pack.`,
+            floorId: floor.id,
+            cellId: cell.id,
+          });
+        }
+      }
+      if (cell.kind === 'room') {
+        const hasDoor = adjacentCells(floor, cell).some((other) => other.kind === 'door');
+        if (!hasDoor) {
+          issues.push({
+            code: 'room-without-door',
+            message: `${floor.label}: room needs a door.`,
+            floorId: floor.id,
+            cellId: cell.id,
+          });
+        }
+      }
+      if (cell.kind === 'door') {
+        const neighbors = adjacentCells(floor, cell);
+        const hasRoom = neighbors.some((other) => other.kind === 'room');
+        const hasPath = neighbors.some(
+          (other) => other.kind === 'corridor' || other.kind === 'stair' || other.kind === 'door',
+        );
+        if (!hasRoom || !hasPath) {
+          issues.push({
+            code: 'door-not-connecting',
+            message: `${floor.label}: door must connect a corridor to a room.`,
             floorId: floor.id,
             cellId: cell.id,
           });
