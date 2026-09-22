@@ -9,6 +9,7 @@ import {
   defaultLoopPositions,
   ensureBoardLayout,
   isHudSlot,
+  landingPackId,
   listPackIds,
   loopCells,
   orderCellsAlongLoop,
@@ -161,6 +162,37 @@ describe('stairLabel and previewBoardForFloor', () => {
     expect(preview.floors).toHaveLength(1);
     expect(preview.floors[0]?.index).toBe(0);
     expect(preview.floors[0]?.id).toBe('f1');
+  });
+});
+
+describe('rooms stay off the corridor loop', () => {
+  it('does not drop a room when retileFloor / ensureBoardLayout runs', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const withRoom = {
+      ...floor,
+      cells: [
+        ...floor.cells,
+        { id: 'ground-room', index: 99, kind: 'room' as const, col: 1, row: 1, packId: 'notes' },
+      ],
+    };
+    const board = ensureBoardLayout(createBoard([withRoom], []));
+    const room = board.floors[0]?.cells.find((c) => c.id === 'ground-room');
+    expect(room).toMatchObject({ kind: 'room', col: 1, row: 1, packId: 'notes' });
+    expect(loopCells(board.floors[0]!).every((c) => c.kind !== 'room')).toBe(true);
+    expect(orderCellsAlongLoop(loopCells(board.floors[0]!))).not.toBeNull();
+  });
+
+  it('landingPackId uses the adjacent room pack on a door', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const corridor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const room = { id: 'ground-room', index: 99, kind: 'room' as const, col: 1, row: 1, packId: 'notes' };
+    const door = { ...corridor, kind: 'door' as const };
+    const next = {
+      ...floor,
+      cells: floor.cells.map((c) => (c.id === corridor.id ? door : c)).concat(room),
+    };
+    expect(landingPackId(next, door)).toBe('notes');
+    expect(landingPackId(next, corridor)).toBeUndefined();
   });
 });
 

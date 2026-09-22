@@ -8,6 +8,7 @@ import {
   sampleMoveValue,
   sampleStairLanding,
   walkSteps,
+  walkableCells,
 } from '@/lib/engine/movement';
 
 const stairBoard = createBoard(
@@ -80,6 +81,24 @@ describe('walkSteps', () => {
     expect(walkSteps(floor, hub0.id, 2)?.id).toBe(spokeEnd.id);
     expect(after?.id).not.toBe(spokeEnd.id);
     expect(after?.region).toBe('hub');
+  });
+
+  it('walks doors on the loop and skips room cells', () => {
+    const floor = {
+      id: 'lobby',
+      index: 0,
+      label: 'Lobby',
+      cells: [
+        { id: 'l0', index: 0, kind: 'corridor' as const },
+        { id: 'l1', index: 1, kind: 'door' as const },
+        { id: 'l2', index: 2, kind: 'corridor' as const },
+        { id: 'room', index: 3, kind: 'room' as const, packId: 'notes' },
+      ],
+    };
+    expect(walkSteps(floor, 'l0', 1)?.id).toBe('l1');
+    expect(walkSteps(floor, 'l0', 2)?.id).toBe('l2');
+    expect(walkSteps(floor, 'l0', 3)?.id).toBe('l0');
+    expect(walkableCells(floor).map((c) => c.id)).toEqual(['l0', 'l1', 'l2']);
   });
 
   it('still wraps a circle by index order', () => {

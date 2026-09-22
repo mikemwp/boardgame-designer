@@ -27,8 +27,24 @@ export function defaultHudFill(layout: ReturnType<typeof buildShapeLayout>): Arr
   return [{ col, row }];
 }
 
+export function isOffPathCell(cell: { kind?: string }): boolean {
+  return cell.kind === 'hud' || cell.kind === 'room';
+}
+
 export function loopCells(floor: Floor): Cell[] {
-  return floor.cells.filter((cell) => cell.kind !== 'hud');
+  return floor.cells.filter((cell) => !isOffPathCell(cell));
+}
+
+export function adjacentCells(floor: Floor, cell: Cell): Cell[] {
+  return floor.cells.filter((other) => other.id !== cell.id && areAdjacent(cell, other));
+}
+
+export function landingPackId(floor: Floor, cell: Cell): string | undefined {
+  if (cell.kind === 'stair') return undefined;
+  if (cell.kind === 'door') {
+    return adjacentCells(floor, cell).find((other) => other.kind === 'room')?.packId;
+  }
+  return cell.packId;
 }
 
 export const DEFAULT_COLUMNS = 8;
@@ -163,10 +179,10 @@ export function orderCellsAlongLoop(cells: Cell[]): Cell[] | null {
 export function retileFloor(floor: Floor): Floor {
   const ordered = orderCellsAlongLoop(loopCells(floor));
   if (!ordered) return floor;
-  const hudCells = floor.cells.filter((cell) => cell.kind === 'hud');
+  const extras = floor.cells.filter((cell) => isOffPathCell(cell));
   return {
     ...floor,
-    cells: [...ordered, ...hudCells.map((cell, i) => ({ ...cell, index: ordered.length + i }))],
+    cells: [...ordered, ...extras.map((cell, i) => ({ ...cell, index: ordered.length + i }))],
   };
 }
 

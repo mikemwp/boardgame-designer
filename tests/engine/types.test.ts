@@ -28,6 +28,14 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(stair.packId).toBeUndefined();
   });
 
+  it('allows card-only room and door cells', () => {
+    const room: Cell = { id: 'r1', index: 8, kind: 'room', packId: 'notes', col: 1, row: 1 };
+    const door: Cell = { id: 'd1', index: 1, kind: 'door', col: 1, row: 0 };
+    expect(room.kind).toBe('room');
+    expect(door.kind).toBe('door');
+    expect(room.packId).toBe('notes');
+  });
+
   it('stores per-floor hold quotas', () => {
     const floor: Floor = {
       id: 'f1',
