@@ -6,6 +6,7 @@ import { FILLMODE_NONE, RESOLUTION_FIXED } from 'playcanvas';
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { PlayCanvasDeviceSetup } from '@/components/board/PlayCanvasDeviceSetup';
 import { PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS } from '@/lib/view/playcanvas-graphics';
+import { paintPlayCanvasViewport } from '@/lib/view/playcanvas-paint';
 import {
   acquirePlayCanvasSlot,
   waitFrames,
@@ -34,17 +35,22 @@ function CanvasResizeSync() {
     if (!container) return;
 
     const resize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (w > 0 && h > 0) {
-        app.resizeCanvas(w, h);
-      }
+      paintPlayCanvasViewport(app, container);
     };
 
     resize();
+    let frameB = 0;
+    const frameA = requestAnimationFrame(() => {
+      resize();
+      frameB = requestAnimationFrame(resize);
+    });
     const observer = new ResizeObserver(resize);
     observer.observe(container);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frameA);
+      cancelAnimationFrame(frameB);
+      observer.disconnect();
+    };
   }, [app]);
 
   return null;
