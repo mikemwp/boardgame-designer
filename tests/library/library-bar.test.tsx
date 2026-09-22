@@ -22,6 +22,8 @@ describe('LibraryBar', () => {
         onTest={onTest}
         onDelete={() => {}}
         canDelete
+        canPublish
+        onPublish={() => {}}
       />,
     );
     expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
@@ -57,6 +59,7 @@ describe('LibraryBar', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Publish' })).toHaveProperty('disabled', true);
     expect(screen.queryByText('No game')).toBeNull();
   });
 
@@ -101,6 +104,50 @@ describe('LibraryBar', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires Publish when enabled', () => {
+    const onPublish = vi.fn();
+    render(
+      <LibraryBar
+        activeName="Climb (sample) (draft)"
+        canSave
+        canTest
+        canDelete
+        canPublish
+        mode="design"
+        onNew={() => {}}
+        onSave={() => {}}
+        onOpen={() => {}}
+        onDesign={() => {}}
+        onTest={() => {}}
+        onDelete={() => {}}
+        onPublish={onPublish}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    expect(onPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Publish when canPublish is false', () => {
+    render(
+      <LibraryBar
+        activeName="Sandbox (draft)"
+        canSave
+        canTest
+        canDelete
+        canPublish={false}
+        mode="design"
+        onNew={() => {}}
+        onSave={() => {}}
+        onOpen={() => {}}
+        onDesign={() => {}}
+        onTest={() => {}}
+        onDelete={() => {}}
+        onPublish={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Publish' })).toHaveProperty('disabled', true);
   });
 
   it('disables Delete for a published game', () => {

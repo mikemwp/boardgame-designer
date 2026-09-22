@@ -19,6 +19,8 @@ export function LibraryBar({
   onTest,
   onDelete,
   canDelete,
+  canPublish = false,
+  onPublish = () => {},
   published = false,
 }: {
   activeName: string;
@@ -32,6 +34,8 @@ export function LibraryBar({
   onTest: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  canPublish?: boolean;
+  onPublish?: () => void;
   published?: boolean;
 }) {
   return (
@@ -89,6 +93,15 @@ export function LibraryBar({
           onClick={onTest}
         >
           Test
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className={hoverClass}
+          disabled={!canPublish}
+          onClick={onPublish}
+        >
+          Publish
         </Button>
       </div>
     </div>
