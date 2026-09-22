@@ -10,7 +10,7 @@ import {
 } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
-import type { BoardShape, Cell, Floor } from '@/lib/engine/types';
+import type { BoardShape, Cell, Floor, HudWidget } from '@/lib/engine/types';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 
@@ -18,13 +18,14 @@ function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
   return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
 }
 
-function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end'> {
+function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end' | 'hudWidget'> {
   return {
     kind: prev.kind,
     packId: prev.kind === 'stair' ? undefined : prev.packId,
     stairId: prev.stairId,
     start: prev.start,
     end: prev.end,
+    hudWidget: prev.hudWidget,
   };
 }
 
@@ -112,7 +113,13 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
         (oldRows > 0 && cell.row === oldRows - 1);
       return !wasPerimeter;
     });
-    const hud = template.cells.filter((cell) => cell.kind === 'hud');
+    const hud = template.cells
+      .filter((cell) => cell.kind === 'hud')
+      .map((cell) => {
+        const prev = oldByPos.get(`${cell.col},${cell.row}`);
+        if (!prev || prev.kind !== 'hud') return cell;
+        return { ...cell, id: prev.id, ...designerProps(prev) };
+      });
     const reserved = new Set([...ring, ...hud].map((cell) => cell.id));
     let extraIndex = 0;
     const remintedExtras = extras.map((cell) => {
@@ -460,6 +467,40 @@ export function linkStair(
         : stair,
     ),
   );
+}
+
+export function setHudWidget(board: Board, floorId: string, cellId: string, widget: HudWidget): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  const cell = floor?.cells.find((c) => c.id === cellId);
+  if (!floor || !cell || cell.kind !== 'hud') return board;
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((c) => {
+      if (c.id !== cellId) return c;
+      if (widget === 'empty') {
+        const { hudWidget: _drop, ...rest } = c;
+        return rest;
+      }
+      return { ...c, hudWidget: widget };
+    }),
+  }));
+}
+
+export function setFloorHold(
+  board: Board,
+  floorId: string,
+  patch: { holdEnabled?: boolean; holdQuotas?: Record<string, number> },
+): Board {
+  return mapFloor(board, floorId, (current) => {
+    const next = { ...current };
+    if ('holdEnabled' in patch) next.holdEnabled = patch.holdEnabled;
+    if (patch.holdQuotas) {
+      next.holdQuotas = Object.fromEntries(
+        Object.entries(patch.holdQuotas).filter(([, quota]) => quota > 0),
+      );
+    }
+    return next;
+  });
 }
 
 export function clearStair(board: Board, floorId: string, cellId: string): Board {

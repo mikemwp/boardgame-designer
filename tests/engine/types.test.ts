@@ -81,4 +81,21 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(floor.shape?.kind).toBe('square');
     expect(floor.cells[0]?.region).toBe('ring');
   });
+
+  it('allows an optional HUD widget on a HUD cell', () => {
+    const cell: Cell = { id: 'h0', index: 20, kind: 'hud', col: 2, row: 2, hudWidget: 'dice' };
+    expect(cell.hudWidget).toBe('dice');
+  });
+
+  it('allows optional card timer and extra button', () => {
+    const card: import('@/lib/engine/types').Card = {
+      id: 'c1',
+      pack: 'notes',
+      title: 'Clue',
+      timerSeconds: 12,
+      extraButton: 'Done',
+    };
+    expect(card.timerSeconds).toBe(12);
+    expect(card.extraButton).toBe('Done');
+  });
 });

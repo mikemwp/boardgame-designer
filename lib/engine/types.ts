@@ -2,6 +2,8 @@ export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
 export type CellKind = 'corridor' | 'stair' | 'hud' | 'room' | 'door';
 
+export type HudWidget = 'empty' | 'dice' | 'spinner' | 'last-roll' | 'player-bar';
+
 export type CellRegion = 'ring' | 'hub' | 'spoke' | 'wheel';
 
 export type ShapeKind =
@@ -69,6 +71,7 @@ export interface Cell {
   slot?: number;
   start?: boolean;
   end?: boolean;
+  hudWidget?: HudWidget;
 }
 
 export interface Stair {
@@ -110,6 +113,8 @@ export interface Card {
   title: string;
   body?: string;
   tags?: string[];
+  timerSeconds?: number;
+  extraButton?: string;
 }
 
 export interface CardPack {

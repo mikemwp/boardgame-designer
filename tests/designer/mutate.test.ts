@@ -21,6 +21,8 @@ import {
   renameFloor,
   setCellPack,
   setEndCell,
+  setFloorHold,
+  setHudWidget,
   setStartCell,
 } from '@/lib/designer/mutate';
 
@@ -286,6 +288,37 @@ describe('applyFloorShape', () => {
         );
       }
     }
+  });
+
+  it('keeps hudWidget when the square is reshaped', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    const marked = setHudWidget(board, 'ground', hud.id, 'player-bar');
+    const resized = applyFloorShape(marked, 'ground', { kind: 'square', tilesPerSide: 10 });
+    const kept = resized.floors[0]!.cells.find((c) => c.col === hud.col && c.row === hud.row && c.kind === 'hud');
+    expect(kept?.hudWidget).toBe('player-bar');
+  });
+});
+
+describe('setHudWidget', () => {
+  it('sets and clears a HUD widget and ignores corridor cells', () => {
+    const floor = createLoopedFloor('ground', 'Level 1', 0);
+    const board = createBoard([floor], []);
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    const corridor = board.floors[0]!.cells.find((c) => c.kind === 'corridor')!;
+    const next = setHudWidget(board, 'ground', hud.id, 'dice');
+    expect(next.floors[0]!.cells.find((c) => c.id === hud.id)?.hudWidget).toBe('dice');
+    expect(setHudWidget(board, 'ground', corridor.id, 'dice')).toEqual(board);
+    expect(setHudWidget(next, 'ground', hud.id, 'empty').floors[0]!.cells.find((c) => c.id === hud.id)?.hudWidget).toBeUndefined();
+  });
+});
+
+describe('setFloorHold', () => {
+  it('toggles hold and drops non-positive quotas', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const next = setFloorHold(board, 'ground', { holdEnabled: true, holdQuotas: { climb: 2, notes: 0 } });
+    expect(next.floors[0]?.holdEnabled).toBe(true);
+    expect(next.floors[0]?.holdQuotas).toEqual({ climb: 2 });
   });
 });
 
