@@ -33,7 +33,7 @@ export function FloorStack({
     <>
       {floors.flatMap((floor) => {
         const polar = isPolarFloor(floor);
-        return floor.cells.map((cell) => {
+        return floor.cells.map((cell, cellIndex) => {
           const pos = cellToWorld(floor.index, cell, floor.hud, floor);
           const stair = cell.kind === 'stair';
           const selected = cell.id === selectedCellId;
@@ -43,7 +43,7 @@ export function FloorStack({
             ? tileSeamEdgesFromPolygon(pos.y, polygon)
             : tileSeamEdges(pos);
           return (
-            <Fragment key={cell.id}>
+            <Fragment key={`${floor.id}:${cellIndex}:${cell.id}`}>
               {polar && polygon.length > 0 ? (
                 <PolygonTile
                   id={cell.id}

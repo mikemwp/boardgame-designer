@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createBoard } from '@/lib/engine/board';
-import { createLoopedFloor, isHudSlot } from '@/lib/engine/layout';
+import { createLoopedFloor, ensureBoardLayout, isHudSlot } from '@/lib/engine/layout';
 import {
   addFloor,
   applyFloorShape,
@@ -11,6 +11,7 @@ import {
   linkStair,
   moveCell,
   moveCellToSlot,
+  nextCellId,
   placeCorridor,
   placeCorridorOnSlot,
   placeHud,
@@ -221,6 +222,38 @@ describe('applyFloorShape', () => {
     const ids = board.floors[1]!.cells.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).not.toContain(undefined);
+  });
+
+  it('never emits duplicate ids such as floor-1-c24 across every square resize', () => {
+    const sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    for (const from of sizes) {
+      for (const to of sizes) {
+        let board = addFloor(
+          createBoard([createLoopedFloor('ground', 'Level 1', 0, { kind: 'square', tilesPerSide: from })], []),
+          'floor-1',
+          'Level 2',
+          { kind: 'square', tilesPerSide: from },
+        );
+        const floor = board.floors[1]!;
+        const ring = floor.cells.find((c) => c.kind !== 'hud' && c.id === 'floor-1-c24') ?? floor.cells.find((c) => c.kind !== 'hud');
+        if (ring) board = eraseCell(board, 'floor-1', ring.id);
+        const afterErase = board.floors[1]!;
+        let placed = false;
+        for (let row = 1; row < (afterErase.rows ?? 0) - 1 && !placed; row += 1) {
+          for (let col = 1; col < (afterErase.columns ?? 0) - 1 && !placed; col += 1) {
+            if (afterErase.cells.some((c) => c.col === col && c.row === row)) continue;
+            board = placeCorridor(board, 'floor-1', col, row, nextCellId(afterErase));
+            placed = true;
+          }
+        }
+        board = applyFloorShape(board, 'floor-1', { kind: 'square', tilesPerSide: to });
+        board = ensureBoardLayout(board);
+        const ids = board.floors[1]!.cells.map((c) => c.id);
+        expect(new Set(ids).size, `dups after ${from}→${to}: ${ids.filter((id, i) => ids.indexOf(id) !== i).join(',')}`).toBe(
+          ids.length,
+        );
+      }
+    }
   });
 });
 

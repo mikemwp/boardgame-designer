@@ -24,7 +24,7 @@ export function FloorTabs({
   const selectedLabel = selected?.label ?? 'level';
 
   return (
-    <div className="flex flex-wrap items-end gap-2">
+    <div className="flex shrink-0 flex-nowrap items-end gap-2">
       {floors.map((floor) => (
         <Button
           key={floor.id}
@@ -56,7 +56,7 @@ export function FloorTabs({
             key={selected.id}
             aria-label="Level name"
             defaultValue={selected.label}
-            className="h-8 w-40"
+            className="h-8 w-28"
             onBlur={(e) => onRename(e.target.value)}
           />
         </div>

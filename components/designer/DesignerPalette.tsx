@@ -22,7 +22,7 @@ export function DesignerPalette({
   className?: string;
 }) {
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`.trim()} data-testid="designer-palette">
+    <div className={`flex flex-nowrap gap-2 ${className}`.trim()} data-testid="designer-palette">
       {TOOLS.map((item) => (
         <Button
           key={item.id}

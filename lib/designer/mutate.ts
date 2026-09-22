@@ -1,4 +1,5 @@
 import { createBoard, type Board } from '@/lib/engine/board';
+import { uniquifyCellIds } from '@/lib/engine/cell-ids';
 import {
   cellAt,
   createLoopedFloor,
@@ -9,6 +10,8 @@ import {
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import type { BoardShape, Cell, Floor } from '@/lib/engine/types';
+
+export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 
 function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
   return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
@@ -46,25 +49,6 @@ export function nextCellId(floor: Floor): string {
   let i = 0;
   while (floor.cells.some((cell) => cell.id === `${floor.id}-c${i}`)) i += 1;
   return `${floor.id}-c${i}`;
-}
-
-export function uniquifyCellIds(floorId: string, cells: Cell[]): Cell[] {
-  const used = new Set<string>();
-  let i = 0;
-  const nextUnused = () => {
-    while (used.has(`${floorId}-c${i}`)) i += 1;
-    const id = `${floorId}-c${i}`;
-    used.add(id);
-    i += 1;
-    return id;
-  };
-  return cells.map((cell) => {
-    if (!used.has(cell.id)) {
-      used.add(cell.id);
-      return cell;
-    }
-    return { ...cell, id: nextUnused() };
-  });
 }
 
 export function nextLevelLabel(floors: Floor[]): string {
@@ -128,7 +112,20 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
       return !wasPerimeter;
     });
     const hud = template.cells.filter((cell) => cell.kind === 'hud');
-    mapped = uniquifyCellIds(floorId, [...ring, ...extras, ...hud]);
+    const reserved = new Set([...ring, ...hud].map((cell) => cell.id));
+    let extraIndex = 0;
+    const remintedExtras = extras.map((cell) => {
+      if (!reserved.has(cell.id)) {
+        reserved.add(cell.id);
+        return cell;
+      }
+      while (reserved.has(`${floorId}-c${extraIndex}`)) extraIndex += 1;
+      const id = `${floorId}-c${extraIndex}`;
+      reserved.add(id);
+      extraIndex += 1;
+      return { ...cell, id };
+    });
+    mapped = uniquifyCellIds(floorId, [...ring, ...remintedExtras, ...hud]);
   }
 
   const keepStairIds = new Set(mapped.map((c) => c.stairId).filter(Boolean) as string[]);

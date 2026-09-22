@@ -52,6 +52,36 @@ describe('LayoutDesigner', () => {
     expect(toolbar.contains(screen.getByLabelText('Board shape'))).toBe(true);
     expect(toolbar.contains(screen.getByLabelText('Level name'))).toBe(true);
     expect(screen.getByTestId('designer-palette').className).toMatch(/ml-auto/);
+    expect(toolbar.className).toMatch(/flex-nowrap/);
+    expect(toolbar.className).not.toMatch(/grid-cols-1/);
+    expect(screen.getByTestId('designer-palette').className).toMatch(/flex-nowrap/);
+    expect(screen.getByTestId('board-shape-fields').className).toMatch(/flex-nowrap/);
+  });
+
+  it('splits the canvas 3/5 and fills leftover height with the preview', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
+    const { container } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[{ pack: 'climb' }]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    const split = container.firstElementChild as HTMLElement;
+    expect(split.className).toMatch(/3fr_2fr/);
+    expect(split.className).not.toMatch(/minmax\(20rem/);
+    const preview = screen.getByTestId('preview-pane');
+    expect(preview.className).toMatch(/flex-1/);
+    expect(preview.className).toMatch(/min-h-0/);
+    expect(preview.className).not.toMatch(/h-48/);
+    expect(screen.getByTestId('tile-actions-pane').className).toMatch(/shrink-0/);
   });
 
   it('adds Level 2+ and keeps Level 1 after deleting later levels', () => {

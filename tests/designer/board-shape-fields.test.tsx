@@ -41,8 +41,8 @@ describe('BoardShapeFields', () => {
       />,
     );
     const row = screen.getByTestId('board-shape-fields');
-    expect(row.className).toMatch(/flex-row/);
-    expect(row.className).toMatch(/flex-wrap/);
+    expect(row.className).toMatch(/flex-nowrap/);
+    expect(row.className.split(/\s+/).includes('flex-wrap')).toBe(false);
     expect(row.contains(screen.getByLabelText('Board shape'))).toBe(true);
     for (const label of ['Hub tiles', 'Spokes', 'Spoke tiles', 'Wheel tiles']) {
       expect(row.textContent).toContain(label);

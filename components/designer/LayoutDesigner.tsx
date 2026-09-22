@@ -147,10 +147,10 @@ export function LayoutDesigner({
   };
 
   return (
-    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]">
+    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[3fr_2fr]">
       <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
         <div
-          className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+          className="flex min-w-0 flex-nowrap items-end gap-2 overflow-x-auto"
           data-testid="designer-toolbar"
         >
           <FloorTabs
@@ -181,7 +181,7 @@ export function LayoutDesigner({
             shape={normalizeShape(floor.shape)}
             onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
           />
-          <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto justify-end" />
+          <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto shrink-0 justify-end" />
         </div>
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <LayoutGrid
@@ -200,7 +200,7 @@ export function LayoutDesigner({
         <ValidationList issues={issues} />
       </div>
       <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-        <div className="h-64 shrink-0 overflow-y-auto" data-testid="tile-actions-pane">
+        <div className="h-64 max-h-[40%] shrink-0 overflow-y-auto" data-testid="tile-actions-pane">
           <CellInspector
             board={board}
             floorId={floor.id}
@@ -233,7 +233,7 @@ export function LayoutDesigner({
             }}
           />
         </div>
-        <div className="h-48 shrink-0 overflow-hidden" data-testid="preview-pane">
+        <div className="min-h-0 flex-1 overflow-hidden" data-testid="preview-pane">
           <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
         </div>
       </aside>

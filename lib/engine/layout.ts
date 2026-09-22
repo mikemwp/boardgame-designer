@@ -1,4 +1,5 @@
 import { createBoard, type Board } from '@/lib/engine/board';
+import { uniquifyCellIds } from '@/lib/engine/cell-ids';
 import type { PlayerState } from '@/lib/engine/players';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { DEFAULT_SHAPE, inferShape, normalizeShape } from '@/lib/engine/shape';
@@ -189,7 +190,7 @@ export function ensureFloorLayout(floor: Floor): Floor {
     columns: floor.columns ?? layout.columns,
     rows: floor.rows ?? layout.rows,
     hud: floor.hud ?? { ...layout.hud },
-    cells,
+    cells: uniquifyCellIds(floor.id, cells),
   });
 }
 

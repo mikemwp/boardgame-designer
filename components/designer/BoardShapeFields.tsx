@@ -31,7 +31,7 @@ export function BoardShapeFields({
 
   return (
     <div
-      className="flex flex-row flex-wrap items-end justify-center gap-x-3 gap-y-2"
+      className="flex shrink-0 flex-nowrap items-end justify-center gap-x-3"
       data-testid="board-shape-fields"
     >
       <div className="flex min-w-[8rem] flex-col gap-1">
