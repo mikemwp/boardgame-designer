@@ -741,7 +741,7 @@ git commit -m "feat: lock Test Roll until card timer or extra button"
   - `StudioShell` Test bootstrap config sets `movementViz: preferredMovementViz(workingBoard, snapshot?.config.movementViz ?? active.bootstrap.config.movementViz)`
   - README: Tile Actions can set HUD type; Level hold + quotas; Packs timer / extra button; Test Roll lock; publish / polar / first-person / inner maps still out
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `tests/hud/game-hud.test.tsx`:
 
@@ -820,21 +820,21 @@ Climb’s HUD rectangle may not include `slot-2-2`. For the Save test, New empty
 
 If clicking the word `HUD` is flaky (multiple), select via `screen.getByTestId('slot-2-2')` on the empty-board test only, and for Climb find a HUD cell test id from the rendered grid (`slot-2-2` on Climb square-3 is HUD).
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/hud/game-hud.test.tsx tests/library/studio-shell.test.tsx`
 Expected: FAIL — widgets always shown; Save does not yet cover these fields in UI (fields exist after Task 4, this test fails if wiring/persist is incomplete).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Gate PlayerBar / LastRoll in `GameHud`. Apply `preferredMovementViz` in `StudioShell` Test bootstrap. Update README: HUD types, Level hold, timer/extra, persist on Save; publish / polar / first-person / inner maps still out.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/hud/game-hud.test.tsx tests/library/studio-shell.test.tsx && npx vitest run`
 Expected: PASS (full suite green)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/hud/GameHud.tsx components/hud/PlayerBar.tsx components/library/StudioShell.tsx README.md tests/hud/game-hud.test.tsx tests/library/studio-shell.test.tsx docs/superpowers/plans/2026-09-22-slice-9-hud-player-ui.md

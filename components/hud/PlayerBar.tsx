@@ -11,7 +11,7 @@ export function PlayerBar({
   activePlayerId: string | null;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" data-testid="player-bar">
       {players.map((player) => (
         <Badge
           key={player.id}

@@ -152,5 +152,21 @@ describe('GameHud', () => {
     expect(screen.getByText('Extra')).toBeDefined();
     expect(roll).toHaveProperty('disabled', false);
   });
+
+  it('hides Last roll and Player bar when other HUD widgets are designed', () => {
+    const board = {
+      ...climbSample.board,
+      floors: climbSample.board.floors.map((floor) => ({
+        ...floor,
+        cells: floor.cells.map((cell) =>
+          cell.kind === 'hud' ? { ...cell, hudWidget: 'dice' as const } : cell,
+        ),
+      })),
+    };
+    render(<GameHud bootstrap={{ ...climbSample, board }} />);
+    expect(screen.queryByText('No roll yet')).toBeNull();
+    expect(screen.queryByText(/Climber/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
+  });
 });
 

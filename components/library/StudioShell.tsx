@@ -9,6 +9,7 @@ import { LibraryBar, type StudioMode } from '@/components/library/LibraryBar';
 import { NewGameDialog } from '@/components/library/NewGameDialog';
 import { OpenGameDialog } from '@/components/library/OpenGameDialog';
 import { UnsavedChangesDialog } from '@/components/library/UnsavedChangesDialog';
+import { preferredMovementViz } from '@/lib/designer/hud';
 import { listDraftPackIds } from '@/lib/designer/packs';
 import { validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
@@ -296,7 +297,13 @@ export function StudioShell(options: UseLibraryOptions = {}) {
               board: workingBoard,
               players: applyStartToPlayers(workingPlayers, workingBoard),
               cards: workingCards,
-              config: snapshot?.config ?? active.bootstrap.config,
+              config: {
+                ...(snapshot?.config ?? active.bootstrap.config),
+                movementViz: preferredMovementViz(
+                  workingBoard,
+                  snapshot?.config.movementViz ?? active.bootstrap.config.movementViz,
+                ),
+              },
             })}
             onStateChange={setSnapshot}
           />

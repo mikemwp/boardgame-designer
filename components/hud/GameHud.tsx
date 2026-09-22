@@ -12,6 +12,7 @@ import { LastRoll } from '@/components/hud/LastRoll';
 import { MovementStage } from '@/components/hud/MovementStage';
 import { PlayerBar } from '@/components/hud/PlayerBar';
 import { useGameStore } from '@/hooks/use-game-store';
+import { listHudWidgets } from '@/lib/designer/hud';
 import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import {
   isMovementVizActive,
@@ -106,6 +107,10 @@ export function GameHud({
   }, []);
 
   const spinner = game.config.movementViz === 'spinner';
+  const widgets = listHudWidgets(game.board);
+  const designedHud = widgets.some((widget) => widget !== 'empty');
+  const showPlayerBar = !designedHud || widgets.includes('player-bar');
+  const showLastRoll = !designedHud || widgets.includes('last-roll');
 
   return (
     <div
@@ -119,10 +124,12 @@ export function GameHud({
           onTokenSlideStart={onTokenSlideStart}
           onTokenSlideComplete={onTokenSlideComplete}
         />
-        <PlayerBar
-          players={game.players.players}
-          activePlayerId={game.players.activePlayerId}
-        />
+        {showPlayerBar ? (
+          <PlayerBar
+            players={game.players.players}
+            activePlayerId={game.players.activePlayerId}
+          />
+        ) : null}
         <MovementStage
           viz={game.config.movementViz}
           lastRoll={game.lastRoll}
@@ -130,7 +137,9 @@ export function GameHud({
           phase={phase}
           onTumbleComplete={onTumbleComplete}
         />
-        <LastRoll lastRoll={game.lastRoll} movementViz={game.config.movementViz} />
+        {showLastRoll ? (
+          <LastRoll lastRoll={game.lastRoll} movementViz={game.config.movementViz} />
+        ) : null}
         <HoldStatus hold={game.hold} floorLabel={holdFloor?.label ?? 'this floor'} />
         <PassStatus
           passesEnabled={game.config.passesEnabled}

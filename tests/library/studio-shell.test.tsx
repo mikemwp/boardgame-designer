@@ -294,4 +294,47 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: "Don't save" }));
     expect(screen.getByText('New Game')).toBeDefined();
   });
+
+  it('Save persists HUD widget, level hold quotas, and card timer fields', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-22T20:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('button', { name: 'HUD' }));
+    fireEvent.click(screen.getByTestId('slot-2-2'));
+    fireEvent.change(screen.getByLabelText('HUD type'), { target: { value: 'spinner' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New card' }));
+    fireEvent.change(screen.getByLabelText('Timer seconds'), { target: { value: '9' } });
+    fireEvent.change(screen.getByLabelText('Extra button'), { target: { value: 'Done' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Tile Actions' }));
+    fireEvent.click(screen.getByLabelText('Level hold'));
+    fireEvent.change(screen.getByLabelText('Quota for pack-1'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const draft = getActive(loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' }));
+    const floor = draft?.bootstrap.board.floors[0];
+    expect(floor?.cells.find((c) => c.col === 2 && c.row === 2)).toMatchObject({
+      kind: 'hud',
+      hudWidget: 'spinner',
+    });
+    expect(floor?.holdEnabled).toBe(true);
+    expect(floor?.holdQuotas).toEqual({ 'pack-1': 2 });
+    expect(draft?.bootstrap.cards[0]).toMatchObject({
+      timerSeconds: 9,
+      extraButton: 'Done',
+    });
+  });
+
+  it('Test uses spinner when a spinner HUD widget is designed', async () => {
+    renderStudio();
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    fireEvent.change(screen.getByLabelText('HUD type'), { target: { value: 'spinner' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    await flushTestViewport();
+    expect(screen.getByRole('button', { name: 'Spin' })).toBeDefined();
+  });
 });

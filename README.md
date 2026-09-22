@@ -24,11 +24,11 @@ The studio opens in **Design**. The product title and library bar share one top 
 1. **Board shape** sits in the center of the level/tool row. **Square** uses a **Tiles** picker (3×3…12×12, default 8×8). **Rectangle** has separate length and width selectors (default 8×6, sides cannot be equal). Polar shapes stay hidden. New empty drafts are square 8×8 (28 perimeter cells, first tab **Level 1**). Climb stays square 3. Changing size rebuilds the perimeter loop with unique cell ids (no leftover `floor-1-c24` collisions).
 2. Level tabs (**Add level** / **Delete level**) plus the selected **Level name** sit on the toolbar. New levels are **Level 2**, **Level 3**, … Delete removes only the selected level and is disabled when one remains. Adding a level copies the selected level’s shape.
 3. Palette: **Select**, **Tile**, **Room**, **Door**, **HUD**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile leaves a free square you can place on again. **Room** goes on an inner/free square (not on the corridor loop). **Door** converts a corridor tile that touches a room so the room is enterable. Stair converts a corridor cell and must link a destination level + landing square before **Test**.
-4. Right pane tabs: **Tile Actions** (pack, start, end, stairs) and **Packs** (create / rename / delete packs and cards). Preview stays below. Level name is not in that pane.
-5. **Packs** can exist with zero cards — no CSV required. Tile Actions can attach that pack to a corridor tile or a **room**. Landing on the room’s **door** deals that room pack; the token stays on the door. **New card** edits title and body only. Mark **End room** on a room with the existing End control.
-6. **Save** writes the working layout, pack catalog, and card deck even if stairs or loops are invalid. **Test** is blocked with a named list until the layout is valid, then remounts the play HUD. Live publish is not included.
+4. Right pane tabs: **Tile Actions** (HUD type, Level hold + pack quotas, pack, start, end, stairs) and **Packs** (create / rename / delete packs and cards). Preview stays below. Level name is not in that pane. Select a HUD cell to set its type: empty slot, dice, spinner, last roll, or player bar.
+5. **Packs** can exist with zero cards — no CSV required. Tile Actions can attach that pack to a corridor tile or a **room**. Landing on the room’s **door** deals that room pack; the token stays on the door. **New card** edits title, body, **Timer seconds**, and **Extra button**. Mark **End room** on a room with the existing End control. **Level hold** on the selected floor turns on per-pack reveal quotas before that floor’s stairs open.
+6. **Save** writes the working layout (including HUD widget types and Level hold quotas), pack catalog, and card deck (including timer and extra-button fields) even if stairs or loops are invalid. **Test** is blocked with a named list until the layout is valid, then remounts the play HUD. Live publish is not included.
 
-A room without a door, or a door that does not touch both a corridor and a room, blocks **Test**. Inner maps, first-person, publish live, HUD tile types, timer cards, polar shape UI, and card templates are not in this slice.
+A room without a door, or a door that does not touch both a corridor and a room, blocks **Test**. Inner maps, first-person, publish live, polar shape UI, and card templates are not in this slice.
 
 ## Game library
 
@@ -36,7 +36,7 @@ Drafts live in this browser (`localStorage` key `building-board.library.v1`). Th
 
 1. First visit seeds **Climb (sample)** and shows **Climb (sample) (draft)** in the centered title. An empty library shows no “No game” placeholder.
 2. **New** asks for a name (empty and focused) and starts from **Empty board** (default), any saved game (`(draft)` / `(Published)`), or **Climb sample** last. Unsaved changes prompt before New or Open.
-3. **Save** writes the active draft (board, starting players, pack catalog, card deck including Design edits and CSV imports, feature-toggle config). Save, Test, and Delete are disabled when no game is loaded. Save matches the other outline buttons.
+3. **Save** writes the active draft (board including HUD types and Level hold quotas, starting players, pack catalog, card deck including Design timer/extra fields and CSV imports, feature-toggle config). Save, Test, and Delete are disabled when no game is loaded. Save matches the other outline buttons.
 4. **Open** lists draft and published games. Choosing one remounts play from that game’s saved definition (token back at start, no card up).
 5. **Delete** removes the active draft after confirm. Published games cannot be deleted. After delete, another game is selected, or the studio stays empty.
 6. Version A (stored now): first publish is **v1**; the first edit after publish becomes **(draft) v1.1**; each later Save or Test while unpublished bumps the minor; the next publish keeps that number. Documents record last saved, version, published date, and status.
@@ -71,15 +71,17 @@ Upload a CSV with a header row. Required columns:
 | `body` | no | Card body text |
 | `tags` | no | Pipe-separated tags |
 
+In Design, **Packs → New card** also sets **Timer seconds** and **Extra button**. Those persist on **Save**. A timer or extra button locks **Test** Roll until the timer elapses or the extra button is pressed. Pass dismisses the card and does not start the hold.
+
 A sample file ships at `public/samples/climb-cards.csv`.
 
 ## Play the Climb sample
 
-1. `npm run dev` and open http://127.0.0.1:4318 — the title row shows **Climb (sample) (draft)** in **Design**. Click **Test**, then **Roll dice**. HUD dice tumble to the engine integer, **then** the token slides, **then** the dice disappear and a card deals only if you **stop** on a packed corridor cell. Toggle **HUD spinner** to spin a uniform 1–6 (or **Spinner 1–12**) instead of 1d6 / 2d6.
-2. **Play** counts as a pack reveal. **Pass** dismisses the card and does not.
-3. Floor 1 hold (toggle **Per-floor hold**): you cannot land on that floor’s up stair until one climb card is revealed on that hold. If every face would hit that stair, last roll is **0 — stairs held**.
-4. **New → Empty board** still shows **Roll dice** / HUD spinner on a 28-cell square 8×8 **Level 1** loop with no climb cards.
-5. **Design** on Climb: Lobby / Floor 1 / Floor 2 tabs, top-down 3D preview of the selected level, pack `climb` on content squares, up stairs already linked. **New → Empty board** is a Level 1 loop you can edit, Save, then Test.
+1. `npm run dev` and open http://127.0.0.1:4318 — the title row shows **Climb (sample) (draft)** in **Design**. Click **Test**, then **Roll dice**. HUD dice tumble to the engine integer, **then** the token slides, **then** the dice disappear and a card deals only if you **stop** on a packed corridor cell. Toggle **HUD spinner** to spin a uniform 1–6 (or **Spinner 1–12**) instead of 1d6 / 2d6. A designed **spinner** HUD type starts Test in spin mode; a designed **dice** HUD type starts Test in dice mode.
+2. **Play** counts as a pack reveal. **Pass** dismisses the card and does not. If the dealt card has a timer or extra button, Roll stays locked until the timer hits zero or that button is pressed.
+3. Floor 1 hold (toggle **Per-floor hold**, or **Level hold** in Design): you cannot land on that floor’s up stair until one climb card is revealed on that hold. If every face would hit that stair, last roll is **0 — stairs held**.
+4. **New → Empty board** still shows **Roll dice** / HUD spinner on a 28-cell square 8×8 **Level 1** loop with no climb cards. Empty HUD slots keep the default player bar and last-roll strip; designing other HUD types hides those unless you place **player-bar** or **last-roll**.
+5. **Design** on Climb: Lobby / Floor 1 / Floor 2 tabs, top-down 3D preview of the selected level, pack `climb` on content squares, up stairs already linked. **New → Empty board** is a Level 1 loop you can edit, Save, then Test. Publish live, polar shapes, first-person, and inner maps are still out.
 
 ## Feature flags
 
