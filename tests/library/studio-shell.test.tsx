@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { StudioShell } from '@/components/library/StudioShell';
+import { getActive } from '@/lib/library/state';
 import { loadLibrary, memoryStorage } from '@/lib/library/storage';
 
 vi.mock('@/components/board/BoardScene', () => ({
@@ -52,7 +53,7 @@ describe('StudioShell', () => {
   it('blocks Test on a dangling stair and still allows Save', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-21T13:00:00.000Z');
-    fireEvent.click(screen.getByRole('button', { name: 'Corridor square' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Stair' }));
     fireEvent.click(screen.getByTestId('slot-2-1'));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
@@ -62,7 +63,7 @@ describe('StudioShell', () => {
     expect(screen.getByTestId('library-saved-at').textContent).toContain('2026-09-21T13:00:00.000Z');
   });
 
-  it('New empty stays in Design, then Test plays a board with no climb passes', async () => {
+  it('New empty stays in Design and blocks Test until a start tile is marked', async () => {
     renderStudio(memoryStorage(), 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
     fireEvent.click(screen.getByRole('button', { name: 'New' }));
     fireEvent.click(screen.getByLabelText('Empty board'));
@@ -70,6 +71,11 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     expect(screen.getByText('Sandbox')).toBeDefined();
     expect(screen.getByTestId('floor-preview')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
+    expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     await flushTestViewport();
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
@@ -102,13 +108,23 @@ describe('StudioShell', () => {
   it('Save persists board shape on the library draft', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-22T15:00:00.000Z');
-    fireEvent.change(screen.getByLabelText('Board shape'), { target: { value: 'circle' } });
+    fireEvent.change(screen.getByLabelText('Board shape'), { target: { value: 'rectangle' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
-    expect(reloaded.drafts[0]?.bootstrap.board.floors[0]?.shape).toEqual({
-      kind: 'circle',
-      tiles: 12,
-    });
+    expect(reloaded.drafts[0]?.bootstrap.board.floors[0]?.shape?.kind).toBe('rectangle');
+  });
+
+  it('reloads the last active game from storage instead of the Climb sample', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    expect(screen.getByText('Sandbox')).toBeDefined();
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(reloaded.activeId).toBe('empty-1');
+    expect(getActive(reloaded)?.name).toBe('Sandbox');
   });
 
   it('Save persists a pack attached in Design into storage', () => {

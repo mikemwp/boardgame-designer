@@ -4,13 +4,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { normalizeShape, type BoardShape, type ShapeKind } from '@/lib/engine/shape';
 
-const SHAPE_OPTIONS: Array<{ value: ShapeKind; label: string }> = [
+const ALL_SHAPE_OPTIONS: Array<{ value: ShapeKind; label: string }> = [
   { value: 'square', label: 'Square' },
   { value: 'rectangle', label: 'Rectangle' },
   { value: 'circle', label: 'Circle' },
   { value: 'hub-spoke', label: 'Hub/spoke' },
   { value: 'hub-spoke-wheel', label: 'Hub/spoke/wheel' },
 ];
+
+const VISIBLE_SHAPE_OPTIONS = ALL_SHAPE_OPTIONS.filter(
+  (opt) => opt.value === 'square' || opt.value === 'rectangle',
+);
 
 export function BoardShapeFields({
   shape,
@@ -40,7 +44,7 @@ export function BoardShapeFields({
           value={normalized.kind}
           onChange={(e) => onChange(normalizeShape({ kind: e.target.value as ShapeKind }))}
         >
-          {SHAPE_OPTIONS.map((opt) => (
+          {VISIBLE_SHAPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>

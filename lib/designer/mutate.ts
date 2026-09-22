@@ -53,20 +53,17 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
       packId: prev.kind === 'stair' ? undefined : prev.packId,
       stairId: prev.stairId,
       start: prev.start,
+      end: prev.end,
     };
   });
   const keepStairIds = new Set(mapped.map((c) => c.stairId).filter(Boolean) as string[]);
   const stairs = board.stairs.filter(
     (s) => s.fromFloorId !== floorId || keepStairIds.has(s.id),
   );
-  const hasStart = mapped.some((c) => c.start);
-  const cells = hasStart
-    ? mapped
-    : mapped.map((c, i) => (i === 0 ? { ...c, start: true } : { ...c, start: false }));
   return createBoard(
     board.floors.map((f) =>
       f.id === floorId
-        ? { ...template, cells, holdEnabled: floor.holdEnabled, holdQuotas: floor.holdQuotas }
+        ? { ...template, cells: mapped, holdEnabled: floor.holdEnabled, holdQuotas: floor.holdQuotas }
         : f,
     ),
     stairs,
@@ -184,12 +181,7 @@ export function eraseCell(board: Board, floorId: string, cellId: string): Board 
     board.floors.map((current) => {
       if (current.id !== floorId) return current;
       const cells = current.cells.filter((c) => c.id !== cellId);
-      const hasStart = cells.some((c) => c.start);
-      const withStart =
-        hasStart || cells.length === 0
-          ? cells
-          : cells.map((c, i) => (i === 0 ? { ...c, start: true } : { ...c, start: false }));
-      return retileFloor({ ...current, cells: withStart });
+      return retileFloor({ ...current, cells });
     }),
     stairs,
   );
@@ -223,6 +215,25 @@ export function setStartCell(board: Board, floorId: string, cellId: string): Boa
       cells: floor.cells.map((cell) => ({
         ...cell,
         start: floor.id === floorId && cell.id === cellId,
+        end: floor.id === floorId && cell.id === cellId ? false : cell.end,
+      })),
+    })),
+    board.stairs,
+  );
+}
+
+export function setEndCell(board: Board, floorId: string, cellId: string): Board {
+  const exists = board.floors.some(
+    (floor) => floor.id === floorId && floor.cells.some((cell) => cell.id === cellId),
+  );
+  if (!exists) return board;
+  return createBoard(
+    board.floors.map((floor) => ({
+      ...floor,
+      cells: floor.cells.map((cell) => ({
+        ...cell,
+        end: floor.id === floorId && cell.id === cellId,
+        start: floor.id === floorId && cell.id === cellId ? false : cell.start,
       })),
     })),
     board.stairs,

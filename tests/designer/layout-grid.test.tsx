@@ -5,6 +5,16 @@ import { createLoopedFloor } from '@/lib/engine/layout';
 import { DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
 
 describe('LayoutGrid', () => {
+  it('renders cartesian slots as square tiles', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    render(
+      <LayoutGrid floor={floor} onSlotActivate={() => {}} onMoveCell={() => {}} />,
+    );
+    const slot = screen.getByTestId('slot-1-1');
+    expect(slot.className).toMatch(/aspect-square/);
+    expect(slot.textContent).toBe('');
+  });
+
   it('activates empty slots, ignores HUD, and moves with pointer down/up', () => {
     const onSlotActivate = vi.fn();
     const onMoveCell = vi.fn();

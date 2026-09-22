@@ -29,7 +29,7 @@ describe('defaultLoopPositions', () => {
 });
 
 describe('createLoopedFloor', () => {
-  it('uses the default square 8 shape, keeps cells off the HUD, and marks start on floor 0', () => {
+  it('uses the default square 8 shape, keeps cells off the HUD, and does not default a start tile', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     expect(floor.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
     expect(floor.columns).toBe(10);
@@ -40,8 +40,8 @@ describe('createLoopedFloor', () => {
       index: 0,
       kind: 'corridor',
       region: 'ring',
-      start: true,
     });
+    expect(floor.cells.some((c) => c.start)).toBe(false);
     for (const cell of floor.cells) {
       expect(isHudSlot(floor, cell.col!, cell.row!)).toBe(false);
     }
@@ -71,7 +71,6 @@ describe('ensureBoardLayout', () => {
       id: 'a',
       col: square3Positions[0]!.col,
       row: square3Positions[0]!.row,
-      start: true,
     });
     expect(ensured.floors[0]?.cells[5]).toMatchObject({ col: 7, row: 5 });
     expect(board.floors[0]?.cells[0]?.col).toBeUndefined();

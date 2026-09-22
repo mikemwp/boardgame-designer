@@ -23,6 +23,7 @@ import {
   placeCorridorOnSlot,
   renameFloor,
   setCellPack,
+  setEndCell,
   setStartCell,
 } from '@/lib/designer/mutate';
 import type { LayoutIssue } from '@/lib/designer/validate';
@@ -195,6 +196,10 @@ export function LayoutDesigner({
           onSetStart={() => {
             if (!selectedCellId) return;
             onBoardChange(setStartCell(board, floor.id, selectedCellId));
+          }}
+          onSetEnd={() => {
+            if (!selectedCellId) return;
+            onBoardChange(setEndCell(board, floor.id, selectedCellId));
           }}
           onAttachStair={() => {
             if (!selectedCellId) return;

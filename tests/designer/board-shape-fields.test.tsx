@@ -4,6 +4,15 @@ import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { normalizeShape } from '@/lib/engine/shape';
 
 describe('BoardShapeFields', () => {
+  it('shows only square and rectangle in the board shape dropdown', () => {
+    render(
+      <BoardShapeFields shape={normalizeShape({ kind: 'square', tilesPerSide: 8 })} onChange={() => {}} />,
+    );
+    const select = screen.getByLabelText('Board shape') as HTMLSelectElement;
+    const labels = Array.from(select.options).map((opt) => opt.textContent);
+    expect(labels).toEqual(['Square', 'Rectangle']);
+  });
+
   it('keeps board shape and tile fields on one horizontal row', () => {
     const { container } = render(
       <BoardShapeFields

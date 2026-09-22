@@ -82,8 +82,16 @@ export function LayoutGrid({
                 data-testid={`slot-${slot.id}`}
                 d={polarPathD(slot.polygon)}
                 fill={fill}
-                stroke={selected ? 'rgb(56 189 248)' : cell?.start ? 'rgb(52 211 153)' : 'rgb(30 41 59)'}
-                strokeWidth={selected ? 0.08 : cell?.start ? 0.06 : 0.04}
+                stroke={
+                  selected
+                    ? 'rgb(56 189 248)'
+                    : cell?.start
+                      ? 'rgb(52 211 153)'
+                      : cell?.end
+                        ? 'rgb(244 63 94)'
+                        : 'rgb(30 41 59)'
+                }
+                strokeWidth={selected ? 0.08 : cell?.start || cell?.end ? 0.06 : 0.04}
                 aria-label={cell ? cell.id : `Empty ${slot.id}`}
                 onPointerDown={() => {
                   if (cell) dragId.current = cell.id;
@@ -125,13 +133,14 @@ export function LayoutGrid({
         const hud = isHudSlot(floor, col, row);
         const cell = cellAt(floor, col, row);
         const selected = cell?.id === selectedCellId;
-        let className = 'h-10 rounded border text-[10px] md:text-xs';
+        let className = 'aspect-square w-full rounded border text-[10px] md:text-xs';
         if (hud) className += ' border-slate-700 bg-slate-800 text-slate-500';
         else if (cell?.kind === 'stair') className += ' border-amber-500 bg-amber-700 text-amber-50';
         else if (cell) className += ' border-slate-500 bg-slate-600 text-slate-50';
         else className += ' border-slate-800 bg-slate-950 text-slate-500';
         if (selected) className += ' ring-2 ring-sky-400';
         if (cell?.start) className += ' outline outline-1 outline-emerald-400';
+        if (cell?.end) className += ' outline outline-1 outline-rose-400';
         return (
           <button
             key={`${col}-${row}`}
@@ -155,7 +164,7 @@ export function LayoutGrid({
               onSlotActivate(col, row);
             }}
           >
-            {hud ? 'HUD' : cell?.kind === 'stair' ? 'Stair' : cell ? String(cell.index) : ''}
+            {hud ? 'HUD' : cell?.kind === 'stair' ? 'Stair' : ''}
           </button>
         );
       })}

@@ -124,7 +124,7 @@ export function validateLayout(board: Board): LayoutIssue[] {
   const issues: LayoutIssue[] = [];
   const hasStart = board.floors.some((floor) => floor.cells.some((cell) => cell.start));
   if (!hasStart) {
-    issues.push({ code: 'missing-start', message: 'Mark a start square.' });
+    issues.push({ code: 'missing-start', message: 'Mark a start tile.' });
   }
 
   for (const floor of board.floors) {

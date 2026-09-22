@@ -26,7 +26,7 @@ describe('LayoutDesigner', () => {
       />,
     );
     expect(screen.getByLabelText('Board shape')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Corridor square' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Tile' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Select' })).toBeDefined();
   });
 

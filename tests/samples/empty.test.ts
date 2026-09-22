@@ -35,12 +35,12 @@ describe('emptyBootstrap', () => {
     expect(b.board.floors[0]!.label).toBe('Ground');
   });
 
-  it('bakes grid coordinates outside the HUD and marks the start square', () => {
+  it('bakes grid coordinates outside the HUD without defaulting a start tile', () => {
     const boot = emptyBootstrap();
     const floor = boot.board.floors[0]!;
     const template = createLoopedFloor('ground', 'Ground', 0);
     expect(floor.columns).toBe(10);
-    expect(floor.cells[0]?.start).toBe(true);
+    expect(floor.cells.some((c) => c.start)).toBe(false);
     expect(floor.cells.map((c) => ({ col: c.col, row: c.row }))).toEqual(
       template.cells.map((c) => ({ col: c.col, row: c.row })),
     );

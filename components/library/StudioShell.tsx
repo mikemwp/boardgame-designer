@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutDesigner } from '@/components/designer/LayoutDesigner';
 import type { DesignerTool } from '@/components/designer/DesignerPalette';
 import { GameHud } from '@/components/hud/GameHud';
@@ -58,6 +58,28 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       config: snapshot?.config ?? active.bootstrap.config,
     });
   }, [active, workingBoard, workingPlayers, snapshot, saveActive]);
+
+  const skipAutoSaveRef = useRef(true);
+
+  useEffect(() => {
+    skipAutoSaveRef.current = true;
+  }, [active?.id]);
+
+  useEffect(() => {
+    if (skipAutoSaveRef.current) {
+      skipAutoSaveRef.current = false;
+      return;
+    }
+    if (!active || !workingBoard || !workingPlayers) return;
+    const timer = window.setTimeout(() => persistWorking(), 400);
+    return () => window.clearTimeout(timer);
+  }, [active?.id, workingBoard, workingPlayers, persistWorking]);
+
+  useEffect(() => {
+    const onPageHide = () => persistWorking();
+    window.addEventListener('pagehide', onPageHide);
+    return () => window.removeEventListener('pagehide', onPageHide);
+  }, [persistWorking]);
 
   const onCreate = (input: { name: string; source: NewGameSource }) => {
     persistWorking();

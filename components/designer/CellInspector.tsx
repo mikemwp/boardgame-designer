@@ -5,6 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
+import type { Cell } from '@/lib/engine/types';
+
+function endTileLabel(cell: Cell): string {
+  if (cell.kind === 'stair') return 'End stair';
+  if (cell.region === 'hub') return 'End room';
+  return 'End tile';
+}
 
 export function CellInspector({
   board,
@@ -14,6 +21,7 @@ export function CellInspector({
   onRenameFloor,
   onSetPack,
   onSetStart,
+  onSetEnd,
   onAttachStair,
   onLinkStair,
   onClearStair,
@@ -25,6 +33,7 @@ export function CellInspector({
   onRenameFloor: (label: string) => void;
   onSetPack: (packId: string | undefined) => void;
   onSetStart: () => void;
+  onSetEnd: () => void;
   onAttachStair: () => void;
   onLinkStair: (toFloorId: string, toCellId: string) => void;
   onClearStair: () => void;
@@ -47,13 +56,13 @@ export function CellInspector({
         />
       </div>
       {!cell ? (
-        <p className="text-sm text-slate-400">Select a square to edit pack, stairs, or start.</p>
+        <p className="text-sm text-slate-400">Select a tile to edit pack, stairs, start, or end.</p>
       ) : (
         <>
-          <p className="text-sm text-slate-300">{cell.kind === 'stair' ? 'Stair' : 'Corridor square'}</p>
+          <p className="text-sm text-slate-300">{cell.kind === 'stair' ? 'Stair' : 'Tile'}</p>
           {cell.kind === 'stair' ? (
             <>
-              <p className="text-xs text-slate-400">Stair squares never hold packs.</p>
+              <p className="text-xs text-slate-400">Stair tiles never hold packs.</p>
               {stair ? (
                 <p className="text-sm">{stair.legal ? stairLabel(board, stair) : 'Stair has no destination.'}</p>
               ) : null}
@@ -76,17 +85,17 @@ export function CellInspector({
                   </option>
                 ))}
               </select>
-              <Label htmlFor="dest-cell">Landing square</Label>
+              <Label htmlFor="dest-cell">Landing tile</Label>
               <select
                 id="dest-cell"
-                aria-label="Landing square"
+                aria-label="Landing tile"
                 className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
                 value={stair?.toCellId ?? ''}
                 onChange={(e) => {
                   if (stair?.toFloorId) onLinkStair(stair.toFloorId, e.target.value);
                 }}
               >
-                <option value="">Choose square</option>
+                <option value="">Choose tile</option>
                 {board.floors
                   .find((f) => f.id === (stair?.toFloorId || board.floors.find((x) => x.id !== floorId)?.id))
                   ?.cells.map((c) => (
@@ -96,7 +105,7 @@ export function CellInspector({
                   ))}
               </select>
               <Button type="button" variant="outline" onClick={onClearStair}>
-                Convert to corridor
+                Convert to tile
               </Button>
             </>
           ) : (
@@ -130,7 +139,10 @@ export function CellInspector({
             </>
           )}
           <Button type="button" onClick={onSetStart}>
-            Start square
+            Start tile
+          </Button>
+          <Button type="button" variant="outline" onClick={onSetEnd}>
+            {endTileLabel(cell)}
           </Button>
         </>
       )}

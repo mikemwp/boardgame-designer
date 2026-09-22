@@ -15,6 +15,7 @@ import {
   placeCorridorOnSlot,
   renameFloor,
   setCellPack,
+  setEndCell,
   setStartCell,
 } from '@/lib/designer/mutate';
 
@@ -53,13 +54,23 @@ describe('moveCell and eraseCell', () => {
   });
 });
 
-describe('setCellPack and setStartCell', () => {
+describe('setCellPack, setStartCell, and setEndCell', () => {
   it('assigns a pack on corridor only and keeps a single start', () => {
     const packed = setCellPack(groundBoard(), 'ground', 'ground-c1', 'notes');
     expect(packed.floors[0]?.cells.find((c) => c.id === 'ground-c1')?.packId).toBe('notes');
     const started = setStartCell(packed, 'ground', 'ground-c1');
     const starts = started.floors[0]!.cells.filter((c) => c.start);
     expect(starts.map((c) => c.id)).toEqual(['ground-c1']);
+  });
+
+  it('keeps a single end tile and clears start/end overlap', () => {
+    const started = setStartCell(groundBoard(), 'ground', 'ground-c0');
+    const ended = setEndCell(started, 'ground', 'ground-c2');
+    expect(ended.floors[0]?.cells.find((c) => c.id === 'ground-c2')?.end).toBe(true);
+    expect(ended.floors[0]?.cells.filter((c) => c.end).map((c) => c.id)).toEqual(['ground-c2']);
+    const movedStart = setStartCell(ended, 'ground', 'ground-c2');
+    expect(movedStart.floors[0]?.cells.find((c) => c.id === 'ground-c2')?.start).toBe(true);
+    expect(movedStart.floors[0]?.cells.find((c) => c.id === 'ground-c2')?.end).toBe(false);
   });
 });
 
@@ -111,7 +122,8 @@ describe('stairs', () => {
 
 describe('applyFloorShape', () => {
   it('rebuilds a square 8 floor into a 12-wedge circle and keeps the start pack', () => {
-    const board = setCellPack(groundBoard(), 'ground', 'ground-c0', 'notes');
+    let board = setCellPack(groundBoard(), 'ground', 'ground-c0', 'notes');
+    board = setStartCell(board, 'ground', 'ground-c0');
     const next = applyFloorShape(board, 'ground', { kind: 'circle', tiles: 12 });
     const floor = next.floors[0]!;
     expect(floor.shape).toEqual({ kind: 'circle', tiles: 12 });

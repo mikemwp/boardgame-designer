@@ -68,7 +68,6 @@ export function createLoopedFloor(
     region: slot.region,
     spokeIndex: slot.spokeIndex,
     slot: slot.slot,
-    start: index === 0 && i === 0,
   }));
   return {
     id,
@@ -158,13 +157,6 @@ export function ensureFloorLayout(floor: Floor): Floor {
 
 export function ensureBoardLayout(board: Board): Board {
   const floors = board.floors.map((floor) => ensureFloorLayout(floor));
-  const hasStart = floors.some((floor) => floor.cells.some((cell) => cell.start));
-  if (!hasStart && floors[0]?.cells[0]) {
-    floors[0] = {
-      ...floors[0],
-      cells: floors[0].cells.map((cell, i) => (i === 0 ? { ...cell, start: true } : cell)),
-    };
-  }
   return createBoard(floors, board.stairs);
 }
 

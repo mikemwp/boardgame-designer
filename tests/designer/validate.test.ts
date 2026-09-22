@@ -3,24 +3,27 @@ import { createBoard } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
 import { climbSample } from '@/lib/samples/climb';
 import { emptyBootstrap } from '@/lib/samples/empty';
-import { addFloor, attachStair, eraseCell, placeCorridor } from '@/lib/designer/mutate';
+import { addFloor, attachStair, eraseCell, placeCorridor, setEndCell, setStartCell } from '@/lib/designer/mutate';
 import { canTestPlay, validateLayout } from '@/lib/designer/validate';
 
 describe('validateLayout', () => {
-  it('allows Climb and the empty board', () => {
+  it('allows Climb but blocks an empty board without a start tile', () => {
     expect(validateLayout(climbSample.board)).toEqual([]);
-    expect(canTestPlay(emptyBootstrap().board)).toBe(true);
+    expect(canTestPlay(emptyBootstrap().board)).toBe(false);
+    expect(validateLayout(emptyBootstrap().board).some((i) => i.code === 'missing-start')).toBe(true);
   });
 
-  it('allows a default hub/spoke floor whose spoke ends do not loop', () => {
+  it('allows a default hub/spoke floor whose spoke ends do not loop once a start tile is set', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0, {
       kind: 'hub-spoke',
       hubTiles: 12,
       spokeCount: 4,
       spokeTiles: 6,
     });
-    expect(validateLayout(createBoard([floor], [])).filter((i) => i.code === 'non-loop')).toEqual([]);
-    expect(canTestPlay(createBoard([floor], []))).toBe(true);
+    let board = createBoard([floor], []);
+    board = setStartCell(board, 'ground', floor.cells[0]!.id);
+    expect(validateLayout(board).filter((i) => i.code === 'non-loop')).toEqual([]);
+    expect(canTestPlay(board)).toBe(true);
   });
 
   it('blocks a circle that is missing a wedge', () => {
@@ -70,5 +73,13 @@ describe('validateLayout', () => {
     const issues = validateLayout(board);
     expect(issues.some((i) => i.code === 'empty-floor')).toBe(true);
     expect(issues.some((i) => i.code === 'missing-start')).toBe(true);
+    expect(issues.find((i) => i.code === 'missing-start')?.message).toBe('Mark a start tile.');
+  });
+
+  it('does not require an end tile for test play', () => {
+    let board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
+    board = setStartCell(board, 'ground', 'ground-c0');
+    board = setEndCell(board, 'ground', 'ground-c1');
+    expect(validateLayout(board)).toEqual([]);
   });
 });

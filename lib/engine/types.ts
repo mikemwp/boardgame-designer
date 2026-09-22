@@ -68,6 +68,7 @@ export interface Cell {
   spokeIndex?: number;
   slot?: number;
   start?: boolean;
+  end?: boolean;
 }
 
 export interface Stair {

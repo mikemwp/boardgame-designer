@@ -32,23 +32,30 @@ export interface UseLibraryOptions {
   createId?: () => string;
 }
 
+function readLibrary(options: UseLibraryOptions): LibraryState | null {
+  if (options.initialState) return options.initialState;
+  if (typeof window === 'undefined') return null;
+  const storage = options.storage ?? browserStorage();
+  const now = options.now ?? (() => new Date().toISOString());
+  const createId = options.createId ?? (() => crypto.randomUUID());
+  return loadLibrary(storage, { now: now(), id: createId() });
+}
+
 export function useLibrary(options: UseLibraryOptions = {}) {
   const storage = options.storage ?? browserStorage();
   const now = options.now ?? (() => new Date().toISOString());
   const createId = options.createId ?? (() => crypto.randomUUID());
-  const [state, setState] = useState<LibraryState | null>(
-    options.initialState ?? null,
-  );
+  const [state, setState] = useState<LibraryState | null>(() => readLibrary(options));
 
   useEffect(() => {
-    if (options.initialState) return;
+    if (options.initialState || state !== null) return;
     setState(
       loadLibrary(storage, {
         now: now(),
         id: createId(),
       }),
     );
-    // Intentionally once on mount; tests pass initialState and skip this.
+    // Intentionally once on mount when SSR left state null; tests pass initialState and skip this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
