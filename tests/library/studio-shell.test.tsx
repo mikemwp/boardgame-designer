@@ -184,6 +184,29 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
     expect(screen.getByText('No game')).toBeDefined();
     expect(screen.getByText('Create a game to start playing.')).toBeDefined();
+    expect(screen.queryByTestId('floor-preview')).toBeNull();
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
+  });
+
+  it('creates an empty board after the last draft is deleted without restoring Climb', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    expect(screen.getByText('Create a game to start playing.')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(screen.getByText('Sandbox')).toBeDefined();
+    expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.queryByText('Climb (sample)')).toBeNull();
+
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(reloaded.drafts.map((d) => d.id)).toEqual(['empty-1']);
+    expect(reloaded.activeId).toBe('empty-1');
+    expect(reloaded.drafts.some((d) => d.name === 'Climb (sample)')).toBe(false);
   });
 });

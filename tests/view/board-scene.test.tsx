@@ -8,7 +8,12 @@ vi.mock('@/components/board/PlayCanvasViewport', () => ({
 }));
 
 vi.mock('@playcanvas/react', () => ({
-  Entity: ({ name }: { name?: string }) => <div data-testid={`entity-${name}`} />,
+  Entity: ({ name, onCreate }: { name?: string; onCreate?: unknown }) => {
+    if (onCreate !== undefined) {
+      throw new TypeError('onCreate is not a function');
+    }
+    return <div data-testid={`entity-${name}`} />;
+  },
 }));
 
 vi.mock('@playcanvas/react/components', () => ({

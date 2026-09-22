@@ -27,10 +27,11 @@ export function FloorStack({
   const stairMat = useMaterial({ diffuse: '#f59e0b', emissive: '#b45309', emissiveIntensity: 0.8 });
   const selectedMat = useMaterial({ diffuse: '#38bdf8', emissive: '#0369a1', emissiveIntensity: 0.9 });
   const seamMat = useMaterial({ diffuse: '#1e293b', emissive: '#0f172a', emissiveIntensity: 1.2 });
+  const floors = board.floors ?? [];
 
   return (
     <>
-      {board.floors.flatMap((floor) => {
+      {floors.flatMap((floor) => {
         const polar = isPolarFloor(floor);
         return floor.cells.map((cell) => {
           const pos = cellToWorld(floor.index, cell, floor.hud, floor);

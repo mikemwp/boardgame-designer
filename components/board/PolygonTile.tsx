@@ -11,7 +11,6 @@ import { polygonCentroid, trapezoidPrism } from '@/lib/view/tile-geometry';
 export function PolygonTile({
   id,
   polygon,
-  y,
   material,
   position,
 }: {
@@ -25,7 +24,7 @@ export function PolygonTile({
   const [meshInstance, setMeshInstance] = useState<MeshInstance | null>(null);
 
   useEffect(() => {
-    if (!app) return;
+    if (!app?.graphicsDevice) return;
     const centroid = polygonCentroid(polygon);
     const localPolygon = polygon.map((p) => ({
       x: p.x - centroid.x,
@@ -40,16 +39,11 @@ export function PolygonTile({
     setMeshInstance(instance);
     return () => {
       mesh.destroy();
-      setMeshInstance(null);
     };
   }, [app, polygon, material]);
 
   return (
-    <Entity
-      name={id}
-      data-testid={`polygon-tile-${id}` as never}
-      position={position}
-    >
+    <Entity name={id} position={position}>
       {meshInstance ? <Render meshInstances={[meshInstance]} /> : null}
     </Entity>
   );

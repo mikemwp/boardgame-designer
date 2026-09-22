@@ -107,6 +107,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setDeleteOpen(false);
       return;
     }
+    setWorkingBoard(null);
+    setWorkingPlayers(null);
+    setSnapshot(null);
     deleteActive();
     setDeleteOpen(false);
   };

@@ -186,4 +186,32 @@ describe('useLibrary', () => {
     expect(reloaded.drafts).toEqual([]);
     expect(reloaded.activeId).toBeNull();
   });
+
+  it('newGame after an empty library does not reseed Climb', () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        now: () => '2026-09-21T17:00:00.000Z',
+        createId: () => 'blank',
+      }),
+    );
+
+    act(() => {
+      result.current.deleteActive();
+    });
+    act(() => {
+      result.current.newGame({ name: 'Sandbox', source: 'empty' });
+    });
+
+    expect(result.current.drafts).toHaveLength(1);
+    expect(result.current.activeId).toBe('blank');
+    expect(result.current.active?.name).toBe('Sandbox');
+    expect(result.current.active?.source).toBe('empty');
+    const reloaded = loadLibrary(storage, { now: NOW, id: 'other' });
+    expect(reloaded.drafts.map((d) => d.source)).toEqual(['empty']);
+    expect(reloaded.drafts.some((d) => d.name === 'Climb (sample)')).toBe(false);
+  });
 });
