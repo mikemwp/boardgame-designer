@@ -2,7 +2,7 @@
 
 import { ApplicationWithoutCanvas } from '@playcanvas/react';
 import { useApp } from '@playcanvas/react/hooks';
-import { FILLMODE_NONE, RESOLUTION_FIXED } from 'playcanvas';
+import { FILLMODE_NONE, RESOLUTION_AUTO } from 'playcanvas';
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { PlayCanvasDeviceSetup } from '@/components/board/PlayCanvasDeviceSetup';
 import { PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS } from '@/lib/view/playcanvas-graphics';
@@ -44,11 +44,15 @@ function CanvasResizeSync() {
       resize();
       frameB = requestAnimationFrame(resize);
     });
+    // ApplicationWithoutCanvas calls setCanvasResolution(FIXED) with no size in
+    // a later useEffect, which zeros the drawing buffer. Repaint after that.
+    const latePaint = window.setTimeout(resize, 0);
     const observer = new ResizeObserver(resize);
     observer.observe(container);
     return () => {
       cancelAnimationFrame(frameA);
       cancelAnimationFrame(frameB);
+      window.clearTimeout(latePaint);
       observer.disconnect();
     };
   }, [app]);
@@ -173,7 +177,7 @@ export function PlayCanvasViewport({
           canvasRef={canvasRef}
           usePhysics={usePhysics}
           fillMode={FILLMODE_NONE}
-          resolutionMode={RESOLUTION_FIXED}
+          resolutionMode={RESOLUTION_AUTO}
           graphicsDeviceOptions={PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS}
         >
           <PlayCanvasDeviceSetup />

@@ -1,6 +1,8 @@
 export type PaintableApp = {
-  resizeCanvas: (width: number, height: number) => void;
   renderNextFrame: boolean;
+  graphicsDevice: {
+    resizeCanvas: (width: number, height: number) => void;
+  };
 };
 
 export function paintPlayCanvasViewport(
@@ -10,7 +12,8 @@ export function paintPlayCanvasViewport(
   const width = box.clientWidth;
   const height = box.clientHeight;
   if (width <= 0 || height <= 0) return false;
-  app.resizeCanvas(width, height);
+  // RESOLUTION_FIXED + app.resizeCanvas only sets CSS. Resize the GL buffer.
+  app.graphicsDevice.resizeCanvas(width, height);
   app.renderNextFrame = true;
   return true;
 }
