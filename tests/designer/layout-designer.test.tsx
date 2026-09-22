@@ -329,4 +329,28 @@ describe('LayoutDesigner', () => {
     expect(next.packs).toEqual(['pack-1']);
     expect(next.cards).toEqual([]);
   });
+
+  it('sets a HUD cell to spinner from Tile Actions', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={hud.id}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('HUD type'), { target: { value: 'spinner' } });
+    expect(onBoardChange).toHaveBeenCalled();
+    const next = onBoardChange.mock.calls[0][0] as Board;
+    expect(next.floors[0]!.cells.find((c) => c.id === hud.id)?.hudWidget).toBe('spinner');
+  });
 });

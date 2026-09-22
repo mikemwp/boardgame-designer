@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cellAt, DEFAULT_COLUMNS, DEFAULT_ROWS } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
 import { buildShapeLayout, DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
+import { hudWidgetLabel, hudWidgetOf } from '@/lib/designer/hud';
 import type { Floor } from '@/lib/engine/types';
 
 const GRID_GAP_PX = 4;
@@ -211,7 +212,7 @@ export function LayoutGrid({
               onClick={() => onSlotActivate(col, row)}
             >
               {cell?.kind === 'hud'
-                ? 'HUD'
+                ? hudWidgetLabel(hudWidgetOf(cell))
                 : cell?.kind === 'stair'
                   ? 'Stair'
                   : cell?.kind === 'room'

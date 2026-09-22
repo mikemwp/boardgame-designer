@@ -168,4 +168,30 @@ describe('CellInspector', () => {
     fireEvent.change(screen.getByLabelText('Landing tile'), { target: { value: 'floor-1-c0' } });
     expect(onLinkStair).toHaveBeenCalledWith('floor-1', 'floor-1-c0');
   });
+
+  it('sets HUD type on a HUD cell and hides pack controls', () => {
+    const onSetHudWidget = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    render(
+      <CellInspector
+        board={board}
+        floorId="ground"
+        cellId={hud.id}
+        packIds={['climb']}
+        onSetPack={() => {}}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        onSetHudWidget={onSetHudWidget}
+      />,
+    );
+    expect(screen.getByText('HUD')).toBeDefined();
+    expect(screen.queryByLabelText('Pack')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start tile' })).toBeNull();
+    fireEvent.change(screen.getByLabelText('HUD type'), { target: { value: 'dice' } });
+    expect(onSetHudWidget).toHaveBeenCalledWith('dice');
+  });
 });

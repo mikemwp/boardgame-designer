@@ -97,4 +97,15 @@ describe('LayoutGrid', () => {
     expect(svg?.getAttribute('viewBox')).toBe(expected);
     expect(bounds.maxX - bounds.minX).toBeGreaterThan(6);
   });
+
+  it('labels a dice HUD widget Dice', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const hud = floor.cells.find((c) => c.kind === 'hud')!;
+    const withDice = {
+      ...floor,
+      cells: floor.cells.map((c) => (c.id === hud.id ? { ...c, hudWidget: 'dice' as const } : c)),
+    };
+    render(<LayoutGrid floor={withDice} onSlotActivate={() => {}} onMoveCell={() => {}} />);
+    expect(screen.getByText('Dice')).toBeDefined();
+  });
 });

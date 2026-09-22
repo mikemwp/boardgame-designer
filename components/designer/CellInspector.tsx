@@ -2,9 +2,18 @@
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { HUD_WIDGETS, hudWidgetOf } from '@/lib/designer/hud';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { Cell } from '@/lib/engine/types';
+import type { Cell, HudWidget } from '@/lib/engine/types';
+
+const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
+  empty: 'Empty slot',
+  dice: 'Dice',
+  spinner: 'Spinner',
+  'last-roll': 'Last roll',
+  'player-bar': 'Player bar',
+};
 
 function endTileLabel(cell: Cell): string {
   if (cell.kind === 'stair') return 'End stair';
@@ -13,6 +22,7 @@ function endTileLabel(cell: Cell): string {
 }
 
 function cellHeading(cell: Cell): string {
+  if (cell.kind === 'hud') return 'HUD';
   if (cell.kind === 'stair') return 'Stair';
   if (cell.kind === 'room') return 'Room';
   if (cell.kind === 'door') return 'Door';
@@ -31,6 +41,7 @@ export function CellInspector({
   onLinkStair,
   onClearStair,
   onClearDoor,
+  onSetHudWidget,
 }: {
   board: Board;
   floorId: string;
@@ -43,6 +54,7 @@ export function CellInspector({
   onLinkStair: (toFloorId: string, toCellId: string) => void;
   onClearStair: () => void;
   onClearDoor?: () => void;
+  onSetHudWidget?: (widget: HudWidget) => void;
 }) {
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
@@ -58,7 +70,24 @@ export function CellInspector({
       ) : (
         <>
           <p className="text-sm text-slate-300">{cellHeading(cell)}</p>
-          {cell.kind === 'stair' ? (
+          {cell.kind === 'hud' ? (
+            <>
+              <Label htmlFor="hud-type">HUD type</Label>
+              <select
+                id="hud-type"
+                aria-label="HUD type"
+                className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                value={hudWidgetOf(cell)}
+                onChange={(e) => onSetHudWidget?.(e.target.value as HudWidget)}
+              >
+                {HUD_WIDGETS.map((widget) => (
+                  <option key={widget} value={widget}>
+                    {HUD_TYPE_OPTIONS[widget]}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : cell.kind === 'stair' ? (
             <>
               <p className="text-xs text-slate-400">Stair tiles never hold packs.</p>
               {stair ? (
@@ -145,12 +174,16 @@ export function CellInspector({
               ) : null}
             </>
           )}
-          <Button type="button" onClick={onSetStart}>
-            Start tile
-          </Button>
-          <Button type="button" variant="outline" onClick={onSetEnd}>
-            {endTileLabel(cell)}
-          </Button>
+          {cell.kind !== 'hud' ? (
+            <>
+              <Button type="button" onClick={onSetStart}>
+                Start tile
+              </Button>
+              <Button type="button" variant="outline" onClick={onSetEnd}>
+                {endTileLabel(cell)}
+              </Button>
+            </>
+          ) : null}
         </>
       )}
     </div>

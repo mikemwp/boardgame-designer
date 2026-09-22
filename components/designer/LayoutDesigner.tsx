@@ -31,6 +31,7 @@ import {
   renameFloor,
   setCellPack,
   setEndCell,
+  setHudWidget,
   setStartCell,
 } from '@/lib/designer/mutate';
 import {
@@ -305,6 +306,10 @@ export function LayoutDesigner({
             onClearDoor={() => {
               if (!selectedCellId) return;
               onBoardChange(clearDoor(board, floor.id, selectedCellId));
+            }}
+            onSetHudWidget={(widget) => {
+              if (!selectedCellId) return;
+              onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
             }}
           />
           ) : (
