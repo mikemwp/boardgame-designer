@@ -27,6 +27,7 @@ const drafts = [
     bootstrap: toStoredBootstrap(emptyBootstrap()),
     now: '2026-09-21T14:00:00.000Z',
     published: true,
+    slug: 'live-climb',
   }),
 ];
 
@@ -45,6 +46,8 @@ describe('OpenGameDialog', () => {
     expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
     expect(screen.getByText('Sandbox (draft)')).toBeDefined();
     expect(screen.getByText('Live climb (Published) v1')).toBeDefined();
+    expect(screen.getByText('/play/live-climb')).toBeDefined();
+    expect(screen.queryByText('/play/climb-sample')).toBeNull();
     expect(screen.queryByText(/Drafts on this device/i)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Open Sandbox' }));
     expect(onOpen).toHaveBeenCalledWith('d2');

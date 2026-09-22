@@ -88,7 +88,7 @@ export function findPublishedBySlug(state: LibraryState, slug: string): GameDocu
 
 `createDocument` / `parseDocument` keep a non-empty string `slug`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('canPublishPlay matches canTestPlay', () => {
@@ -127,21 +127,21 @@ it('findPublishedBySlug ignores drafts that still hold the slug', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/designer/validate.test.ts tests/library/state.test.ts tests/library/version.test.ts`
 Expected: FAIL — `canPublishPlay` / slug helpers missing.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Export `canPublishPlay`. Add `slug?: string` to `GameDocument`. Thread slug through `createDocument`, `parseDocument`, `publishDocument`. Add `slugifyName`, `uniquePublishedSlug`, `findPublishedBySlug`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/designer/validate.test.ts tests/library/state.test.ts tests/library/version.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/designer/validate.ts lib/library/types.ts lib/library/state.ts tests/designer/validate.test.ts tests/library/state.test.ts
@@ -171,7 +171,7 @@ export function LibraryBar({
 
 Place **Publish** after **Test**, same outline + hover class. Disabled when `!canPublish`. Existing tests must pass `canPublish` / `onPublish` (default `canPublish = false` and `onPublish = () => {}` so older calls still typecheck only if you add defaults).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('fires Publish when enabled', () => {
@@ -189,21 +189,21 @@ it('disables Publish when canPublish is false', () => {
 
 Update the existing “disables Save, Test, and Delete” case to also expect Publish disabled.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/library/library-bar.test.tsx`
 Expected: FAIL — no Publish button.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add the button. Do not change Delete rules.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/library/library-bar.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/library/LibraryBar.tsx tests/library/library-bar.test.tsx
@@ -231,7 +231,7 @@ git commit -m "feat: add Publish button to the library bar"
 5. Delete stays disabled while `isPublished(active)`.
 6. Editing the board still calls `markActiveEdited` → `(draft) v1.1`; Delete re-enables because it is a draft again.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/hooks/use-library.test.tsx`:
 
@@ -274,21 +274,21 @@ it('edit after publish flips to (draft) v1.1; next publish keeps v1.1', () => {
 
 Also extend the empty-library case: Publish is disabled with Save / Test / Delete.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/hooks/use-library.test.tsx tests/library/studio-shell.test.tsx`
 Expected: FAIL — StudioShell does not pass `onPublish`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Destructure `publishActive` from `useLibrary`. Assign slug in the hook. Wire `canPublish` / `onPublish` in `StudioShell`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/hooks/use-library.test.tsx tests/library/studio-shell.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add hooks/use-library.ts components/library/StudioShell.tsx tests/hooks/use-library.test.tsx tests/library/studio-shell.test.tsx
@@ -337,7 +337,7 @@ README updates:
 - Local play URL `/play/{slug}` reads this browser’s library (no accounts)
 - Polar UI, first-person, cloud accounts, buyable packs still out
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('plays a published game from storage by slug', async () => {
@@ -355,21 +355,21 @@ it('shows a missing state when the slug is unpublished or unknown', () => {
 
 Open dialog: published Live climb with `slug: 'live-climb'` shows `/play/live-climb`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/library/play-published-game.test.tsx tests/library/open-game-dialog.test.tsx`
 Expected: FAIL — component / route missing.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add `PlayPublishedGame`, the play route, Open hint, README.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/library/play-published-game.test.tsx tests/library/open-game-dialog.test.tsx && npx vitest run`
 Expected: PASS (full suite green)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/library/PlayPublishedGame.tsx app/play components/library/OpenGameDialog.tsx README.md tests/library/play-published-game.test.tsx tests/library/open-game-dialog.test.tsx docs/superpowers/plans/2026-09-22-slice-8-publish.md

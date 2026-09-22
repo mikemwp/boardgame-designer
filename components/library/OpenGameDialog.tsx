@@ -43,7 +43,12 @@ export function OpenGameDialog({
                   aria-label={`Open ${draft.name}`}
                   onClick={() => onOpen(draft.id)}
                 >
-                  <span>{formatGameTitle(draft)}</span>
+                  <span className="flex min-w-0 flex-col items-start gap-0.5">
+                    <span>{formatGameTitle(draft)}</span>
+                    {documentStatus(draft) === 'published' && draft.slug ? (
+                      <span className="text-xs font-normal text-slate-400">/play/{draft.slug}</span>
+                    ) : null}
+                  </span>
                   <span className="text-xs text-slate-400">
                     {documentStatus(draft) === 'published' ? 'Published' : 'draft'}
                   </span>
