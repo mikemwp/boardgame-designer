@@ -17,6 +17,7 @@ export interface StoredBootstrap {
   board: Board;
   players: PlayerState;
   cards: Card[];
+  packs?: string[];
   config: GameConfig;
 }
 

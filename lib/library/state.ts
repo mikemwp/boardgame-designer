@@ -144,6 +144,9 @@ function isStoredBootstrap(value: unknown): value is StoredBootstrap {
   }
   if (!isRecord(value.players) || !Array.isArray(value.players.players)) return false;
   if (!Array.isArray(value.cards)) return false;
+  if (value.packs !== undefined && (!Array.isArray(value.packs) || value.packs.some((id) => typeof id !== 'string'))) {
+    return false;
+  }
   if (!isRecord(value.config)) return false;
   return true;
 }

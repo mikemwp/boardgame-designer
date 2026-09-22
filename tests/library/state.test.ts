@@ -139,6 +139,31 @@ describe('parseLibrary', () => {
     expect(parsed).toEqual({ version: 1, activeId: null, drafts: [] });
   });
 
+  it('keeps an empty pack catalog on a cardless draft', () => {
+    const empty = emptyStored();
+    const parsed = parseLibrary(
+      JSON.stringify({
+        version: 1,
+        activeId: 'notes',
+        drafts: [
+          {
+            id: 'notes',
+            name: 'Notes',
+            createdAt: '2026-09-22T18:00:00.000Z',
+            updatedAt: '2026-09-22T18:00:00.000Z',
+            lastSaved: '2026-09-22T18:00:00.000Z',
+            source: 'empty',
+            status: 'draft',
+            version: null,
+            bootstrap: { ...empty, cards: [], packs: ['notes'] },
+          },
+        ],
+      }),
+    );
+    expect(parsed?.drafts[0]?.bootstrap.cards).toEqual([]);
+    expect(parsed?.drafts[0]?.bootstrap.packs).toEqual(['notes']);
+  });
+
   it('migrates legacy documents to draft metadata', () => {
     const good = createDocument({
       id: 'ok',

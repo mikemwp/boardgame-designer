@@ -3,9 +3,11 @@ import { createGame } from '@/lib/engine/game';
 import { createCardState } from '@/lib/engine/cards';
 import { climbSample } from '@/lib/samples/climb';
 import { emptyBootstrap } from '@/lib/samples/empty';
+import { listDraftPackIds } from '@/lib/designer/packs';
 import {
   captureBootstrap,
   fromStoredBootstrap,
+  storedPackIds,
   toStoredBootstrap,
 } from '@/lib/library/bootstrap';
 
@@ -50,5 +52,21 @@ describe('stored bootstrap codec', () => {
     expect(captured.config.movementViz).toBe('spinner');
     expect(captured.config.diceCount).toBe(2);
     expect(captured.players.players[0]?.token.cellId).toBe('ground-c0');
+  });
+
+  it('round-trips an empty pack catalog with no cards', () => {
+    const stored = toStoredBootstrap(emptyBootstrap(), ['notes']);
+    expect(stored.cards).toEqual([]);
+    expect(stored.packs).toEqual(['notes']);
+    const boot = fromStoredBootstrap(stored);
+    expect(boot.cards.deck).toEqual([]);
+    const again = toStoredBootstrap(boot, stored.packs);
+    expect(again.packs).toEqual(['notes']);
+    expect(listDraftPackIds(again.cards, again.packs ?? [])).toEqual(['notes']);
+    expect(storedPackIds(stored)).toEqual(['notes']);
+  });
+
+  it('derives climb packs from the sample deck', () => {
+    expect(toStoredBootstrap(climbSample).packs).toEqual(['climb']);
   });
 });
