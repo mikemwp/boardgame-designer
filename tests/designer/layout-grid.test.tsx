@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { createLoopedFloor } from '@/lib/engine/layout';
+import { DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
 
 describe('LayoutGrid', () => {
   it('activates empty slots, ignores HUD, and moves with pointer down/up', () => {
@@ -46,5 +47,17 @@ describe('LayoutGrid', () => {
     expect(svg?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
     expect(svg?.style.aspectRatio).toBeTruthy();
     expect(String(svg?.className ?? '')).not.toMatch(/\bh-full\b/);
+  });
+
+  it('uses designer polar padding so the full circle fits in the view box', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 12 });
+    const { container } = render(
+      <LayoutGrid floor={floor} onSlotActivate={() => {}} onMoveCell={() => {}} />,
+    );
+    const svg = container.querySelector('svg');
+    const bounds = shapeSlotBounds({ kind: 'circle', tiles: 12 }, DESIGNER_POLAR_PAD);
+    const expected = `${bounds.minX} ${bounds.minZ} ${bounds.maxX - bounds.minX} ${bounds.maxZ - bounds.minZ}`;
+    expect(svg?.getAttribute('viewBox')).toBe(expected);
+    expect(bounds.maxX - bounds.minX).toBeGreaterThan(6);
   });
 });

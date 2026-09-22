@@ -2,7 +2,7 @@ import type { Board } from '@/lib/engine/board';
 import { getFloor } from '@/lib/engine/board';
 import { DEFAULT_HUD } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
-import { buildShapeLayout, shapeSlotBounds } from '@/lib/engine/shape-layout';
+import { buildShapeLayout, DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
 import type { Cell, Floor, HudRect, TokenPos } from '@/lib/engine/types';
 import { forwardPathCells, forwardPathSteps } from '@/lib/engine/movement';
 import { polygonCentroid } from '@/lib/view/tile-geometry';
@@ -143,7 +143,7 @@ export function boardWorldBounds(board: Board): BoardWorldBounds {
   for (const floor of board.floors) {
     if (isPolarFloor(floor)) {
       const shape = inferShape(floor);
-      const slotBounds = shapeSlotBounds(shape, 0.5);
+      const slotBounds = shapeSlotBounds(shape, DESIGNER_POLAR_PAD);
       const y = floor.index * FLOOR_HEIGHT;
       hasCells = true;
       minX = Math.min(minX, slotBounds.minX);
@@ -200,7 +200,7 @@ export function orbitCameraLimits(bounds: BoardWorldBounds): OrbitCameraLimits {
   const distanceMax = Math.max(distanceMin + TILE_SIZE * 2, span * 3.5 + spanY * 1.5);
   const defaultDistance = Math.min(
     distanceMax,
-    Math.max(distanceMin, Math.hypot(span * 1.2, spanY + TILE_SIZE * 4)),
+    Math.max(distanceMin, Math.hypot(span * 1.35, spanY + TILE_SIZE * 4)),
   );
 
   return { pivot, distanceMin, distanceMax, defaultDistance };

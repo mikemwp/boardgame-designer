@@ -5,6 +5,8 @@ export const GRID_PAD = 1;
 export const RING_INNER_RADIUS = 1.6;
 export const RING_OUTER_RADIUS = 2.6;
 export const SPOKE_TILE = 1;
+/** Extra viewBox padding so polar boards fit fully in the designer canvas. */
+export const DESIGNER_POLAR_PAD = 1;
 
 export interface Vec2 {
   x: number;

@@ -25,9 +25,14 @@ export function BoardShapeFields({
     onChange(normalizeShape({ ...normalized, [field]: Number(value) }));
   };
 
+  const fieldClass = 'flex min-w-[5.5rem] flex-col gap-1';
+
   return (
-    <div className="flex flex-col gap-2" data-testid="board-shape-fields">
-      <div className="flex flex-col gap-1">
+    <div
+      className="flex flex-row flex-wrap items-end gap-x-3 gap-y-2"
+      data-testid="board-shape-fields"
+    >
+      <div className="flex min-w-[8rem] flex-col gap-1">
         <Label>Board shape</Label>
         <select
           aria-label="Board shape"
@@ -42,12 +47,13 @@ export function BoardShapeFields({
       </div>
 
       {normalized.kind === 'square' && (
-        <div className="flex flex-col gap-1">
+        <div className={fieldClass}>
           <Label>Tiles per side</Label>
           <Input
             type="number"
             min={3}
             max={12}
+            className="h-8"
             value={normalized.tilesPerSide}
             onChange={(e) => updateNumber('tilesPerSide', e.target.value)}
           />
@@ -56,22 +62,24 @@ export function BoardShapeFields({
 
       {normalized.kind === 'rectangle' && (
         <>
-          <div className="flex flex-col gap-1">
+          <div className={fieldClass}>
             <Label>Length</Label>
             <Input
               type="number"
               min={3}
               max={12}
+              className="h-8"
               value={normalized.length}
               onChange={(e) => updateNumber('length', e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1">
+          <div className={fieldClass}>
             <Label>Width</Label>
             <Input
               type="number"
               min={3}
               max={12}
+              className="h-8"
               value={normalized.width}
               onChange={(e) => updateNumber('width', e.target.value)}
             />
@@ -80,12 +88,13 @@ export function BoardShapeFields({
       )}
 
       {normalized.kind === 'circle' && (
-        <div className="flex flex-col gap-1">
+        <div className={fieldClass}>
           <Label>Tiles</Label>
           <Input
             type="number"
             min={3}
             max={40}
+            className="h-8"
             value={normalized.tiles}
             onChange={(e) => updateNumber('tiles', e.target.value)}
           />
@@ -94,32 +103,35 @@ export function BoardShapeFields({
 
       {(normalized.kind === 'hub-spoke' || normalized.kind === 'hub-spoke-wheel') && (
         <>
-          <div className="flex flex-col gap-1">
+          <div className={fieldClass}>
             <Label>Hub tiles</Label>
             <Input
               type="number"
               min={3}
               max={40}
+              className="h-8"
               value={normalized.hubTiles}
               onChange={(e) => updateNumber('hubTiles', e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1">
+          <div className={fieldClass}>
             <Label>Spokes</Label>
             <Input
               type="number"
               min={2}
               max={12}
+              className="h-8"
               value={normalized.spokeCount}
               onChange={(e) => updateNumber('spokeCount', e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1">
+          <div className={fieldClass}>
             <Label>Spoke tiles</Label>
             <Input
               type="number"
               min={1}
               max={12}
+              className="h-8"
               value={normalized.spokeTiles}
               onChange={(e) => updateNumber('spokeTiles', e.target.value)}
             />
@@ -128,12 +140,13 @@ export function BoardShapeFields({
       )}
 
       {normalized.kind === 'hub-spoke-wheel' && (
-        <div className="flex flex-col gap-1">
+        <div className={fieldClass}>
           <Label>Wheel tiles</Label>
           <Input
             type="number"
             min={3}
             max={40}
+            className="h-8"
             value={normalized.wheelTiles}
             onChange={(e) => updateNumber('wheelTiles', e.target.value)}
           />

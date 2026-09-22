@@ -21,10 +21,14 @@ export function FloorPreview({
 
   return (
     <div
-      className="min-h-48 flex-1 overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
+      className="flex h-full min-h-48 flex-1 flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
       data-testid="floor-preview"
     >
-      <PlayCanvasViewport usePhysics={false} slotId="design-floor-preview">
+      <PlayCanvasViewport
+        usePhysics={false}
+        slotId="design-floor-preview"
+        className="relative min-h-0 flex-1 h-full w-full"
+      >
         <BoardOrbitCamera board={preview} />
         <Entity name="sun" rotation={[-55, 40, 0]}>
           <Light type="directional" intensity={1.5} />

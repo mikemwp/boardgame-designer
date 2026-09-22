@@ -136,28 +136,30 @@ export function LayoutDesigner({
   return (
     <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_16rem]">
       <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-        <FloorTabs
-          floors={board.floors}
-          selectedFloorId={floor.id}
-          onSelect={(id) => {
-            onSelectFloor(id);
-            onSelectCell(null);
-          }}
-          onAdd={() => {
-            const id = nextFloorId(board);
-            const next = addFloor(board, id, `Floor ${board.floors.length + 1}`, floor.shape);
-            onBoardChange(next);
-            onSelectFloor(id);
-            onSelectCell(null);
-          }}
-          onDelete={(id) => {
-            const next = deleteFloor(board, id);
-            onBoardChange(next);
-            onSelectFloor(next.floors[0]?.id ?? id);
-            onSelectCell(null);
-          }}
-        />
-        <DesignerPalette tool={tool} onToolChange={onToolChange} />
+        <div className="flex flex-wrap items-center gap-2" data-testid="designer-toolbar">
+          <FloorTabs
+            floors={board.floors}
+            selectedFloorId={floor.id}
+            onSelect={(id) => {
+              onSelectFloor(id);
+              onSelectCell(null);
+            }}
+            onAdd={() => {
+              const id = nextFloorId(board);
+              const next = addFloor(board, id, `Floor ${board.floors.length + 1}`, floor.shape);
+              onBoardChange(next);
+              onSelectFloor(id);
+              onSelectCell(null);
+            }}
+            onDelete={(id) => {
+              const next = deleteFloor(board, id);
+              onBoardChange(next);
+              onSelectFloor(next.floors[0]?.id ?? id);
+              onSelectCell(null);
+            }}
+          />
+          <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto" />
+        </div>
         <BoardShapeFields
           shape={normalizeShape(floor.shape)}
           onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
@@ -178,7 +180,8 @@ export function LayoutDesigner({
         </div>
         <ValidationList issues={issues} />
       </div>
-      <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
+      <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
+        <div className="min-h-0 shrink overflow-y-auto">
         <CellInspector
           board={board}
           floorId={floor.id}
@@ -207,7 +210,10 @@ export function LayoutDesigner({
             onBoardChange(clearStair(board, floor.id, selectedCellId));
           }}
         />
-        <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
+        </div>
+        <div className="flex min-h-48 min-w-0 flex-1 flex-col overflow-hidden">
+          <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
+        </div>
       </aside>
     </div>
   );

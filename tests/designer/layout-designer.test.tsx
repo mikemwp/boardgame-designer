@@ -30,6 +30,28 @@ describe('LayoutDesigner', () => {
     expect(screen.getByRole('button', { name: 'Select' })).toBeDefined();
   });
 
+  it('keeps floor tabs and tool buttons on one toolbar row', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[{ pack: 'climb' }]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    const toolbar = screen.getByTestId('designer-toolbar');
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(true);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Select' }))).toBe(true);
+    expect(screen.getByTestId('designer-palette').className).toMatch(/ml-auto/);
+  });
+
   it('places a corridor on an empty slot with the corridor tool', () => {
     const onBoardChange = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);

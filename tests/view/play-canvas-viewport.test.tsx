@@ -14,10 +14,13 @@ class MockResizeObserver {
 const appMounts = vi.fn();
 let lastGraphicsDeviceOptions: Record<string, unknown> | undefined;
 
+const acquirePlayCanvasSlot = vi.fn(() => () => {});
+
 vi.mock('@/lib/view/playcanvas-lifecycle', () => ({
   waitForStableReady: vi.fn(async (isReady: () => boolean) => isReady()),
   waitUntilPlayCanvasSlotFree: vi.fn(async () => {}),
-  acquirePlayCanvasSlot: vi.fn(() => () => {}),
+  waitFrames: vi.fn(async () => {}),
+  acquirePlayCanvasSlot: (...args: unknown[]) => acquirePlayCanvasSlot(...args),
 }));
 
 vi.mock('@/components/board/PlayCanvasDeviceSetup', () => ({
@@ -71,6 +74,8 @@ describe('PlayCanvasViewport', () => {
   beforeEach(() => {
     resizeObserverCallback = null;
     appMounts.mockClear();
+    acquirePlayCanvasSlot.mockReset();
+    acquirePlayCanvasSlot.mockReturnValue(() => {});
     lastGraphicsDeviceOptions = undefined;
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
   });
@@ -132,6 +137,26 @@ describe('PlayCanvasViewport', () => {
     await flushViewportInit();
 
     expect(screen.queryByTestId('pc-application')).toBeNull();
+  });
+
+  it('retries PlayCanvas slot acquisition when another viewport still holds it', async () => {
+    acquirePlayCanvasSlot
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(() => {});
+
+    render(
+      <PlayCanvasViewport slotId="design-floor-preview">
+        <span>scene</span>
+      </PlayCanvasViewport>,
+    );
+
+    await fireResize(640, 480);
+    await flushViewportInit();
+
+    await waitFor(() => expect(screen.getByTestId('pc-application')).toBeDefined());
+    expect(acquirePlayCanvasSlot).toHaveBeenCalledTimes(3);
+    expect(acquirePlayCanvasSlot.mock.calls.every(([id]) => id === 'design-floor-preview')).toBe(true);
   });
 
   it('passes no-MSAA graphics device options', async () => {

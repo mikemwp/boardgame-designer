@@ -8,6 +8,7 @@ import { PlayCanvasDeviceSetup } from '@/components/board/PlayCanvasDeviceSetup'
 import { PLAYCANVAS_GRAPHICS_DEVICE_OPTIONS } from '@/lib/view/playcanvas-graphics';
 import {
   acquirePlayCanvasSlot,
+  waitFrames,
   waitForStableReady,
   waitUntilPlayCanvasSlotFree,
 } from '@/lib/view/playcanvas-lifecycle';
@@ -137,11 +138,17 @@ export function PlayCanvasViewport({
       await waitUntilPlayCanvasSlotFree(2);
       if (!hasDimensions()) return;
 
-      const release = acquirePlayCanvasSlot(slotId);
-      if (!release || cancelled) return;
-
-      releaseSlotRef.current = release;
-      setAppReady(true);
+      for (let attempt = 0; attempt < 40 && !cancelled; attempt += 1) {
+        const release = acquirePlayCanvasSlot(slotId);
+        if (release) {
+          releaseSlotRef.current = release;
+          setAppReady(true);
+          return;
+        }
+        await waitUntilPlayCanvasSlotFree(1);
+        await waitFrames(1);
+        if (!hasDimensions()) return;
+      }
     })();
 
     return () => {

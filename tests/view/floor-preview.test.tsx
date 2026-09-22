@@ -44,6 +44,7 @@ describe('FloorPreview', () => {
     );
     const preview = screen.getByTestId('floor-preview');
     expect(preview.className).toMatch(/min-h-48/);
+    expect(preview.className).toMatch(/flex-1/);
     expect(screen.getByTestId('pc-app').getAttribute('data-slot-id')).toBe('design-floor-preview');
   });
 

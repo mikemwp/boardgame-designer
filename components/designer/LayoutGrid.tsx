@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { cellAt, DEFAULT_COLUMNS, DEFAULT_ROWS, isHudSlot } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
-import { buildShapeLayout, shapeSlotBounds } from '@/lib/engine/shape-layout';
+import { buildShapeLayout, DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
 import type { Floor } from '@/lib/engine/types';
 
 function cellInSlot(
@@ -46,21 +46,21 @@ export function LayoutGrid({
 
   if (isPolar) {
     const layout = buildShapeLayout(shape);
-    const bounds = shapeSlotBounds(shape, 0.5);
+    const bounds = shapeSlotBounds(shape, DESIGNER_POLAR_PAD);
     const viewWidth = bounds.maxX - bounds.minX;
     const viewHeight = bounds.maxZ - bounds.minZ;
     const viewBox = `${bounds.minX} ${bounds.minZ} ${viewWidth} ${viewHeight}`;
 
     return (
       <div
-        className="flex min-h-0 w-full max-h-full items-center justify-center overflow-hidden"
+        className="flex min-h-0 w-full max-h-full items-center justify-center overflow-hidden p-2"
         aria-label="Layout grid"
       >
         <svg
           viewBox={viewBox}
           preserveAspectRatio="xMidYMid meet"
-          className="max-h-full w-full min-w-0"
-          style={{ aspectRatio: `${viewWidth} / ${viewHeight}` }}
+          className="max-h-full max-w-full min-h-0 min-w-0"
+          style={{ aspectRatio: `${viewWidth} / ${viewHeight}`, width: 'min(100%, 28rem)', height: 'auto' }}
         >
           <circle
             cx={0}

@@ -14,12 +14,14 @@ const TOOLS: Array<{ id: DesignerTool; label: string }> = [
 export function DesignerPalette({
   tool,
   onToolChange,
+  className = '',
 }: {
   tool: DesignerTool;
   onToolChange: (tool: DesignerTool) => void;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" data-testid="designer-palette">
+    <div className={`flex flex-wrap gap-2 ${className}`.trim()} data-testid="designer-palette">
       {TOOLS.map((item) => (
         <Button
           key={item.id}
