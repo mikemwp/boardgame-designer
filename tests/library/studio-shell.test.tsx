@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { StudioShell } from '@/components/library/StudioShell';
 import { getActive } from '@/lib/library/state';
 import { loadLibrary, memoryStorage } from '@/lib/library/storage';
@@ -37,6 +38,31 @@ function renderStudio(storage = memoryStorage(), id = 'seed-1', now = NOW, creat
 }
 
 describe('StudioShell', () => {
+  it('shows loading on first render without initialState then hydrates the shell', async () => {
+    const storage = memoryStorage();
+    loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const props = { storage, now: () => NOW, createId: () => 'x' };
+
+    const ssrHtml = renderToString(<StudioShell {...props} />);
+    expect(ssrHtml).toContain('Loading library…');
+    expect(ssrHtml).not.toContain('data-testid="studio-shell"');
+
+    let markupDuringRender: string | undefined;
+    function CaptureFirstPaint() {
+      if (markupDuringRender === undefined) {
+        markupDuringRender = renderToString(<StudioShell {...props} />);
+      }
+      return <StudioShell {...props} />;
+    }
+
+    render(<CaptureFirstPaint />);
+    expect(markupDuringRender).toContain('Loading library…');
+    expect(markupDuringRender).not.toContain('data-testid="studio-shell"');
+
+    expect(screen.getByTestId('studio-shell')).toBeDefined();
+    expect(screen.getByText('Climb (sample)')).toBeDefined();
+  });
+
   it('opens in Design on Climb and Test reveals Roll dice', async () => {
     renderStudio();
     expect(screen.getByText('Climb (sample)')).toBeDefined();

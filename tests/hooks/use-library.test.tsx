@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { act, renderHook } from '@testing-library/react';
+import { act, render, renderHook } from '@testing-library/react';
 import { useLibrary } from '@/hooks/use-library';
 import { loadLibrary, memoryStorage } from '@/lib/library/storage';
 import { toStoredBootstrap } from '@/lib/library/bootstrap';
@@ -9,6 +9,43 @@ import { climbSample } from '@/lib/samples/climb';
 const NOW = '2026-09-21T12:00:00.000Z';
 
 describe('useLibrary', () => {
+  it('starts not ready on first render without initialState (SSR hydration parity)', () => {
+    const storage = memoryStorage();
+    loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    let readyDuringRender: boolean | undefined;
+
+    function Probe() {
+      const { ready } = useLibrary({
+        storage,
+        now: () => NOW,
+        createId: () => 'x',
+      });
+      if (readyDuringRender === undefined) readyDuringRender = ready;
+      return null;
+    }
+
+    render(<Probe />);
+
+    expect(readyDuringRender).toBe(false);
+  });
+
+  it('loads from storage after mount when no initialState', () => {
+    const storage = memoryStorage();
+    loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        now: () => NOW,
+        createId: () => 'x',
+      }),
+    );
+
+    act(() => {});
+
+    expect(result.current.ready).toBe(true);
+    expect(result.current.active?.name).toBe('Climb (sample)');
+  });
+
   it('adds a second Climb draft without replacing the seed', () => {
     const storage = memoryStorage();
     const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
