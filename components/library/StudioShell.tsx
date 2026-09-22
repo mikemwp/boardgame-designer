@@ -106,7 +106,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" data-testid="studio-shell">
       <LibraryBar
         activeName={active?.name ?? 'No game'}
         savedAt={active?.updatedAt}

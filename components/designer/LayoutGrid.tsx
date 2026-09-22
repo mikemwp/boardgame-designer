@@ -2,20 +2,116 @@
 
 import { useRef } from 'react';
 import { cellAt, DEFAULT_COLUMNS, DEFAULT_ROWS, isHudSlot } from '@/lib/engine/layout';
+import { inferShape } from '@/lib/engine/shape';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import type { Floor } from '@/lib/engine/types';
+
+function cellInSlot(
+  floor: Floor,
+  slot: { region: string; spokeIndex?: number; slot: number },
+) {
+  return floor.cells.find(
+    (c) =>
+      c.region === slot.region &&
+      (c.spokeIndex ?? -1) === (slot.spokeIndex ?? -1) &&
+      c.slot === slot.slot,
+  );
+}
+
+function polarPathD(polygon: Array<{ x: number; z: number }>): string {
+  if (polygon.length === 0) return '';
+  const first = polygon[0]!;
+  const rest = polygon.slice(1).map((p) => `L ${p.x} ${p.z}`).join(' ');
+  return `M ${first.x} ${first.z} ${rest} Z`;
+}
 
 export function LayoutGrid({
   floor,
   selectedCellId,
   onSlotActivate,
   onMoveCell,
+  onSlotActivateId,
+  onMoveCellToSlot,
 }: {
   floor: Floor;
   selectedCellId?: string;
   onSlotActivate: (col: number, row: number) => void;
   onMoveCell: (cellId: string, col: number, row: number) => void;
+  onSlotActivateId?: (slotId: string) => void;
+  onMoveCellToSlot?: (cellId: string, slotId: string) => void;
 }) {
   const dragId = useRef<string | null>(null);
+  const shape = inferShape(floor);
+  const isPolar = shape.kind === 'circle' || shape.kind === 'hub-spoke' || shape.kind === 'hub-spoke-wheel';
+
+  if (isPolar) {
+    const layout = buildShapeLayout(shape);
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const slot of layout.slots) {
+      for (const p of slot.polygon) {
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minZ = Math.min(minZ, p.z);
+        maxZ = Math.max(maxZ, p.z);
+      }
+    }
+    const pad = 0.5;
+    const viewBox = `${minX - pad} ${minZ - pad} ${maxX - minX + pad * 2} ${maxZ - minZ + pad * 2}`;
+
+    return (
+      <div className="min-h-0 min-w-0 w-full overflow-hidden" aria-label="Layout grid">
+        <svg
+          viewBox={viewBox}
+          preserveAspectRatio="xMidYMid meet"
+          className="h-full w-full min-w-0 max-w-full"
+        >
+          <circle
+            cx={0}
+            cy={0}
+            r={1.5}
+            fill="rgb(30 41 59)"
+            stroke="rgb(51 65 85)"
+            aria-label="HUD — drops blocked"
+          />
+          {layout.slots.map((slot) => {
+            const cell = cellInSlot(floor, slot);
+            const selected = cell?.id === selectedCellId;
+            let fill = 'rgb(2 6 23)';
+            if (cell?.kind === 'stair') fill = 'rgb(180 83 9)';
+            else if (cell) fill = 'rgb(71 85 105)';
+            return (
+              <path
+                key={slot.id}
+                data-testid={`slot-${slot.id}`}
+                d={polarPathD(slot.polygon)}
+                fill={fill}
+                stroke={selected ? 'rgb(56 189 248)' : cell?.start ? 'rgb(52 211 153)' : 'rgb(30 41 59)'}
+                strokeWidth={selected ? 0.08 : cell?.start ? 0.06 : 0.04}
+                aria-label={cell ? cell.id : `Empty ${slot.id}`}
+                onPointerDown={() => {
+                  if (cell) dragId.current = cell.id;
+                }}
+                onPointerUp={() => {
+                  const from = dragId.current;
+                  dragId.current = null;
+                  if (from && !cell && onMoveCellToSlot) {
+                    onMoveCellToSlot(from, slot.id);
+                  }
+                }}
+                onClick={() => {
+                  if (onSlotActivateId) onSlotActivateId(slot.id);
+                }}
+              />
+            );
+          })}
+        </svg>
+      </div>
+    );
+  }
+
   const columns = floor.columns ?? DEFAULT_COLUMNS;
   const rows = floor.rows ?? DEFAULT_ROWS;
   const slots: Array<{ col: number; row: number }> = [];
@@ -27,8 +123,8 @@ export function LayoutGrid({
 
   return (
     <div
-      className="grid w-full gap-1 overflow-x-auto"
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(2.25rem, 1fr))` }}
+      className="grid min-w-0 w-full max-w-full gap-1"
+      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       aria-label="Layout grid"
     >
       {slots.map(({ col, row }) => {

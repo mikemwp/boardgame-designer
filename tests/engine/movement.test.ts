@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createBoard } from '@/lib/engine/board';
 import { createHoldState } from '@/lib/engine/hold';
+import { createLoopedFloor } from '@/lib/engine/layout';
 import {
   allowedMoveValues,
   forwardPathCells,
@@ -64,6 +65,27 @@ describe('walkSteps', () => {
     expect(walkSteps(loopFloor, 'l4', 3)?.id).toBe('l1');
     expect(walkSteps(loopFloor, 'l0', 0)?.id).toBe('l0');
     expect(walkSteps(loopFloor, 'l0', 3)?.id).toBe('l3');
+  });
+
+  it('walks a hub/spoke detour to the spoke end and back onto the hub', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, {
+      kind: 'hub-spoke',
+      hubTiles: 8,
+      spokeCount: 2,
+      spokeTiles: 2,
+    });
+    const hub0 = floor.cells.find((c) => c.region === 'hub' && c.slot === 0)!;
+    const spokeEnd = floor.cells.find((c) => c.region === 'spoke' && c.spokeIndex === 0 && c.slot === 1)!;
+    const after = walkSteps(floor, hub0.id, 3);
+    expect(walkSteps(floor, hub0.id, 2)?.id).toBe(spokeEnd.id);
+    expect(after?.id).not.toBe(spokeEnd.id);
+    expect(after?.region).toBe('hub');
+  });
+
+  it('still wraps a circle by index order', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 8 });
+    expect(walkSteps(floor, floor.cells[0]!.id, 8)?.id).toBe(floor.cells[0]!.id);
+    expect(walkSteps(floor, floor.cells[0]!.id, 1)?.id).toBe(floor.cells[1]!.id);
   });
 });
 

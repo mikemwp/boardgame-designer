@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, dispatch } from '@/lib/engine/game';
+import { createLoopedFloor } from '@/lib/engine/layout';
 import { emptyBootstrap, EMPTY_LABEL } from '@/lib/samples/empty';
 
 describe('emptyBootstrap', () => {
@@ -9,7 +10,8 @@ describe('emptyBootstrap', () => {
     expect(boot.board.floors).toHaveLength(1);
     expect(boot.board.floors[0]?.id).toBe('ground');
     expect(boot.board.floors[0]?.label).toBe('Ground');
-    expect(boot.board.floors[0]?.cells).toHaveLength(8);
+    expect(boot.board.floors[0]?.cells).toHaveLength(28);
+    expect(boot.board.floors[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
     expect(boot.board.stairs).toHaveLength(0);
     expect(boot.cards.deck).toHaveLength(0);
     expect(boot.players.players[0]?.token).toEqual({
@@ -36,17 +38,11 @@ describe('emptyBootstrap', () => {
   it('bakes grid coordinates outside the HUD and marks the start square', () => {
     const boot = emptyBootstrap();
     const floor = boot.board.floors[0]!;
-    expect(floor.columns).toBe(8);
+    const template = createLoopedFloor('ground', 'Ground', 0);
+    expect(floor.columns).toBe(10);
     expect(floor.cells[0]?.start).toBe(true);
-    expect(floor.cells.map((c) => ({ col: c.col, row: c.row }))).toEqual([
-      { col: 3, row: 4 },
-      { col: 4, row: 4 },
-      { col: 5, row: 4 },
-      { col: 5, row: 5 },
-      { col: 5, row: 6 },
-      { col: 4, row: 6 },
-      { col: 3, row: 6 },
-      { col: 3, row: 5 },
-    ]);
+    expect(floor.cells.map((c) => ({ col: c.col, row: c.row }))).toEqual(
+      template.cells.map((c) => ({ col: c.col, row: c.row })),
+    );
   });
 });

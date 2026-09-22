@@ -1,8 +1,12 @@
 import type { Board } from '@/lib/engine/board';
 import { getFloor } from '@/lib/engine/board';
 import { DEFAULT_HUD } from '@/lib/engine/layout';
+import { inferShape } from '@/lib/engine/shape';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import type { Cell, Floor, HudRect, TokenPos } from '@/lib/engine/types';
 import { forwardPathCells, forwardPathSteps } from '@/lib/engine/movement';
-import type { HudRect, TokenPos } from '@/lib/engine/types';
+import { polygonCentroid } from '@/lib/view/tile-geometry';
+import type { Vec2 } from '@/lib/engine/shape-layout';
 
 const FLOOR_HEIGHT = 2;
 export const TILE_SIZE = 1;
@@ -62,11 +66,42 @@ export function adjacentWorldDistance(a: Vec3, b: Vec3): number {
   return Math.hypot(dx, dz);
 }
 
+export function slotPolygon(floor: Floor, cell: Cell): Vec2[] {
+  const shape = inferShape(floor);
+  const layout = buildShapeLayout(shape);
+  const slot = layout.slots.find(
+    (s) =>
+      s.region === (cell.region ?? 'ring') &&
+      (s.spokeIndex ?? -1) === (cell.spokeIndex ?? -1) &&
+      s.slot === (cell.slot ?? cell.index),
+  );
+  if (slot) return slot.polygon;
+  if (cell.col !== undefined && cell.row !== undefined) {
+    const x = cell.col;
+    const z = cell.row;
+    return [
+      { x: x - 0.5, z: z - 0.5 },
+      { x: x + 0.5, z: z - 0.5 },
+      { x: x + 0.5, z: z + 0.5 },
+      { x: x - 0.5, z: z + 0.5 },
+    ];
+  }
+  return [];
+}
+
 export function cellToWorld(
   floorIndex: number,
-  cell: { col?: number; row?: number; index: number },
+  cell: { col?: number; row?: number; index: number; region?: Cell['region']; spokeIndex?: number; slot?: number },
   hud: HudRect = DEFAULT_HUD,
+  floor?: Floor,
 ): Vec3 {
+  if (floor) {
+    const poly = slotPolygon(floor, cell as Cell);
+    if (poly.length > 0) {
+      const centroid = polygonCentroid(poly);
+      return { x: centroid.x, y: floorIndex * FLOOR_HEIGHT, z: centroid.z };
+    }
+  }
   if (cell.col !== undefined && cell.row !== undefined) {
     return gridToWorld(floorIndex, cell.col, cell.row, hud);
   }
@@ -79,7 +114,8 @@ export function tokenPosToWorld(
       id: string;
       index: number;
       hud?: HudRect;
-      cells: Array<{ id: string; index: number; col?: number; row?: number }>;
+      shape?: Floor['shape'];
+      cells: Array<{ id: string; index: number; col?: number; row?: number; region?: Cell['region']; spokeIndex?: number; slot?: number }>;
     }>;
   },
   token: { floorId: string; cellId: string },
@@ -87,7 +123,7 @@ export function tokenPosToWorld(
   const floor = board.floors.find((f) => f.id === token.floorId);
   const cell = floor?.cells.find((c) => c.id === token.cellId);
   if (!floor || !cell) return { x: 0, y: 0, z: 0 };
-  return cellToWorld(floor.index, cell, floor.hud);
+  return cellToWorld(floor.index, cell, floor.hud, floor as Floor);
 }
 
 export function boardWorldBounds(board: Board): BoardWorldBounds {
@@ -101,15 +137,28 @@ export function boardWorldBounds(board: Board): BoardWorldBounds {
 
   for (const floor of board.floors) {
     for (const cell of floor.cells) {
-      if (cell.col === undefined || cell.row === undefined) continue;
-      const world = cellToWorld(floor.index, cell, floor.hud);
-      hasCells = true;
-      minX = Math.min(minX, world.x - HALF_TILE);
-      maxX = Math.max(maxX, world.x + HALF_TILE);
-      minY = Math.min(minY, world.y);
-      maxY = Math.max(maxY, world.y);
-      minZ = Math.min(minZ, world.z - HALF_TILE);
-      maxZ = Math.max(maxZ, world.z + HALF_TILE);
+      const poly = slotPolygon(floor, cell);
+      if (poly.length > 0) {
+        const y = floor.index * FLOOR_HEIGHT;
+        hasCells = true;
+        for (const p of poly) {
+          minX = Math.min(minX, p.x);
+          maxX = Math.max(maxX, p.x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+          minZ = Math.min(minZ, p.z);
+          maxZ = Math.max(maxZ, p.z);
+        }
+      } else if (cell.col !== undefined && cell.row !== undefined) {
+        const world = cellToWorld(floor.index, cell, floor.hud);
+        hasCells = true;
+        minX = Math.min(minX, world.x - HALF_TILE);
+        maxX = Math.max(maxX, world.x + HALF_TILE);
+        minY = Math.min(minY, world.y);
+        maxY = Math.max(maxY, world.y);
+        minZ = Math.min(minZ, world.z - HALF_TILE);
+        maxZ = Math.max(maxZ, world.z + HALF_TILE);
+      }
     }
   }
 

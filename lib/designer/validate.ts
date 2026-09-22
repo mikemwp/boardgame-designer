@@ -1,9 +1,18 @@
 import type { Board } from '@/lib/engine/board';
 import { orderCellsAlongLoop } from '@/lib/engine/layout';
+import { inferShape } from '@/lib/engine/shape';
+import {
+  buildShapeLayout,
+  isRegionLoop,
+  isSpokePath,
+  layoutNeighbors,
+} from '@/lib/engine/shape-layout';
+import type { Cell } from '@/lib/engine/types';
 
 export type LayoutIssueCode =
   | 'empty-floor'
   | 'non-loop'
+  | 'broken-spoke'
   | 'dangling-stair'
   | 'pack-on-stair'
   | 'missing-start';
@@ -14,6 +23,101 @@ export interface LayoutIssue {
   floorId?: string;
   cellId?: string;
   stairId?: string;
+}
+
+function orderCellsAlongTopology(floor: { cells: Cell[]; shape?: Board['floors'][0]['shape'] }): Cell[] | null {
+  const shape = inferShape(floor);
+  const layout = buildShapeLayout(shape);
+  const ringCells = floor.cells
+    .filter((c) => c.region === 'ring' || (!c.region && shape.kind === 'circle'))
+    .sort((a, b) => (a.slot ?? a.index) - (b.slot ?? b.index));
+  if (ringCells.length < 4) return ringCells.length === 0 ? [] : null;
+  const neighbors = layoutNeighbors(floor);
+  const start = ringCells.find((c) => c.start) ?? ringCells[0];
+  if (!start) return null;
+  const ordered: Cell[] = [start];
+  let current = start;
+  const visited = new Set<string>([start.id]);
+  while (ordered.length < ringCells.length) {
+    const links = neighbors.get(current.id);
+    if (!links?.nextId || visited.has(links.nextId)) return null;
+    const next = ringCells.find((c) => c.id === links.nextId);
+    if (!next) return null;
+    ordered.push(next);
+    visited.add(next.id);
+    current = next;
+  }
+  const lastLinks = neighbors.get(current.id);
+  if (lastLinks?.nextId !== start.id) return null;
+  return ordered.map((cell, index) => ({ ...cell, index }));
+}
+
+function validateFloorLoop(floor: Board['floors'][0]): LayoutIssue | null {
+  const shape = inferShape(floor);
+  if (shape.kind === 'square' || shape.kind === 'rectangle') {
+    if (!orderCellsAlongLoop(floor.cells)) {
+      return {
+        code: 'non-loop',
+        message: `${floor.label} must be a looping corridor.`,
+        floorId: floor.id,
+      };
+    }
+    return null;
+  }
+  if (shape.kind === 'circle') {
+    const ringCells = floor.cells.filter((c) => c.region === 'ring');
+    const layout = buildShapeLayout(shape);
+    if (ringCells.length !== layout.slots.length) {
+      return {
+        code: 'non-loop',
+        message: `${floor.label} must be a looping corridor.`,
+        floorId: floor.id,
+      };
+    }
+    if (!orderCellsAlongTopology(floor)) {
+      return {
+        code: 'non-loop',
+        message: `${floor.label} must be a looping corridor.`,
+        floorId: floor.id,
+      };
+    }
+    return null;
+  }
+  const neighbors = layoutNeighbors(floor);
+  const hubCells = floor.cells.filter((c) => c.region === 'hub');
+  const wheelCells = floor.cells.filter((c) => c.region === 'wheel');
+  const spokeGroups = new Map<number, Cell[]>();
+  for (const cell of floor.cells.filter((c) => c.region === 'spoke')) {
+    const idx = cell.spokeIndex ?? 0;
+    const group = spokeGroups.get(idx) ?? [];
+    group.push(cell);
+    spokeGroups.set(idx, group);
+  }
+  if (hubCells.length > 0 && !isRegionLoop(neighbors, hubCells.map((c) => c.id))) {
+    return {
+      code: 'non-loop',
+      message: `${floor.label} must be a looping corridor.`,
+      floorId: floor.id,
+    };
+  }
+  if (wheelCells.length > 0 && !isRegionLoop(neighbors, wheelCells.map((c) => c.id))) {
+    return {
+      code: 'non-loop',
+      message: `${floor.label} must be a looping corridor.`,
+      floorId: floor.id,
+    };
+  }
+  const requiresWheel = shape.kind === 'hub-spoke-wheel';
+  for (const [spokeIndex, cells] of spokeGroups) {
+    if (!isSpokePath(neighbors, cells, requiresWheel)) {
+      return {
+        code: 'broken-spoke',
+        message: `${floor.label}: spoke ${spokeIndex + 1} is not a connected path.`,
+        floorId: floor.id,
+      };
+    }
+  }
+  return null;
 }
 
 export function validateLayout(board: Board): LayoutIssue[] {
@@ -32,13 +136,8 @@ export function validateLayout(board: Board): LayoutIssue[] {
       });
       continue;
     }
-    if (!orderCellsAlongLoop(floor.cells)) {
-      issues.push({
-        code: 'non-loop',
-        message: `${floor.label} must be a looping corridor.`,
-        floorId: floor.id,
-      });
-    }
+    const loopIssue = validateFloorLoop(floor);
+    if (loopIssue) issues.push(loopIssue);
     for (const cell of floor.cells) {
       if (cell.kind === 'stair') {
         const stair = board.stairs.find((s) => s.id === cell.stairId);

@@ -2,46 +2,152 @@ import type { Board } from './board';
 import { getFloor, listLegalStairLandings } from './board';
 import type { Rng } from './dice';
 import type { HoldState } from './hold';
-import type { Cell, TokenPos } from './types';
+import { inferShape } from './shape';
+import { layoutNeighbors } from './shape-layout';
+import type { Cell, Floor, TokenPos } from './types';
 
 export function sortedCells(floor: { cells: Cell[] }): Cell[] {
   return [...floor.cells].sort((a, b) => a.index - b.index);
 }
 
-export function walkSteps(floor: { cells: Cell[] }, fromCellId: string, steps: number): Cell | null {
-  const cells = sortedCells(floor);
-  if (cells.length === 0) return null;
-  const start = cells.findIndex((c) => c.id === fromCellId);
-  if (start < 0) return null;
-  const n = cells.length;
-  const idx = ((start + steps) % n + n) % n;
-  return cells[idx] ?? null;
+function usesGraph(floor: { cells: Cell[]; shape?: Floor['shape'] }): boolean {
+  const kind = inferShape(floor as Floor).kind;
+  return kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
 }
 
-export function forwardPathCells(floor: { cells: Cell[] }, fromCellId: string, toCellId: string): Cell[] {
+function graphLinks(floor: { cells: Cell[]; shape?: Floor['shape'] }) {
+  return layoutNeighbors(floor as Floor);
+}
+
+function nextOnGraph(
+  links: Map<string, { nextId?: string; prevId?: string; branchId?: string }>,
+  cellsById: Map<string, Cell>,
+  currentId: string,
+  prevId?: string,
+): string | undefined {
+  const current = links.get(currentId);
+  if (!current) return undefined;
+  if (current.branchId && (prevId === undefined || current.prevId === prevId)) {
+    return current.branchId;
+  }
+  if (prevId === current.branchId) {
+    return current.nextId;
+  }
+  if (!current.nextId) {
+    const prior = current.prevId ? links.get(current.prevId) : undefined;
+    const priorCell = prior?.prevId ? cellsById.get(prior.prevId) : undefined;
+    if (prior?.prevId && priorCell?.region === 'hub') {
+      return prior.prevId;
+    }
+    return current.prevId;
+  }
+  if (current.prevId && prevId === current.nextId) {
+    return current.prevId;
+  }
+  return current.nextId;
+}
+
+export function walkSteps(
+  floor: { cells: Cell[]; shape?: Floor['shape'] },
+  fromCellId: string,
+  steps: number,
+): Cell | null {
+  const cells = sortedCells(floor);
+  if (cells.length === 0) return null;
+  if (steps === 0) return cells.find((c) => c.id === fromCellId) ?? null;
+
+  if (!usesGraph(floor)) {
+    const start = cells.findIndex((c) => c.id === fromCellId);
+    if (start < 0) return null;
+    const n = cells.length;
+    const idx = ((start + steps) % n + n) % n;
+    return cells[idx] ?? null;
+  }
+
+  const links = graphLinks(floor);
+  const cellsById = new Map(cells.map((c) => [c.id, c]));
+  let currentId = fromCellId;
+  let prevId: string | undefined;
+  for (let i = 0; i < steps; i += 1) {
+    const nextId = nextOnGraph(links, cellsById, currentId, prevId);
+    if (!nextId) return null;
+    prevId = currentId;
+    currentId = nextId;
+  }
+  return cells.find((c) => c.id === currentId) ?? null;
+}
+
+export function forwardPathCells(
+  floor: { cells: Cell[]; shape?: Floor['shape'] },
+  fromCellId: string,
+  toCellId: string,
+): Cell[] {
   const cells = sortedCells(floor);
   const start = cells.findIndex((c) => c.id === fromCellId);
   const end = cells.findIndex((c) => c.id === toCellId);
   if (start < 0 || end < 0 || start === end) return [];
+
+  if (!usesGraph(floor)) {
+    const path: Cell[] = [];
+    let i = start;
+    do {
+      i = (i + 1) % cells.length;
+      const cell = cells[i];
+      if (cell) path.push(cell);
+    } while (i !== end);
+    return path;
+  }
+
+  const links = graphLinks(floor);
+  const cellsById = new Map(cells.map((c) => [c.id, c]));
   const path: Cell[] = [];
-  let i = start;
-  do {
-    i = (i + 1) % cells.length;
-    const cell = cells[i];
-    if (cell) path.push(cell);
-  } while (i !== end);
+  let currentId = fromCellId;
+  let prevId: string | undefined;
+  const cap = cells.length * 4;
+  for (let step = 0; step < cap; step += 1) {
+    const nextId = nextOnGraph(links, cellsById, currentId, prevId);
+    if (!nextId) break;
+    prevId = currentId;
+    currentId = nextId;
+    const cell = cells.find((c) => c.id === currentId);
+    if (!cell) break;
+    path.push(cell);
+    if (currentId === toCellId) break;
+  }
   return path;
 }
 
-export function forwardPathSteps(floor: { cells: Cell[] }, fromCellId: string, steps: number): Cell[] {
+export function forwardPathSteps(
+  floor: { cells: Cell[]; shape?: Floor['shape'] },
+  fromCellId: string,
+  steps: number,
+): Cell[] {
   const cells = sortedCells(floor);
   const start = cells.findIndex((c) => c.id === fromCellId);
   if (start < 0 || steps <= 0) return [];
+
+  if (!usesGraph(floor)) {
+    const path: Cell[] = [];
+    let i = start;
+    for (let step = 0; step < steps; step += 1) {
+      i = (i + 1) % cells.length;
+      const cell = cells[i];
+      if (cell) path.push(cell);
+    }
+    return path;
+  }
+
+  const links = graphLinks(floor);
+  const cellsById = new Map(cells.map((c) => [c.id, c]));
   const path: Cell[] = [];
-  let i = start;
+  let currentId = fromCellId;
+  let prevId: string | undefined;
   for (let step = 0; step < steps; step += 1) {
-    i = (i + 1) % cells.length;
-    const cell = cells[i];
+    const nextId = nextOnGraph(links, cellsById, currentId, prevId);
+    if (!nextId) break;
+    prevId = currentId;
+    currentId = nextId;
+    const cell = cells.find((c) => c.id === currentId);
     if (cell) path.push(cell);
   }
   return path;

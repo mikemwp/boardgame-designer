@@ -1,6 +1,7 @@
 'use client';
 
 import { FloorPreview } from '@/components/board/FloorPreview';
+import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { CellInspector } from '@/components/designer/CellInspector';
 import { DesignerPalette, type DesignerTool } from '@/components/designer/DesignerPalette';
 import { FloorTabs } from '@/components/designer/FloorTabs';
@@ -8,15 +9,18 @@ import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { ValidationList } from '@/components/designer/ValidationList';
 import {
   addFloor,
+  applyFloorShape,
   attachStair,
   clearStair,
   deleteFloor,
   eraseCell,
   linkStair,
   moveCell,
+  moveCellToSlot,
   nextCellId,
   nextFloorId,
   placeCorridor,
+  placeCorridorOnSlot,
   renameFloor,
   setCellPack,
   setStartCell,
@@ -24,6 +28,9 @@ import {
 import type { LayoutIssue } from '@/lib/designer/validate';
 import type { Board } from '@/lib/engine/board';
 import { cellAt, listPackIds } from '@/lib/engine/layout';
+import { normalizeShape } from '@/lib/engine/shape';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import { inferShape } from '@/lib/engine/shape';
 
 export function LayoutDesigner({
   board,
@@ -51,7 +58,10 @@ export function LayoutDesigner({
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
   if (!floor) return <p className="text-slate-400">This draft has no floors.</p>;
 
-  const activate = (col: number, row: number) => {
+  const shapeKind = inferShape(floor).kind;
+  const isPolar = shapeKind === 'circle' || shapeKind === 'hub-spoke' || shapeKind === 'hub-spoke-wheel';
+
+  const activateCartesian = (col: number, row: number) => {
     const existing = cellAt(floor, col, row);
     if (tool === 'erase') {
       if (existing) {
@@ -83,9 +93,49 @@ export function LayoutDesigner({
     onSelectCell(existing?.id ?? null);
   };
 
+  const activatePolar = (slotId: string) => {
+    const layout = buildShapeLayout(floor.shape!);
+    const slot = layout.slots.find((s) => s.id === slotId);
+    if (!slot) return;
+    const existing = floor.cells.find(
+      (c) =>
+        c.region === slot.region &&
+        (c.spokeIndex ?? -1) === (slot.spokeIndex ?? -1) &&
+        c.slot === slot.slot,
+    );
+    if (tool === 'erase') {
+      if (existing) {
+        onBoardChange(eraseCell(board, floor.id, existing.id));
+        onSelectCell(null);
+      }
+      return;
+    }
+    if (tool === 'corridor') {
+      if (existing) {
+        onSelectCell(existing.id);
+        return;
+      }
+      const id = nextCellId(floor);
+      onBoardChange(placeCorridorOnSlot(board, floor.id, slotId, id));
+      onSelectCell(id);
+      return;
+    }
+    if (tool === 'stair') {
+      if (!existing) return;
+      if (existing.kind === 'stair') {
+        onSelectCell(existing.id);
+        return;
+      }
+      onBoardChange(attachStair(board, floor.id, existing.id));
+      onSelectCell(existing.id);
+      return;
+    }
+    onSelectCell(existing?.id ?? null);
+  };
+
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_280px]">
-      <div className="flex flex-col gap-3">
+    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_16rem]">
+      <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
         <FloorTabs
           floors={board.floors}
           selectedFloorId={floor.id}
@@ -95,7 +145,7 @@ export function LayoutDesigner({
           }}
           onAdd={() => {
             const id = nextFloorId(board);
-            const next = addFloor(board, id, `Floor ${board.floors.length + 1}`);
+            const next = addFloor(board, id, `Floor ${board.floors.length + 1}`, floor.shape);
             onBoardChange(next);
             onSelectFloor(id);
             onSelectCell(null);
@@ -108,15 +158,27 @@ export function LayoutDesigner({
           }}
         />
         <DesignerPalette tool={tool} onToolChange={onToolChange} />
-        <LayoutGrid
-          floor={floor}
-          selectedCellId={selectedCellId ?? undefined}
-          onSlotActivate={activate}
-          onMoveCell={(cellId, col, row) => onBoardChange(moveCell(board, floor.id, cellId, col, row))}
+        <BoardShapeFields
+          shape={normalizeShape(floor.shape)}
+          onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
         />
+        <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+          <LayoutGrid
+            floor={floor}
+            selectedCellId={selectedCellId ?? undefined}
+            onSlotActivate={activateCartesian}
+            onMoveCell={(cellId, col, row) => onBoardChange(moveCell(board, floor.id, cellId, col, row))}
+            onSlotActivateId={isPolar ? activatePolar : undefined}
+            onMoveCellToSlot={
+              isPolar
+                ? (cellId, slotId) => onBoardChange(moveCellToSlot(board, floor.id, cellId, slotId))
+                : undefined
+            }
+          />
+        </div>
         <ValidationList issues={issues} />
       </div>
-      <aside className="flex flex-col gap-3">
+      <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
         <CellInspector
           board={board}
           floorId={floor.id}

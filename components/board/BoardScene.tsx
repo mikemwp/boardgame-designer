@@ -24,7 +24,10 @@ export function BoardScene({
   const physicsEnabled = usePhysics ?? false;
 
   return (
-    <div className="h-[480px] w-full rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+    <div
+      className="h-full min-h-0 w-full max-w-md overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
+      data-testid="board-frame"
+    >
       <PlayCanvasViewport usePhysics={physicsEnabled}>
         <BoardOrbitCamera board={game.board} />
         <Entity name="sun" rotation={[-55, 40, 0]}>

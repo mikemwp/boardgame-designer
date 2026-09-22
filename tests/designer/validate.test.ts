@@ -12,6 +12,36 @@ describe('validateLayout', () => {
     expect(canTestPlay(emptyBootstrap().board)).toBe(true);
   });
 
+  it('allows a default hub/spoke floor whose spoke ends do not loop', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, {
+      kind: 'hub-spoke',
+      hubTiles: 12,
+      spokeCount: 4,
+      spokeTiles: 6,
+    });
+    expect(validateLayout(createBoard([floor], [])).filter((i) => i.code === 'non-loop')).toEqual([]);
+    expect(canTestPlay(createBoard([floor], []))).toBe(true);
+  });
+
+  it('blocks a circle that is missing a wedge', () => {
+    let board = createBoard(
+      [createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 8 })],
+      [],
+    );
+    board = eraseCell(board, 'ground', board.floors[0]!.cells[0]!.id);
+    expect(validateLayout(board).some((i) => i.code === 'non-loop')).toBe(true);
+  });
+
+  it('blocks a broken spoke path and a non-looping hub', () => {
+    let board = createBoard(
+      [createLoopedFloor('ground', 'Ground', 0, { kind: 'hub-spoke' })],
+      [],
+    );
+    const spokeMid = board.floors[0]!.cells.find((c) => c.region === 'spoke' && c.slot === 2)!;
+    board = eraseCell(board, 'ground', spokeMid.id);
+    expect(validateLayout(board).some((i) => i.code === 'broken-spoke')).toBe(true);
+  });
+
   it('blocks a dangling stair and a broken loop, but the board is still a value', () => {
     const two = addFloor(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'floor-1', 'Floor 1');
     const dangling = attachStair(two, 'ground', 'ground-c3');
@@ -25,9 +55,9 @@ describe('validateLayout', () => {
     const broken = placeCorridor(
       createBoard([createLoopedFloor('ground', 'Ground', 0)], []),
       'ground',
-      7,
-      5,
-      'ground-c9',
+      0,
+      0,
+      'ground-c99',
     );
     expect(validateLayout(broken).some((i) => i.code === 'non-loop')).toBe(true);
   });

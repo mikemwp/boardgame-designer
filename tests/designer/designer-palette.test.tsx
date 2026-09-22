@@ -9,4 +9,11 @@ describe('DesignerPalette', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Corridor square' }));
     expect(onToolChange).toHaveBeenCalledWith('corridor');
   });
+
+  it('keeps tool names visible as button labels', () => {
+    render(<DesignerPalette tool="select" onToolChange={() => {}} />);
+    for (const name of ['Select', 'Corridor square', 'Stair', 'Erase']) {
+      expect(screen.getByRole('button', { name })).toBeDefined();
+    }
+  });
 });

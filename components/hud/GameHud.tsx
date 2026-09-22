@@ -75,8 +75,11 @@ export function GameHud({
   const spinner = game.config.movementViz === 'spinner';
 
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_280px]">
-      <div className="flex flex-col gap-4">
+    <div
+      className="grid h-full min-h-0 min-w-0 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,max-content)_minmax(0,16rem)]"
+      data-testid="test-hud"
+    >
+      <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden">
         <BoardScene
           game={game}
           allowSlide={shouldAllowTokenSlide(phase)}
@@ -112,7 +115,7 @@ export function GameHud({
           </Button>
         </div>
       </div>
-      <aside className="flex flex-col gap-4">
+      <aside className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto">
         <FeatureToggles config={game.config} onChange={updateConfig} />
         <CardPanel
           actionMode={game.config.actionMode}

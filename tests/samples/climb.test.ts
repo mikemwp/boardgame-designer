@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { climbSample, CLIMB_LABEL } from '@/lib/samples/climb';
 import { createGame, dispatch } from '@/lib/engine/game';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
+
+const climbLayout = buildShapeLayout({ kind: 'square', tilesPerSide: 3 });
 
 describe('climb sample', () => {
   it('is labeled as bundled sample only', () => {
@@ -11,6 +14,7 @@ describe('climb sample', () => {
     expect(climbSample.board.floors).toHaveLength(3);
     for (const floor of climbSample.board.floors) {
       expect(floor.cells).toHaveLength(8);
+      expect(floor.shape).toEqual({ kind: 'square', tilesPerSide: 3 });
     }
   });
 
@@ -41,16 +45,17 @@ describe('climb sample', () => {
     expect(next.lastRoll).not.toBeNull();
   });
 
-  it('bakes a start square on lobby-c0 and grid coords on every cell', () => {
+  it('bakes a start square on lobby-c0 and grid coords from the generator', () => {
     const lobby = climbSample.board.floors[0]!;
     expect(lobby.cells[0]?.id).toBe('lobby-c0');
     expect(lobby.cells[0]?.start).toBe(true);
-    expect(lobby.columns).toBe(8);
+    expect(lobby.columns).toBe(climbLayout.columns);
     for (const floor of climbSample.board.floors) {
-      expect(floor.hud).toEqual({ col: 2, row: 2, width: 4, height: 2 });
-      for (const cell of floor.cells) {
-        expect(typeof cell.col).toBe('number');
-        expect(typeof cell.row).toBe('number');
+      expect(floor.hud).toEqual(climbLayout.hud);
+      for (let i = 0; i < floor.cells.length; i += 1) {
+        const slot = climbLayout.slots[i]!;
+        expect(floor.cells[i]?.col).toBe(slot.col);
+        expect(floor.cells[i]?.row).toBe(slot.row);
       }
     }
     expect(climbSample.board.floors[1]?.cells.some((c) => c.start)).toBe(false);

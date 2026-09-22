@@ -1,6 +1,8 @@
 import { createBoard, type Board } from '@/lib/engine/board';
 import type { PlayerState } from '@/lib/engine/players';
-import type { Cell, Floor, HudRect } from '@/lib/engine/types';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import { DEFAULT_SHAPE, inferShape, normalizeShape } from '@/lib/engine/shape';
+import type { BoardShape, Cell, Floor, HudRect } from '@/lib/engine/types';
 
 export const DEFAULT_COLUMNS = 8;
 export const DEFAULT_ROWS = 7;
@@ -15,70 +17,25 @@ export function squareRingCellCount(tilesPerSide: number): number {
   return 4 * tilesPerSide - 4;
 }
 
-function walkSquareRing(
-  left: number,
-  top: number,
-  tilesPerSide: number,
-): Array<{ col: number; row: number }> {
-  const right = left + tilesPerSide - 1;
-  const bottom = top + tilesPerSide - 1;
-  const positions: Array<{ col: number; row: number }> = [];
-  for (let col = left; col <= right; col += 1) positions.push({ col, row: top });
-  for (let row = top + 1; row < bottom; row += 1) positions.push({ col: right, row });
-  for (let col = right; col >= left; col -= 1) positions.push({ col, row: bottom });
-  for (let row = bottom - 1; row > top; row -= 1) positions.push({ col: left, row });
-  return positions;
-}
-
-export function squareRingPositions(
-  hud: HudRect,
-  tilesPerSide: number,
-  columns = DEFAULT_COLUMNS,
-  rows = DEFAULT_ROWS,
-): Array<{ col: number; row: number }> {
-  if (tilesPerSide < 2) return [];
-  const floor: Floor = { id: '', index: 0, label: '', cells: [], hud };
-  const hudCenterCol = hud.col + hud.width / 2;
-  const hudCenterRow = hud.row + hud.height / 2;
-
-  let best: Array<{ col: number; row: number }> | null = null;
-  let bestDistance = Infinity;
-
-  for (let top = 0; top < rows; top += 1) {
-    for (let left = 0; left < columns; left += 1) {
-      const positions = walkSquareRing(left, top, tilesPerSide);
-      const inBounds = positions.every(
-        (pos) => pos.col >= 0 && pos.col < columns && pos.row >= 0 && pos.row < rows,
-      );
-      if (!inBounds) continue;
-      if (!positions.every((pos) => !isHudSlot(floor, pos.col, pos.row))) continue;
-
-      const ringCenterCol = left + (tilesPerSide - 1) / 2;
-      const ringCenterRow = top + (tilesPerSide - 1) / 2;
-      const distance =
-        Math.abs(ringCenterCol - hudCenterCol) + Math.abs(ringCenterRow - hudCenterRow);
-      if (distance < bestDistance) {
-        best = positions;
-        bestDistance = distance;
-      }
-    }
-  }
-
-  return best ?? walkSquareRing(0, 0, tilesPerSide);
-}
-
 export function defaultLoopPositions(
   cellCount = 8,
-  hud: HudRect = DEFAULT_HUD,
+  _hud: HudRect = DEFAULT_HUD,
 ): Array<{ col: number; row: number }> {
   const tilesPerSide = squareRingTilesPerSide(cellCount);
-  const ring = squareRingPositions(hud, tilesPerSide);
+  const layout = buildShapeLayout({ kind: 'square', tilesPerSide });
+  const positions = layout.slots.map((s) => ({ col: s.col!, row: s.row! }));
   const expected = squareRingCellCount(tilesPerSide);
-  if (cellCount === expected) return ring;
-  return ring.slice(0, cellCount);
+  if (cellCount === expected) return positions;
+  return positions.slice(0, cellCount);
+}
+
+function isPolarShape(floor: Floor): boolean {
+  const kind = floor.shape?.kind ?? inferShape(floor).kind;
+  return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
 }
 
 export function isHudSlot(floor: Floor, col: number, row: number): boolean {
+  if (isPolarShape(floor)) return false;
   const hud = floor.hud ?? DEFAULT_HUD;
   return (
     col >= hud.col &&
@@ -98,15 +55,19 @@ export function createLoopedFloor(
   id: string,
   label: string,
   index: number,
-  cellCount = 8,
+  shapeInput?: BoardShape,
 ): Floor {
-  const positions = defaultLoopPositions(cellCount);
-  const cells: Cell[] = positions.map((pos, i) => ({
+  const shape = normalizeShape(shapeInput);
+  const layout = buildShapeLayout(shape);
+  const cells: Cell[] = layout.slots.map((slot, i) => ({
     id: `${id}-c${i}`,
     index: i,
     kind: 'corridor',
-    col: pos.col,
-    row: pos.row,
+    col: slot.col,
+    row: slot.row,
+    region: slot.region,
+    spokeIndex: slot.spokeIndex,
+    slot: slot.slot,
     start: index === 0 && i === 0,
   }));
   return {
@@ -115,9 +76,10 @@ export function createLoopedFloor(
     label,
     holdEnabled: false,
     cells,
-    columns: DEFAULT_COLUMNS,
-    rows: DEFAULT_ROWS,
-    hud: { ...DEFAULT_HUD },
+    columns: layout.columns,
+    rows: layout.rows,
+    hud: { ...layout.hud },
+    shape,
   };
 }
 
@@ -171,16 +133,27 @@ export function retileFloor(floor: Floor): Floor {
 }
 
 export function ensureFloorLayout(floor: Floor): Floor {
-  const columns = floor.columns ?? DEFAULT_COLUMNS;
-  const rows = floor.rows ?? DEFAULT_ROWS;
-  const hud = floor.hud ?? { ...DEFAULT_HUD };
-  const positions = defaultLoopPositions(floor.cells.length, hud);
-  const cells = floor.cells.map((cell, i) => ({
-    ...cell,
-    col: cell.col ?? positions[i]?.col ?? 0,
-    row: cell.row ?? positions[i]?.row ?? 0,
-  }));
-  return retileFloor({ ...floor, columns, rows, hud, cells });
+  const shape = inferShape(floor);
+  const layout = buildShapeLayout(shape);
+  const cells = floor.cells.map((cell, i) => {
+    const slot = layout.slots[i];
+    return {
+      ...cell,
+      col: cell.col ?? slot?.col,
+      row: cell.row ?? slot?.row,
+      region: cell.region ?? slot?.region,
+      spokeIndex: cell.spokeIndex ?? slot?.spokeIndex,
+      slot: cell.slot ?? slot?.slot,
+    };
+  });
+  return retileFloor({
+    ...floor,
+    shape: floor.shape ?? shape,
+    columns: floor.columns ?? layout.columns,
+    rows: floor.rows ?? layout.rows,
+    hud: floor.hud ?? { ...layout.hud },
+    cells,
+  });
 }
 
 export function ensureBoardLayout(board: Board): Board {

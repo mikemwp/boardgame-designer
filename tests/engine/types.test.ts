@@ -53,4 +53,24 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(floor.hud?.col).toBe(2);
     expect(floor.cells[0]?.start).toBe(true);
   });
+
+  it('stores an optional board shape on the floor and region on the cell', () => {
+    const floor: Floor = {
+      id: 'ground',
+      index: 0,
+      label: 'Ground',
+      shape: { kind: 'square', tilesPerSide: 8 },
+      cells: [
+        {
+          id: 'ground-c0',
+          index: 0,
+          region: 'ring',
+          slot: 0,
+          start: true,
+        },
+      ],
+    };
+    expect(floor.shape?.kind).toBe('square');
+    expect(floor.cells[0]?.region).toBe('ring');
+  });
 });

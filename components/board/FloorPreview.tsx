@@ -21,7 +21,7 @@ export function FloorPreview({
 
   return (
     <div
-      className="h-[280px] w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-900 md:h-[360px]"
+      className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
       data-testid="floor-preview"
     >
       <PlayCanvasViewport usePhysics={false}>

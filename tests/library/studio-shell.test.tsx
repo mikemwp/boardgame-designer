@@ -54,7 +54,7 @@ describe('StudioShell', () => {
     renderStudio(storage, 'seed-1', '2026-09-21T13:00:00.000Z');
     fireEvent.click(screen.getByRole('button', { name: 'Corridor square' }));
     fireEvent.click(screen.getByRole('button', { name: 'Stair' }));
-    fireEvent.click(screen.getByTestId('slot-5-4'));
+    fireEvent.click(screen.getByTestId('slot-2-1'));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(screen.getByTestId('layout-issues').textContent).toContain('stair has no destination');
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
@@ -92,10 +92,29 @@ describe('StudioShell', () => {
     expect(screen.getByRole('button', { name: 'Lobby' })).toBeDefined();
   });
 
+  it('uses a viewport shell without overflow-x-auto', () => {
+    renderStudio();
+    const shell = screen.getByTestId('studio-shell');
+    expect(shell.className).toMatch(/overflow-hidden/);
+    expect(shell.className).not.toMatch(/overflow-x-auto/);
+  });
+
+  it('Save persists board shape on the library draft', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-22T15:00:00.000Z');
+    fireEvent.change(screen.getByLabelText('Board shape'), { target: { value: 'circle' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(reloaded.drafts[0]?.bootstrap.board.floors[0]?.shape).toEqual({
+      kind: 'circle',
+      tiles: 12,
+    });
+  });
+
   it('Save persists a pack attached in Design into storage', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-21T14:00:00.000Z');
-    fireEvent.click(screen.getByTestId('slot-3-4'));
+    fireEvent.click(screen.getByTestId('slot-1-1'));
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'climb' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });

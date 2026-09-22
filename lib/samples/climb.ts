@@ -1,16 +1,14 @@
 import { createBoard } from '@/lib/engine/board';
 import { createCardState } from '@/lib/engine/cards';
 import type { GameBootstrap } from '@/lib/engine/game';
-import {
-  defaultLoopPositions,
-  DEFAULT_COLUMNS,
-  DEFAULT_HUD,
-  DEFAULT_ROWS,
-} from '@/lib/engine/layout';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
 import type { Cell } from '@/lib/engine/types';
 
 export const CLIMB_LABEL = 'Climb (sample)';
+
+const climbShape = { kind: 'square' as const, tilesPerSide: 3 };
+const climbLayout = buildShapeLayout(climbShape);
 
 function loopCells(
   floorId: string,
@@ -18,18 +16,19 @@ function loopCells(
   packAt: number[],
   markStart: boolean,
 ): Cell[] {
-  const positions = defaultLoopPositions(8);
   return [0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
     const isStair = stairId !== null && index === 3;
-    const pos = positions[index]!;
+    const slot = climbLayout.slots[index]!;
     return {
       id: `${floorId}-c${index}`,
       index,
       kind: isStair ? 'stair' : 'corridor',
       stairId: isStair ? stairId : undefined,
       packId: !isStair && packAt.includes(index) ? 'climb' : undefined,
-      col: pos.col,
-      row: pos.row,
+      col: slot.col,
+      row: slot.row,
+      region: slot.region,
+      slot: slot.slot,
       start: markStart && index === 0,
     };
   });
@@ -41,9 +40,10 @@ const floors = [
     index: 0,
     label: 'Lobby',
     holdEnabled: false,
-    columns: DEFAULT_COLUMNS,
-    rows: DEFAULT_ROWS,
-    hud: { ...DEFAULT_HUD },
+    columns: climbLayout.columns,
+    rows: climbLayout.rows,
+    hud: { ...climbLayout.hud },
+    shape: climbShape,
     cells: loopCells('lobby', 's-lobby-f1', [1, 4], true),
   },
   {
@@ -52,9 +52,10 @@ const floors = [
     label: 'Floor 1',
     holdEnabled: true,
     holdQuotas: { climb: 1 },
-    columns: DEFAULT_COLUMNS,
-    rows: DEFAULT_ROWS,
-    hud: { ...DEFAULT_HUD },
+    columns: climbLayout.columns,
+    rows: climbLayout.rows,
+    hud: { ...climbLayout.hud },
+    shape: climbShape,
     cells: loopCells('f1', 's-f1-f2', [0, 2, 5], false),
   },
   {
@@ -62,9 +63,10 @@ const floors = [
     index: 2,
     label: 'Floor 2',
     holdEnabled: false,
-    columns: DEFAULT_COLUMNS,
-    rows: DEFAULT_ROWS,
-    hud: { ...DEFAULT_HUD },
+    columns: climbLayout.columns,
+    rows: climbLayout.rows,
+    hud: { ...climbLayout.hud },
+    shape: climbShape,
     cells: loopCells('f2', null, [1, 4], false),
   },
 ];

@@ -2,6 +2,53 @@ export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
 export type CellKind = 'corridor' | 'stair';
 
+export type CellRegion = 'ring' | 'hub' | 'spoke' | 'wheel';
+
+export type ShapeKind =
+  | 'square'
+  | 'rectangle'
+  | 'circle'
+  | 'hub-spoke'
+  | 'hub-spoke-wheel';
+
+export interface SquareShape {
+  kind: 'square';
+  tilesPerSide: number;
+}
+
+export interface RectangleShape {
+  kind: 'rectangle';
+  length: number;
+  width: number;
+}
+
+export interface CircleShape {
+  kind: 'circle';
+  tiles: number;
+}
+
+export interface HubSpokeShape {
+  kind: 'hub-spoke';
+  hubTiles: number;
+  spokeCount: number;
+  spokeTiles: number;
+}
+
+export interface HubSpokeWheelShape {
+  kind: 'hub-spoke-wheel';
+  hubTiles: number;
+  spokeCount: number;
+  spokeTiles: number;
+  wheelTiles: number;
+}
+
+export type BoardShape =
+  | SquareShape
+  | RectangleShape
+  | CircleShape
+  | HubSpokeShape
+  | HubSpokeWheelShape;
+
 export interface HudRect {
   col: number;
   row: number;
@@ -17,6 +64,9 @@ export interface Cell {
   stairId?: string;
   col?: number;
   row?: number;
+  region?: CellRegion;
+  spokeIndex?: number;
+  slot?: number;
   start?: boolean;
 }
 
@@ -38,6 +88,7 @@ export interface Floor {
   columns?: number;
   rows?: number;
   hud?: HudRect;
+  shape?: BoardShape;
 }
 
 export interface TokenPos {

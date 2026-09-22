@@ -16,14 +16,23 @@ describe('LayoutGrid', () => {
         onMoveCell={onMoveCell}
       />,
     );
-    fireEvent.click(screen.getByTestId('slot-0-4'));
-    expect(onSlotActivate).toHaveBeenCalledWith(0, 4);
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    expect(onSlotActivate).toHaveBeenCalledWith(0, 0);
     onSlotActivate.mockClear();
-    fireEvent.click(screen.getByTestId(`slot-${floor.hud!.col}-${floor.hud!.row}`));
+    fireEvent.click(screen.getByTestId('slot-4-4'));
     expect(onSlotActivate).not.toHaveBeenCalled();
     expect(screen.getAllByLabelText('HUD — drops blocked').length).toBeGreaterThan(0);
-    fireEvent.pointerDown(screen.getByTestId('slot-3-5'));
-    fireEvent.pointerUp(screen.getByTestId('slot-1-1'));
-    expect(onMoveCell).toHaveBeenCalledWith('ground-c7', 1, 1);
+    fireEvent.pointerDown(screen.getByTestId('slot-1-8'));
+    fireEvent.pointerUp(screen.getByTestId('slot-0-0'));
+    expect(onMoveCell).toHaveBeenCalledWith('ground-c21', 0, 0);
+  });
+
+  it('renders circle wedges as slots and does not set overflow-x-auto', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 8 });
+    const { container } = render(
+      <LayoutGrid floor={floor} onSlotActivate={() => {}} onMoveCell={() => {}} />,
+    );
+    expect(screen.getByTestId('slot-ring-0')).toBeDefined();
+    expect(container.querySelector('[aria-label="Layout grid"]')?.className ?? '').not.toMatch(/overflow-x-auto/);
   });
 });

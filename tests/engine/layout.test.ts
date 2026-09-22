@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createBoard } from '@/lib/engine/board';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import {
-  DEFAULT_COLUMNS,
-  DEFAULT_HUD,
-  DEFAULT_ROWS,
   applyStartToPlayers,
   areAdjacent,
   cellAt,
@@ -19,34 +17,29 @@ import {
 } from '@/lib/engine/layout';
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
 
+const square3Positions = buildShapeLayout({ kind: 'square', tilesPerSide: 3 }).slots.map((s) => ({
+  col: s.col!,
+  row: s.row!,
+}));
+
 describe('defaultLoopPositions', () => {
   it('builds a square ring with equal sides around the HUD', () => {
-    expect(defaultLoopPositions(8)).toEqual([
-      { col: 3, row: 4 },
-      { col: 4, row: 4 },
-      { col: 5, row: 4 },
-      { col: 5, row: 5 },
-      { col: 5, row: 6 },
-      { col: 4, row: 6 },
-      { col: 3, row: 6 },
-      { col: 3, row: 5 },
-    ]);
+    expect(defaultLoopPositions(8)).toEqual(square3Positions);
   });
 });
 
 describe('createLoopedFloor', () => {
-  it('uses the default grid, keeps cells off the HUD, and marks start on floor 0', () => {
+  it('uses the default square 8 shape, keeps cells off the HUD, and marks start on floor 0', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    expect(floor.columns).toBe(DEFAULT_COLUMNS);
-    expect(floor.rows).toBe(DEFAULT_ROWS);
-    expect(floor.hud).toEqual(DEFAULT_HUD);
-    expect(floor.cells).toHaveLength(8);
+    expect(floor.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
+    expect(floor.columns).toBe(10);
+    expect(floor.rows).toBe(10);
+    expect(floor.cells).toHaveLength(28);
     expect(floor.cells[0]).toMatchObject({
       id: 'ground-c0',
       index: 0,
       kind: 'corridor',
-      col: 3,
-      row: 4,
+      region: 'ring',
       start: true,
     });
     for (const cell of floor.cells) {
@@ -65,28 +58,33 @@ describe('ensureBoardLayout', () => {
           id: 'f0',
           index: 0,
           label: 'Lobby',
-          cells: [
-            { id: 'a', index: 0 },
-            { id: 'b', index: 1 },
-            { id: 'c', index: 2 },
-            { id: 'd', index: 3 },
-            { id: 'e', index: 4 },
-            { id: 'f', index: 5, col: 7, row: 5 },
-          ],
+          cells: Array.from({ length: 8 }, (_, i) =>
+            i === 5 ? { id: 'f', index: 5, col: 7, row: 5 } : { id: String.fromCharCode(97 + i), index: i },
+          ),
         },
       ],
       [],
     );
     const ensured = ensureBoardLayout(board);
-    expect(ensured.floors[0]?.columns).toBe(8);
+    expect(ensured.floors[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 3 });
     expect(ensured.floors[0]?.cells[0]).toMatchObject({
       id: 'a',
-      col: 3,
-      row: 4,
+      col: square3Positions[0]!.col,
+      row: square3Positions[0]!.row,
       start: true,
     });
     expect(ensured.floors[0]?.cells[5]).toMatchObject({ col: 7, row: 5 });
     expect(board.floors[0]?.cells[0]?.col).toBeUndefined();
+  });
+
+  it('infers square 3 on an old 8-cell draft and does not move placed cells', () => {
+    const ensured = ensureBoardLayout(
+      createBoard(
+        [{ id: 'f0', index: 0, label: 'L', cells: Array.from({ length: 8 }, (_, i) => ({ id: `a${i}`, index: i })) }],
+        [],
+      ),
+    );
+    expect(ensured.floors[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 3 });
   });
 });
 
@@ -95,25 +93,17 @@ describe('areAdjacent and cellAt', () => {
     expect(areAdjacent({ col: 0, row: 0 }, { col: 1, row: 0 })).toBe(true);
     expect(areAdjacent({ col: 0, row: 0 }, { col: 1, row: 1 })).toBe(false);
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    expect(cellAt(floor, 5, 4)?.id).toBe('ground-c2');
+    expect(cellAt(floor, 1, 1)?.id).toBe('ground-c0');
     expect(cellAt(floor, 3, 0)).toBeUndefined();
   });
 });
 
 describe('orderCellsAlongLoop', () => {
-  it('rewrites index around the start cell for the default 6-loop', () => {
+  it('rewrites index around the start cell for the default square 8 loop', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     const ordered = orderCellsAlongLoop(floor.cells);
-    expect(ordered?.map((c) => c.id)).toEqual([
-      'ground-c0',
-      'ground-c1',
-      'ground-c2',
-      'ground-c3',
-      'ground-c4',
-      'ground-c5',
-      'ground-c6',
-      'ground-c7',
-    ]);
+    expect(ordered).toHaveLength(28);
+    expect(ordered?.[0]?.id).toBe('ground-c0');
     expect(ordered?.every((c, i) => c.index === i)).toBe(true);
   });
 
@@ -121,10 +111,10 @@ describe('orderCellsAlongLoop', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     floor.cells.push({
       id: 'ground-c9',
-      index: 9,
+      index: 29,
       kind: 'corridor',
-      col: 7,
-      row: 5,
+      col: 0,
+      row: 0,
     });
     expect(orderCellsAlongLoop(floor.cells)).toBeNull();
   });

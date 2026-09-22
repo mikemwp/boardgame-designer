@@ -31,6 +31,12 @@ describe('GameHud', () => {
     vi.useRealTimers();
   });
 
+  it('does not stretch the test canvas with a full-width 480px frame', () => {
+    const { container } = render(<GameHud bootstrap={climbSample} />);
+    expect(screen.getByTestId('test-hud').className).toMatch(/overflow-hidden/);
+    expect(container.querySelector('.h-\\[480px\\]')).toBeNull();
+  });
+
   it('has Roll dice and no Climb stair debug control', () => {
     render(<GameHud bootstrap={climbSample} />);
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();

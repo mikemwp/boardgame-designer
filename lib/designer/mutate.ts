@@ -6,12 +6,25 @@ import {
   isHudSlot,
   retileFloor,
 } from '@/lib/engine/layout';
-import type { Floor } from '@/lib/engine/types';
+import { normalizeShape } from '@/lib/engine/shape';
+import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import type { BoardShape, Floor } from '@/lib/engine/types';
 
 function mapFloor(board: Board, floorId: string, fn: (floor: Floor) => Floor): Board {
   return createBoard(
     board.floors.map((floor) => (floor.id === floorId ? retileFloor(fn(floor)) : floor)),
     board.stairs,
+  );
+}
+
+function cellOccupiesSlot(
+  cell: { region?: string; spokeIndex?: number; slot?: number },
+  slot: { region: string; spokeIndex?: number; slot: number },
+): boolean {
+  return (
+    cell.region === slot.region &&
+    (cell.spokeIndex ?? -1) === (slot.spokeIndex ?? -1) &&
+    cell.slot === slot.slot
   );
 }
 
@@ -25,6 +38,39 @@ export function nextFloorId(board: Board): string {
   let i = board.floors.length;
   while (board.floors.some((floor) => floor.id === `floor-${i}`)) i += 1;
   return `floor-${i}`;
+}
+
+export function applyFloorShape(board: Board, floorId: string, shapeInput: BoardShape): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  if (!floor) return board;
+  const template = createLoopedFloor(floor.id, floor.label, floor.index, shapeInput);
+  const mapped = template.cells.map((cell, i) => {
+    const prev = floor.cells[i];
+    if (!prev) return cell;
+    return {
+      ...cell,
+      kind: prev.kind,
+      packId: prev.kind === 'stair' ? undefined : prev.packId,
+      stairId: prev.stairId,
+      start: prev.start,
+    };
+  });
+  const keepStairIds = new Set(mapped.map((c) => c.stairId).filter(Boolean) as string[]);
+  const stairs = board.stairs.filter(
+    (s) => s.fromFloorId !== floorId || keepStairIds.has(s.id),
+  );
+  const hasStart = mapped.some((c) => c.start);
+  const cells = hasStart
+    ? mapped
+    : mapped.map((c, i) => (i === 0 ? { ...c, start: true } : { ...c, start: false }));
+  return createBoard(
+    board.floors.map((f) =>
+      f.id === floorId
+        ? { ...template, cells, holdEnabled: floor.holdEnabled, holdQuotas: floor.holdQuotas }
+        : f,
+    ),
+    stairs,
+  );
 }
 
 export function placeCorridor(
@@ -53,6 +99,36 @@ export function placeCorridor(
   }));
 }
 
+export function placeCorridorOnSlot(
+  board: Board,
+  floorId: string,
+  slotId: string,
+  cellId: string,
+): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  if (!floor?.shape) return board;
+  const layout = buildShapeLayout(floor.shape);
+  const slot = layout.slots.find((s) => s.id === slotId);
+  if (!slot) return board;
+  if (floor.cells.some((c) => cellOccupiesSlot(c, slot))) return board;
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: [
+      ...current.cells,
+      {
+        id: cellId,
+        index: current.cells.length,
+        kind: 'corridor' as const,
+        region: slot.region,
+        spokeIndex: slot.spokeIndex,
+        slot: slot.slot,
+        col: slot.col,
+        row: slot.row,
+      },
+    ],
+  }));
+}
+
 export function moveCell(
   board: Board,
   floorId: string,
@@ -67,6 +143,35 @@ export function moveCell(
   return mapFloor(board, floorId, (current) => ({
     ...current,
     cells: current.cells.map((cell) => (cell.id === cellId ? { ...cell, col, row } : cell)),
+  }));
+}
+
+export function moveCellToSlot(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  slotId: string,
+): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  if (!floor?.shape) return board;
+  const layout = buildShapeLayout(floor.shape);
+  const slot = layout.slots.find((s) => s.id === slotId);
+  if (!slot) return board;
+  if (floor.cells.some((c) => c.id !== cellId && cellOccupiesSlot(c, slot))) return board;
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((cell) =>
+      cell.id === cellId
+        ? {
+            ...cell,
+            region: slot.region,
+            spokeIndex: slot.spokeIndex,
+            slot: slot.slot,
+            col: slot.col,
+            row: slot.row,
+          }
+        : cell,
+    ),
   }));
 }
 
@@ -124,9 +229,10 @@ export function setStartCell(board: Board, floorId: string, cellId: string): Boa
   );
 }
 
-export function addFloor(board: Board, id: string, label: string): Board {
+export function addFloor(board: Board, id: string, label: string, shape?: BoardShape): Board {
   if (board.floors.some((floor) => floor.id === id)) return board;
-  const floor = createLoopedFloor(id, label, board.floors.length);
+  const shapeInput = normalizeShape(shape ?? board.floors.at(-1)?.shape);
+  const floor = createLoopedFloor(id, label, board.floors.length, shapeInput);
   return createBoard([...board.floors, floor], board.stairs);
 }
 
