@@ -15,9 +15,11 @@ export function isRollLocked(opts: {
   tokenSliding: boolean;
   awaitingAction: boolean;
   movementVizActive?: boolean;
+  cardHoldActive?: boolean;
 }): boolean {
   if (opts.movementVizActive) return true;
   if (opts.tokenSliding) return true;
+  if (opts.cardHoldActive) return true;
   return opts.awaitingAction;
 }
 

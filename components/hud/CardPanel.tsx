@@ -14,6 +14,8 @@ export function CardPanel({
   awaitingAction = false,
   passesEnabled = false,
   passesLeftByPack = {},
+  timerLabel,
+  onExtra,
   onDispatch,
 }: {
   actionMode: ActionMode;
@@ -22,12 +24,15 @@ export function CardPanel({
   awaitingAction?: boolean;
   passesEnabled?: boolean;
   passesLeftByPack?: Record<string, number>;
+  timerLabel?: string;
+  onExtra?: () => void;
   onDispatch: (cmd: GameCommand) => void;
 }) {
   const actions = awaitingAction ? allowedActions(actionMode) : [];
   const showPass = currentCard
     ? passActionAllowed(actionMode, passesEnabled, passesLeftByPack, currentCard.pack)
     : false;
+  const extraLabel = currentCard?.extraButton?.trim();
   if (!currentCard) return <p className="text-slate-400">No card drawn</p>;
   return (
     <Card>
@@ -35,6 +40,12 @@ export function CardPanel({
       <CardContent className="flex flex-col gap-3">
         {bodyVisible && currentCard.body ? (
           <p className="text-sm text-slate-300">{currentCard.body}</p>
+        ) : null}
+        {timerLabel != null ? (
+          <p data-testid="card-timer">{timerLabel}</p>
+        ) : null}
+        {bodyVisible && extraLabel ? (
+          <Button onClick={() => onExtra?.()}>{extraLabel}</Button>
         ) : null}
         {actions.length > 0 ? (
           <div className="flex gap-2">

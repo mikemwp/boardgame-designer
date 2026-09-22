@@ -49,7 +49,13 @@ describe('isRollLocked', () => {
   it('unlocks after Pass', () => {
     expect(isRollLocked({ tokenSliding: false, awaitingAction: false })).toBe(false);
   });
+
+  it('locks while a card timer or extra button is still holding', () => {
+    expect(isRollLocked({ tokenSliding: false, awaitingAction: false, cardHoldActive: true })).toBe(true);
+    expect(isRollLocked({ tokenSliding: false, awaitingAction: false, cardHoldActive: false })).toBe(false);
+  });
 });
+
 
 describe('shouldShowDealtCard', () => {
   it('hides the card while sliding', () => {

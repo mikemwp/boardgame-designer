@@ -70,4 +70,22 @@ describe('CardPanel', () => {
     );
     expect(screen.getByText('Secret clue')).toBeDefined();
   });
+
+  it('shows extra button and timer after the body is visible', () => {
+    const onExtra = vi.fn();
+    render(
+      <CardPanel
+        actionMode="neither"
+        currentCard={{ id: '1', pack: 'climb', title: 'Rung', body: 'Clue', extraButton: 'Done' }}
+        bodyVisible
+        timerLabel="0:12"
+        onExtra={onExtra}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(screen.getByTestId('card-timer').textContent).toBe('0:12');
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onExtra).toHaveBeenCalled();
+  });
 });
+

@@ -84,4 +84,46 @@ describe('GameHud', () => {
     expect(screen.getByTestId('hud-spinner')).toBeDefined();
     expect(screen.getByLabelText(/Spinner showing/)).toBeDefined();
   });
+
+  it('keeps Roll locked on a timer card until the timer elapses', () => {
+    const bootstrap = {
+      ...climbSample,
+      rng: () => 0,
+      config: { ...climbSample.config, actionMode: 'neither' as const },
+      cards: {
+        ...climbSample.cards,
+        deck: [{ id: 't1', pack: 'climb', title: 'Timed', body: 'Wait', timerSeconds: 2 }],
+      },
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Roll dice' }));
+    act(() => { vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS); });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    expect(screen.getByTestId('card-timer')).toBeDefined();
+    expect(roll).toHaveProperty('disabled', true);
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(roll).toHaveProperty('disabled', false);
+  });
+
+  it('unlocks Roll when the extra button is pressed', () => {
+    const bootstrap = {
+      ...climbSample,
+      rng: () => 0,
+      config: { ...climbSample.config, actionMode: 'neither' as const },
+      cards: {
+        ...climbSample.cards,
+        deck: [{ id: 't1', pack: 'climb', title: 'Extra', body: 'Tap', extraButton: 'Done' }],
+      },
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Roll dice' }));
+    act(() => { vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS); });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(roll).toHaveProperty('disabled', false);
+  });
 });
+

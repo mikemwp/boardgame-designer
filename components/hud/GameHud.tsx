@@ -21,6 +21,7 @@ import {
   shouldAllowTokenSlide,
   type MovementPhase,
 } from '@/lib/view/hud-movement';
+import { formatCardTimer, isCardHoldActive } from '@/lib/view/card-hold';
 import { isRollLocked, shouldShowDealtCard } from '@/lib/view/turn-loop';
 
 export function GameHud({
@@ -38,6 +39,8 @@ export function GameHud({
   }, [game, onStateChange]);
   const [tokenSliding, setTokenSliding] = useState(false);
   const [phase, setPhase] = useState<MovementPhase>('idle');
+  const [cardHoldReleased, setCardHoldReleased] = useState(false);
+  const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
   const seenRollId = useRef(0);
   const holdFloor = game.board.floors.find((f) => f.id === game.hold?.floorId);
   const activePlayer = game.players.players.find((p) => p.id === game.players.activePlayerId);
@@ -50,11 +53,6 @@ export function GameHud({
     setPhase(phaseAfterNewRoll(roll.value));
   }, [game.lastRoll]);
 
-  const rollLocked = isRollLocked({
-    tokenSliding,
-    awaitingAction: game.cards.awaitingAction,
-    movementVizActive,
-  });
   const visibleCard = shouldShowDealtCard({
     tokenSliding,
     currentCard: game.cards.currentCard,
@@ -62,6 +60,41 @@ export function GameHud({
   })
     ? game.cards.currentCard
     : null;
+
+  useEffect(() => {
+    setCardHoldReleased(false);
+  }, [visibleCard?.id]);
+
+  const cardHoldActive = isCardHoldActive({
+    currentCard: visibleCard,
+    bodyVisible: game.cards.bodyVisible,
+    released: cardHoldReleased,
+  });
+  const rollLocked = isRollLocked({
+    tokenSliding,
+    awaitingAction: game.cards.awaitingAction,
+    movementVizActive,
+    cardHoldActive,
+  });
+
+  const timerSeconds = visibleCard?.timerSeconds ?? 0;
+  const timerRunning = timerSeconds > 0 && game.cards.bodyVisible && !cardHoldReleased;
+
+  useEffect(() => {
+    if (!timerRunning) {
+      setTimerRemaining(null);
+      return;
+    }
+    setTimerRemaining(timerSeconds);
+    const timeout = setTimeout(() => setCardHoldReleased(true), timerSeconds * 1000);
+    const interval = setInterval(() => {
+      setTimerRemaining((prev) => (prev == null ? prev : Math.max(0, prev - 1)));
+    }, 1000);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [timerRunning, timerSeconds]);
 
   const onTokenSlideStart = useCallback(() => setTokenSliding(true), []);
   const onTumbleComplete = useCallback(() => {
@@ -124,6 +157,8 @@ export function GameHud({
           awaitingAction={game.cards.awaitingAction}
           passesEnabled={game.config.passesEnabled}
           passesLeftByPack={activePlayer?.passesLeftByPack ?? {}}
+          timerLabel={timerRemaining != null ? formatCardTimer(timerRemaining) : undefined}
+          onExtra={() => setCardHoldReleased(true)}
           onDispatch={dispatch}
         />
       </aside>
