@@ -38,6 +38,21 @@ describe('LayoutGrid', () => {
     expect(onMoveCell).toHaveBeenCalledWith('ground-c21', 1, 1);
   });
 
+  it('labels room and door tiles on the cartesian grid', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const neighbor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const withRooms = {
+      ...floor,
+      cells: [
+        ...floor.cells.map((c) => (c.id === neighbor.id ? { ...c, kind: 'door' as const } : c)),
+        { id: 'ground-room', index: 99, kind: 'room' as const, col: 1, row: 1 },
+      ],
+    };
+    render(<LayoutGrid floor={withRooms} onSlotActivate={() => {}} onMoveCell={() => {}} />);
+    expect(screen.getByText('Room')).toBeDefined();
+    expect(screen.getByText('Door')).toBeDefined();
+  });
+
   it('renders an erased HUD square as empty, not as the word HUD', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     const hud = floor.cells.find((c) => c.kind === 'hud')!;

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { LayoutDesigner } from '@/components/designer/LayoutDesigner';
 import { createBoard } from '@/lib/engine/board';
+import type { Board } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
 
 vi.mock('@/components/board/FloorPreview', () => ({
@@ -258,6 +259,48 @@ describe('LayoutDesigner', () => {
           c.kind === 'corridor' && c.col === hud.col && c.row === hud.row,
       ),
     ).toBe(true);
+  });
+
+  it('places a room then a door from the palette tools', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const { rerender } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="room"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    expect(onBoardChange).toHaveBeenCalled();
+    const afterRoom = onBoardChange.mock.calls[0][0] as Board;
+    expect(afterRoom.floors[0]?.cells.some((c) => c.kind === 'room' && c.col === 1 && c.row === 1)).toBe(true);
+
+    const neighbor = afterRoom.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
+    rerender(
+      <LayoutDesigner
+        board={afterRoom}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={neighbor.id}
+        tool="door"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(`slot-${neighbor.col}-${neighbor.row}`));
+    const afterDoor = onBoardChange.mock.calls.at(-1)![0] as Board;
+    expect(afterDoor.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('door');
   });
 
   it('creates a pack from the Packs tab so Tile Actions can assign it', () => {

@@ -25,6 +25,8 @@ export function FloorStack({
 }) {
   const corridorMat = useMaterial({ diffuse: '#94a3b8', emissive: '#475569', emissiveIntensity: 0.9 });
   const stairMat = useMaterial({ diffuse: '#f59e0b', emissive: '#b45309', emissiveIntensity: 0.8 });
+  const roomMat = useMaterial({ diffuse: '#14b8a6', emissive: '#0f766e', emissiveIntensity: 0.8 });
+  const doorMat = useMaterial({ diffuse: '#818cf8', emissive: '#4338ca', emissiveIntensity: 0.8 });
   const selectedMat = useMaterial({ diffuse: '#38bdf8', emissive: '#0369a1', emissiveIntensity: 0.9 });
   const seamMat = useMaterial({ diffuse: '#1e293b', emissive: '#0f172a', emissiveIntensity: 1.2 });
   const floors = board.floors ?? [];
@@ -35,9 +37,16 @@ export function FloorStack({
         const polar = isPolarFloor(floor);
         return floor.cells.map((cell, cellIndex) => {
           const pos = cellToWorld(floor.index, cell, floor.hud, floor);
-          const stair = cell.kind === 'stair';
           const selected = cell.id === selectedCellId;
-          const material = selected ? selectedMat : stair ? stairMat : corridorMat;
+          const material = selected
+            ? selectedMat
+            : cell.kind === 'stair'
+              ? stairMat
+              : cell.kind === 'room'
+                ? roomMat
+                : cell.kind === 'door'
+                  ? doorMat
+                  : corridorMat;
           const polygon = polar ? slotPolygon(floor, cell) : [];
           const seams = polar && polygon.length > 0
             ? tileSeamEdgesFromPolygon(pos.y, polygon)

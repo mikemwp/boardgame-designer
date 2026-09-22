@@ -24,7 +24,10 @@ import {
   nextLevelLabel,
   placeCorridor,
   placeCorridorOnSlot,
+  placeDoor,
   placeHud,
+  placeRoom,
+  clearDoor,
   renameFloor,
   setCellPack,
   setEndCell,
@@ -114,6 +117,26 @@ export function LayoutDesigner({
       const id = nextCellId(floor);
       onBoardChange(placeHud(board, floor.id, col, row, id));
       onSelectCell(id);
+      return;
+    }
+    if (tool === 'room') {
+      if (existing) {
+        onSelectCell(existing.id);
+        return;
+      }
+      const id = nextCellId(floor);
+      onBoardChange(placeRoom(board, floor.id, col, row, id));
+      onSelectCell(id);
+      return;
+    }
+    if (tool === 'door') {
+      if (!existing) return;
+      if (existing.kind === 'door') {
+        onSelectCell(existing.id);
+        return;
+      }
+      onBoardChange(placeDoor(board, floor.id, existing.id));
+      onSelectCell(existing.id);
       return;
     }
     if (tool === 'stair') {
@@ -278,6 +301,10 @@ export function LayoutDesigner({
             onClearStair={() => {
               if (!selectedCellId) return;
               onBoardChange(clearStair(board, floor.id, selectedCellId));
+            }}
+            onClearDoor={() => {
+              if (!selectedCellId) return;
+              onBoardChange(clearDoor(board, floor.id, selectedCellId));
             }}
           />
           ) : (

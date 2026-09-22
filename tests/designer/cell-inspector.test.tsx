@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { CellInspector } from '@/components/designer/CellInspector';
 import { createBoard } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
-import { addFloor, attachStair } from '@/lib/designer/mutate';
+import { addFloor, attachStair, placeDoor, placeRoom } from '@/lib/designer/mutate';
 
 describe('CellInspector', () => {
   it('labels the pane Tile Actions and sets pack and start on a corridor', () => {
@@ -94,6 +94,55 @@ describe('CellInspector', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
+  });
+
+  it('assigns a pack on a room and explains door landings', () => {
+    const onSetPack = vi.fn();
+    const onClearDoor = vi.fn();
+    let board = placeRoom(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 1, 1, 'ground-room');
+    const neighbor = board.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
+    board = placeDoor(board, 'ground', neighbor.id);
+    const { rerender } = render(
+      <CellInspector
+        board={board}
+        floorId="ground"
+        cellId="ground-room"
+        packIds={['notes']}
+        onSetPack={onSetPack}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        onClearDoor={onClearDoor}
+      />,
+    );
+    expect(screen.getByText('Room')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Make stair' })).toBeNull();
+    fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'notes' } });
+    expect(onSetPack).toHaveBeenCalledWith('notes');
+
+    rerender(
+      <CellInspector
+        board={board}
+        floorId="ground"
+        cellId={neighbor.id}
+        packIds={['notes']}
+        onSetPack={onSetPack}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        onClearDoor={onClearDoor}
+      />,
+    );
+    expect(screen.getByText('Door')).toBeDefined();
+    expect(screen.getByText("Landing here deals the adjacent room's pack.")).toBeDefined();
+    expect(screen.queryByLabelText('Pack')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Convert to tile' }));
+    expect(onClearDoor).toHaveBeenCalled();
   });
 
   it('links a dangling stair to another level', () => {

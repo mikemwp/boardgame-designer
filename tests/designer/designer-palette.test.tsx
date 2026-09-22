@@ -12,7 +12,7 @@ describe('DesignerPalette', () => {
 
   it('keeps tool names visible as button labels', () => {
     render(<DesignerPalette tool="select" onToolChange={() => {}} />);
-    for (const name of ['Select', 'Tile', 'HUD', 'Stair', 'Erase']) {
+    for (const name of ['Select', 'Tile', 'Room', 'Door', 'HUD', 'Stair', 'Erase']) {
       expect(screen.getByRole('button', { name })).toBeDefined();
     }
   });

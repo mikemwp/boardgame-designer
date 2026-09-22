@@ -2,11 +2,13 @@
 
 import { Button } from '@/components/ui/button';
 
-export type DesignerTool = 'select' | 'corridor' | 'stair' | 'hud' | 'erase';
+export type DesignerTool = 'select' | 'corridor' | 'room' | 'door' | 'stair' | 'hud' | 'erase';
 
 const TOOLS: Array<{ id: DesignerTool; label: string }> = [
   { id: 'select', label: 'Select' },
   { id: 'corridor', label: 'Tile' },
+  { id: 'room', label: 'Room' },
+  { id: 'door', label: 'Door' },
   { id: 'hud', label: 'HUD' },
   { id: 'stair', label: 'Stair' },
   { id: 'erase', label: 'Erase' },

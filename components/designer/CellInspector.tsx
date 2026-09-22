@@ -8,8 +8,15 @@ import type { Cell } from '@/lib/engine/types';
 
 function endTileLabel(cell: Cell): string {
   if (cell.kind === 'stair') return 'End stair';
-  if (cell.region === 'hub') return 'End room';
+  if (cell.kind === 'room' || cell.region === 'hub') return 'End room';
   return 'End tile';
+}
+
+function cellHeading(cell: Cell): string {
+  if (cell.kind === 'stair') return 'Stair';
+  if (cell.kind === 'room') return 'Room';
+  if (cell.kind === 'door') return 'Door';
+  return 'Tile';
 }
 
 export function CellInspector({
@@ -23,6 +30,7 @@ export function CellInspector({
   onAttachStair,
   onLinkStair,
   onClearStair,
+  onClearDoor,
 }: {
   board: Board;
   floorId: string;
@@ -34,6 +42,7 @@ export function CellInspector({
   onAttachStair: () => void;
   onLinkStair: (toFloorId: string, toCellId: string) => void;
   onClearStair: () => void;
+  onClearDoor?: () => void;
 }) {
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
@@ -48,7 +57,7 @@ export function CellInspector({
         <p className="text-sm text-slate-400">Select a tile to edit pack, stairs, start, or end.</p>
       ) : (
         <>
-          <p className="text-sm text-slate-300">{cell.kind === 'stair' ? 'Stair' : 'Tile'}</p>
+          <p className="text-sm text-slate-300">{cellHeading(cell)}</p>
           {cell.kind === 'stair' ? (
             <>
               <p className="text-xs text-slate-400">Stair tiles never hold packs.</p>
@@ -97,6 +106,13 @@ export function CellInspector({
                 Convert to tile
               </Button>
             </>
+          ) : cell.kind === 'door' ? (
+            <>
+              <p className="text-sm text-slate-400">Landing here deals the adjacent room's pack.</p>
+              <Button type="button" variant="outline" onClick={onClearDoor}>
+                Convert to tile
+              </Button>
+            </>
           ) : (
             <>
               {packIds.length === 0 ? (
@@ -122,9 +138,11 @@ export function CellInspector({
                   </select>
                 </>
               )}
-              <Button type="button" variant="outline" onClick={onAttachStair}>
-                Make stair
-              </Button>
+              {cell.kind !== 'room' ? (
+                <Button type="button" variant="outline" onClick={onAttachStair}>
+                  Make stair
+                </Button>
+              ) : null}
             </>
           )}
           <Button type="button" onClick={onSetStart}>
