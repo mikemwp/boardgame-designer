@@ -17,10 +17,7 @@ vi.mock('@playcanvas/react/components', () => ({
   RigidBody: () => null,
   Camera: () => null,
   Light: () => null,
-}));
-
-vi.mock('@playcanvas/react/scripts', () => ({
-  OrbitControls: () => null,
+  Script: () => null,
 }));
 
 vi.mock('@playcanvas/react/hooks', () => ({
