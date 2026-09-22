@@ -33,6 +33,7 @@ export interface GameDocument {
   version: string | null;
   publishedAt?: string;
   published?: boolean;
+  slug?: string;
 }
 
 export interface LibraryState {

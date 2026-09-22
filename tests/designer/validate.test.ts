@@ -13,7 +13,7 @@ import {
   setEndCell,
   setStartCell,
 } from '@/lib/designer/mutate';
-import { canTestPlay, validateLayout } from '@/lib/designer/validate';
+import { canPublishPlay, canTestPlay, validateLayout } from '@/lib/designer/validate';
 
 describe('validateLayout', () => {
   it('allows Climb but blocks an empty board without a start tile', () => {
@@ -132,5 +132,10 @@ describe('validateLayout', () => {
     board = setStartCell(board, 'ground', 'ground-c0');
     board = setEndCell(board, 'ground', 'ground-c1');
     expect(validateLayout(board)).toEqual([]);
+  });
+
+  it('canPublishPlay matches canTestPlay', () => {
+    expect(canPublishPlay(climbSample.board)).toBe(canTestPlay(climbSample.board));
+    expect(canPublishPlay(emptyBootstrap().board)).toBe(false);
   });
 });

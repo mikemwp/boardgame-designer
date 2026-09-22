@@ -214,3 +214,7 @@ export function validateLayout(board: Board): LayoutIssue[] {
 export function canTestPlay(board: Board): boolean {
   return validateLayout(board).length === 0;
 }
+
+export function canPublishPlay(board: Board): boolean {
+  return canTestPlay(board);
+}

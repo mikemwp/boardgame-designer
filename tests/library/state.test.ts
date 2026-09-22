@@ -4,12 +4,16 @@ import {
   addDraft,
   createDocument,
   deleteDraft,
+  findPublishedBySlug,
   getActive,
+  slugifyName,
   listDrafts,
   parseLibrary,
+  publishDocument,
   saveDraft,
   seedLibrary,
   setActive,
+  uniquePublishedSlug,
 } from '@/lib/library/state';
 import { climbSample } from '@/lib/samples/climb';
 import { emptyBootstrap } from '@/lib/samples/empty';
@@ -237,5 +241,68 @@ describe('deleteDraft', () => {
     const state: LibraryState = { version: 1, activeId: 'live', drafts: [published, draft] };
     expect(deleteDraft(state, 'live')).toEqual(state);
     expect(deleteDraft(state, 'draft').drafts.map((d) => d.id)).toEqual(['live']);
+  });
+});
+
+describe('publish slug', () => {
+  function doc(overrides: Partial<ReturnType<typeof createDocument>> = {}) {
+    return {
+      ...createDocument({
+        id: 'g1',
+        name: 'Sandbox',
+        source: 'empty',
+        bootstrap: emptyStored(),
+        now: '2026-09-22T12:00:00.000Z',
+      }),
+      ...overrides,
+    };
+  }
+
+  it('slugifyName lowercases and hyphenates', () => {
+    expect(slugifyName('Climb (sample)')).toBe('climb-sample');
+    expect(slugifyName('!!!')).toBe('game');
+  });
+
+  it('first publish assigns v1 and a unique slug', () => {
+    const published = publishDocument(doc(), '2026-09-22T13:00:00.000Z', 'sandbox');
+    expect(published.version).toBe('1');
+    expect(published.slug).toBe('sandbox');
+    expect(published.status).toBe('published');
+  });
+
+  it('later publish keeps the landed version and existing slug', () => {
+    const published = publishDocument(
+      doc({ version: '1.3', status: 'draft', slug: 'sandbox' }),
+      '2026-09-22T16:00:00.000Z',
+    );
+    expect(published.version).toBe('1.3');
+    expect(published.slug).toBe('sandbox');
+  });
+
+  it('uniquePublishedSlug suffixes when the base is taken', () => {
+    const a = publishDocument(doc({ id: 'a', name: 'Sandbox' }), 't', 'sandbox');
+    const state: LibraryState = { version: 1, activeId: 'a', drafts: [a] };
+    expect(uniquePublishedSlug(state, 'Sandbox')).toBe('sandbox-2');
+    expect(uniquePublishedSlug(state, 'Sandbox', 'a')).toBe('sandbox');
+  });
+
+  it('findPublishedBySlug ignores drafts that still hold the slug', () => {
+    const live = publishDocument(doc({ id: 'a', name: 'Sandbox' }), 't', 'sandbox');
+    const draft = { ...live, id: 'b', status: 'draft' as const, published: false };
+    const state: LibraryState = { version: 1, activeId: 'b', drafts: [live, draft] };
+    expect(findPublishedBySlug(state, 'sandbox')?.id).toBe('a');
+  });
+
+  it('parseLibrary keeps a stored slug', () => {
+    const good = createDocument({
+      id: 'ok',
+      name: 'Ok',
+      source: 'empty',
+      bootstrap: emptyStored(),
+      now: '2026-09-21T12:00:00.000Z',
+      slug: 'ok-game',
+    });
+    const parsed = parseLibrary(JSON.stringify({ version: 1, activeId: 'ok', drafts: [good] }));
+    expect(parsed?.drafts[0]?.slug).toBe('ok-game');
   });
 });

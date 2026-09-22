@@ -6,7 +6,7 @@ import type {
   NewGameSource,
   StoredBootstrap,
 } from '@/lib/library/types';
-import { applySaveBump } from '@/lib/library/version';
+import { applySaveBump, documentStatus } from '@/lib/library/version';
 import { climbSample, CLIMB_LABEL } from '@/lib/samples/climb';
 
 export function createDocument(input: {
@@ -20,6 +20,7 @@ export function createDocument(input: {
   version?: string | null;
   publishedAt?: string;
   lastSaved?: string;
+  slug?: string;
 }): GameDocument {
   const status: GameStatus = input.status ?? (input.published ? 'published' : 'draft');
   return {
@@ -34,11 +35,36 @@ export function createDocument(input: {
     version: input.version ?? (status === 'published' ? '1' : null),
     ...(input.publishedAt ? { publishedAt: input.publishedAt } : {}),
     ...(status === 'published' || input.published ? { published: true } : {}),
+    ...(input.slug ? { slug: input.slug } : {}),
   };
 }
 
-export function publishDocument(doc: GameDocument, now: string): GameDocument {
+export function slugifyName(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'game';
+}
+
+export function uniquePublishedSlug(state: LibraryState, name: string, keepId?: string): string {
+  const base = slugifyName(name);
+  const taken = new Set(
+    state.drafts.filter((d) => d.id !== keepId && d.slug).map((d) => d.slug as string),
+  );
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
+}
+
+export function findPublishedBySlug(state: LibraryState, slug: string): GameDocument | undefined {
+  return state.drafts.find((d) => d.slug === slug && documentStatus(d) === 'published');
+}
+
+export function publishDocument(doc: GameDocument, now: string, slug?: string): GameDocument {
   const version = doc.version ?? '1';
+  const nextSlug = doc.slug ?? slug ?? slugifyName(doc.name);
   return {
     ...doc,
     status: 'published',
@@ -47,6 +73,7 @@ export function publishDocument(doc: GameDocument, now: string): GameDocument {
     publishedAt: now,
     lastSaved: now,
     updatedAt: now,
+    slug: nextSlug,
   };
 }
 
@@ -191,6 +218,7 @@ function parseDocument(value: unknown): GameDocument | null {
     version,
     ...(typeof value.publishedAt === 'string' ? { publishedAt: value.publishedAt } : {}),
     ...(published || status === 'published' ? { published: true } : {}),
+    ...(typeof value.slug === 'string' && value.slug.length > 0 ? { slug: value.slug } : {}),
   };
 }
 
