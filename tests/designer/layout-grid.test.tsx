@@ -38,6 +38,18 @@ describe('LayoutGrid', () => {
     expect(onMoveCell).toHaveBeenCalledWith('ground-c21', 1, 1);
   });
 
+  it('renders an erased HUD square as empty, not as the word HUD', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const hud = floor.cells.find((c) => c.kind === 'hud')!;
+    const erased = { ...floor, cells: floor.cells.filter((c) => c.id !== hud.id) };
+    render(
+      <LayoutGrid floor={erased} onSlotActivate={() => {}} onMoveCell={() => {}} />,
+    );
+    const slot = screen.getByTestId(`slot-${hud.col}-${hud.row}`);
+    expect(slot.textContent).toBe('');
+    expect(slot.getAttribute('aria-label')).toBe(`Empty ${hud.col},${hud.row}`);
+  });
+
   it('renders circle wedges as slots and does not set overflow-x-auto', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 8 });
     const { container } = render(

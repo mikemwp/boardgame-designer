@@ -3,6 +3,7 @@ import { toStoredBootstrap } from '@/lib/library/bootstrap';
 import {
   addDraft,
   createDocument,
+  deleteDraft,
   getActive,
   listDrafts,
   parseLibrary,
@@ -131,5 +132,63 @@ describe('parseLibrary', () => {
     expect(parsed?.drafts).toHaveLength(1);
     expect(parsed?.drafts[0]?.id).toBe('ok');
     expect(parsed?.activeId).toBe('ok');
+  });
+
+  it('keeps an empty library instead of treating it as missing', () => {
+    const parsed = parseLibrary(JSON.stringify({ version: 1, activeId: null, drafts: [] }));
+    expect(parsed).toEqual({ version: 1, activeId: null, drafts: [] });
+  });
+});
+
+describe('deleteDraft', () => {
+  it('removes a draft and selects the newest remaining', () => {
+    const a = createDocument({
+      id: 'a',
+      name: 'A',
+      source: 'climb',
+      bootstrap: climbStored(),
+      now: '2026-09-21T10:00:00.000Z',
+    });
+    const b = createDocument({
+      id: 'b',
+      name: 'B',
+      source: 'empty',
+      bootstrap: emptyStored(),
+      now: '2026-09-21T11:00:00.000Z',
+    });
+    const state: LibraryState = { version: 1, activeId: 'b', drafts: [a, b] };
+    const next = deleteDraft(state, 'b');
+    expect(next.drafts.map((d) => d.id)).toEqual(['a']);
+    expect(next.activeId).toBe('a');
+    expect(getActive(next)?.id).toBe('a');
+  });
+
+  it('leaves an empty create state with no dangling activeId', () => {
+    const seeded = seedLibrary('2026-09-21T12:00:00.000Z', 'seed-1');
+    const next = deleteDraft(seeded, 'seed-1');
+    expect(next.drafts).toEqual([]);
+    expect(next.activeId).toBeNull();
+    expect(getActive(next)).toBeUndefined();
+  });
+
+  it('refuses to delete a published game', () => {
+    const published = createDocument({
+      id: 'live',
+      name: 'Live',
+      source: 'empty',
+      bootstrap: emptyStored(),
+      now: '2026-09-21T12:00:00.000Z',
+      published: true,
+    });
+    const draft = createDocument({
+      id: 'draft',
+      name: 'Draft',
+      source: 'empty',
+      bootstrap: emptyStored(),
+      now: '2026-09-21T13:00:00.000Z',
+    });
+    const state: LibraryState = { version: 1, activeId: 'live', drafts: [published, draft] };
+    expect(deleteDraft(state, 'live')).toEqual(state);
+    expect(deleteDraft(state, 'draft').drafts.map((d) => d.id)).toEqual(['live']);
   });
 });

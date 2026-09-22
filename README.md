@@ -23,7 +23,7 @@ The studio opens in **Design**. Design and Test fit one viewport (no horizontal 
 
 1. **Board shape** per floor: **Square** (default 8×8, 3–12 tiles per side), **Rectangle** (default 8×6, 3–12, sides cannot be equal), **Circle** (default 12 wedges, 3–40, flat inner edge), **Hub/spoke** (12 hub / 4 spokes / 6 spoke tiles; hub loops; spoke ends need not loop), **Hub/spoke/wheel** (8 / 4 / 4 / 16; hub and wheel loop). New empty drafts are square 8×8 (28 perimeter cells). Climb stays square 3. Changing shape regenerates that floor’s tiles (keeps packs/stairs by index).
 2. Floor tabs rename and add floors (no max). Adding a floor copies the selected floor’s shape. Closed shapes must loop; only hub/spoke spoke ends may be dead-ends.
-3. Palette: **Select**, **Corridor square**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Stair converts a corridor cell and must link a destination floor + landing square before **Test**.
+3. Palette: **Select**, **Tile**, **HUD tile**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile (HUD, corridor, stair, start, end) leaves a free square you can place on again. Stair converts a corridor cell and must link a destination floor + landing square before **Test**. Changing tiles-per-side rebuilds the perimeter loop, one inner free row, and HUD only in the true center (never copied onto the loop).
 4. Inspector: floor name, pack (from cards already in the draft — import under **Test**), start square, stair destination. Stair squares never hold packs.
 5. **Save** writes the working layout even if stairs or loops are invalid.
 6. **Test** is blocked with a named list until the layout is valid (dangling stairs, missing start, empty floors, any closed region that does not loop). Then it remounts the existing play HUD on that draft (not a public URL). **Design** returns to the grid. Live publish is not included.
@@ -38,6 +38,7 @@ Drafts live in this browser (`localStorage` key `building-board.library.v1`). Th
 2. **New** creates another named draft from **Climb sample** or **Empty board**. It does not overwrite other drafts. The current draft is saved first.
 3. **Save** writes the active draft (board, starting players, card deck including CSV imports, feature-toggle config) and keeps the current play session on screen.
 4. **Open** lists local drafts only. Choosing one remounts play from that draft’s saved definition (token back at start, no card up). Live publish is not included.
+5. **Delete** removes the active draft after confirm. Published games cannot be deleted. After delete, another draft is selected, or the studio returns to an empty create state.
 
 **Test** plays the current draft after layout validation. Publish live is not included.
 

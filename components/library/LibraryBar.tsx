@@ -14,6 +14,9 @@ export function LibraryBar({
   onOpen,
   onDesign,
   onTest,
+  onDelete,
+  canDelete,
+  published = false,
 }: {
   activeName: string;
   savedAt?: string;
@@ -24,6 +27,9 @@ export function LibraryBar({
   onOpen: () => void;
   onDesign: () => void;
   onTest: () => void;
+  onDelete: () => void;
+  canDelete: boolean;
+  published?: boolean;
 }) {
   return (
     <div
@@ -47,6 +53,15 @@ export function LibraryBar({
         </Button>
         <Button type="button" variant="outline" onClick={onOpen}>
           Open
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onDelete}
+          disabled={!canDelete}
+          title={published ? 'Published games cannot be deleted' : undefined}
+        >
+          Delete
         </Button>
         <Button
           type="button"

@@ -21,6 +21,7 @@ export interface GameDocument {
   updatedAt: string;
   source: NewGameSource;
   bootstrap: StoredBootstrap;
+  published?: boolean;
 }
 
 export interface LibraryState {

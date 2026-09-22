@@ -20,6 +20,8 @@ describe('LibraryBar', () => {
         onOpen={onOpen}
         onDesign={onDesign}
         onTest={onTest}
+        onDelete={() => {}}
+        canDelete
       />,
     );
     expect(screen.getByText('Climb (sample)')).toBeDefined();
@@ -46,8 +48,49 @@ describe('LibraryBar', () => {
         onOpen={() => {}}
         onDesign={() => {}}
         onTest={() => {}}
+        onDelete={() => {}}
+        canDelete={false}
       />,
     );
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
+  });
+
+  it('fires Delete when the active game is a draft', () => {
+    const onDelete = vi.fn();
+    render(
+      <LibraryBar
+        activeName="Sandbox"
+        canSave
+        canDelete
+        mode="design"
+        onNew={() => {}}
+        onSave={() => {}}
+        onOpen={() => {}}
+        onDesign={() => {}}
+        onTest={() => {}}
+        onDelete={onDelete}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Delete for a published game', () => {
+    render(
+      <LibraryBar
+        activeName="Live climb"
+        canSave
+        canDelete={false}
+        published
+        mode="design"
+        onNew={() => {}}
+        onSave={() => {}}
+        onOpen={() => {}}
+        onDesign={() => {}}
+        onTest={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
   });
 });

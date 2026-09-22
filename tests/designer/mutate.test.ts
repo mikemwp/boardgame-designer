@@ -70,6 +70,35 @@ describe('moveCell and eraseCell', () => {
     const erased = eraseCell(moved, 'ground', 'ground-c27');
     expect(erased.floors[0]?.cells.some((c) => c.id === 'ground-c27')).toBe(false);
   });
+
+  it('erase of a HUD tile frees the square for a corridor', () => {
+    const board = groundBoard();
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    const erased = eraseCell(board, 'ground', hud.id);
+    expect(erased.floors[0]?.cells.some((c) => c.id === hud.id)).toBe(false);
+    expect(erased.floors[0]?.cells.some((c) => c.col === hud.col && c.row === hud.row)).toBe(false);
+    const placed = placeCorridor(erased, 'ground', hud.col!, hud.row!, 'ground-c99');
+    expect(placed.floors[0]?.cells.find((c) => c.id === 'ground-c99')).toMatchObject({
+      kind: 'corridor',
+      col: hud.col,
+      row: hud.row,
+    });
+  });
+
+  it('erase of stair, start, and end tiles leaves an empty square', () => {
+    let board = setStartCell(groundBoard(), 'ground', 'ground-c0');
+    board = attachStair(board, 'ground', 'ground-c3');
+    board = setEndCell(board, 'ground', 'ground-c5');
+    for (const id of ['ground-c0', 'ground-c3', 'ground-c5'] as const) {
+      const cell = board.floors[0]!.cells.find((c) => c.id === id)!;
+      board = eraseCell(board, 'ground', id);
+      expect(board.floors[0]?.cells.some((c) => c.id === id)).toBe(false);
+      expect(board.floors[0]?.cells.some((c) => c.col === cell.col && c.row === cell.row)).toBe(
+        false,
+      );
+    }
+    expect(board.stairs).toHaveLength(0);
+  });
 });
 
 describe('setCellPack, setStartCell, and setEndCell', () => {
@@ -163,7 +192,42 @@ describe('applyFloorShape', () => {
     });
     expect(next.floors[0]?.shape).toEqual({ kind: 'rectangle', length: 6, width: 5 });
   });
+
+  it('resizes 8×8 to 9×9 without HUD overwriting the perimeter loop', () => {
+    const next = applyFloorShape(groundBoard(), 'ground', { kind: 'square', tilesPerSide: 9 });
+    assertCartesianGeometry(next.floors[0]!, 9);
+  });
+
+  it('resizes 8×8 to 10×10 with HUD only in the true center', () => {
+    const next = applyFloorShape(groundBoard(), 'ground', { kind: 'square', tilesPerSide: 10 });
+    assertCartesianGeometry(next.floors[0]!, 10);
+  });
 });
+
+function assertCartesianGeometry(
+  floor: { cells: Array<{ kind?: string; col?: number; row?: number }>; columns?: number; rows?: number; hud?: { col: number; row: number; width: number; height: number } },
+  n: number,
+) {
+  expect(floor.columns).toBe(n);
+  expect(floor.rows).toBe(n);
+  expect(floor.hud).toEqual({ col: 2, row: 2, width: n - 4, height: n - 4 });
+  const ring = floor.cells.filter((c) => c.kind !== 'hud');
+  const hud = floor.cells.filter((c) => c.kind === 'hud');
+  expect(ring).toHaveLength(4 * n - 4);
+  expect(hud).toHaveLength((n - 4) * (n - 4));
+  for (const cell of ring) {
+    const onPerimeter =
+      cell.col === 0 || cell.row === 0 || cell.col === n - 1 || cell.row === n - 1;
+    expect(onPerimeter).toBe(true);
+    expect(cell.kind === 'hud').toBe(false);
+  }
+  for (const cell of hud) {
+    expect(cell.col).toBeGreaterThanOrEqual(2);
+    expect(cell.row).toBeGreaterThanOrEqual(2);
+    expect(cell.col).toBeLessThanOrEqual(n - 3);
+    expect(cell.row).toBeLessThanOrEqual(n - 3);
+  }
+}
 
 describe('polar place and move', () => {
   it('places into an erased circle wedge and moves with slot ids', () => {

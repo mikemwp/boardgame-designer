@@ -8,7 +8,21 @@ import {
 } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
-import type { BoardShape, Floor } from '@/lib/engine/types';
+import type { BoardShape, Cell, Floor } from '@/lib/engine/types';
+
+function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
+  return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
+}
+
+function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end'> {
+  return {
+    kind: prev.kind,
+    packId: prev.kind === 'stair' ? undefined : prev.packId,
+    stairId: prev.stairId,
+    start: prev.start,
+    end: prev.end,
+  };
+}
 
 function mapFloor(board: Board, floorId: string, fn: (floor: Floor) => Floor): Board {
   return createBoard(
@@ -44,18 +58,53 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
   const floor = board.floors.find((f) => f.id === floorId);
   if (!floor) return board;
   const template = createLoopedFloor(floor.id, floor.label, floor.index, shapeInput);
-  const mapped = template.cells.map((cell, i) => {
-    const prev = floor.cells[i];
-    if (!prev) return cell;
-    return {
-      ...cell,
-      kind: prev.kind,
-      packId: prev.kind === 'stair' ? undefined : prev.packId,
-      stairId: prev.stairId,
-      start: prev.start,
-      end: prev.end,
-    };
-  });
+  const newPolar = isPolarKind(template.shape?.kind);
+  const oldPolar = isPolarKind(floor.shape?.kind);
+
+  let mapped: Cell[];
+  if (newPolar || oldPolar) {
+    const prevNonHud = floor.cells.filter((cell) => cell.kind !== 'hud');
+    let prevIndex = 0;
+    mapped = template.cells.map((cell) => {
+      if (cell.kind === 'hud') return cell;
+      const prev = prevNonHud[prevIndex];
+      prevIndex += 1;
+      if (!prev) return cell;
+      return { ...cell, id: prev.id, ...designerProps(prev) };
+    });
+  } else {
+    const oldByPos = new Map<string, Cell>();
+    for (const cell of floor.cells) {
+      if (cell.col === undefined || cell.row === undefined) continue;
+      oldByPos.set(`${cell.col},${cell.row}`, cell);
+    }
+    const ring = template.cells
+      .filter((cell) => cell.kind !== 'hud')
+      .map((cell) => {
+        const prev = oldByPos.get(`${cell.col},${cell.row}`);
+        if (!prev || prev.kind === 'hud') return cell;
+        return { ...cell, id: prev.id, ...designerProps(prev) };
+      });
+    const used = new Set(ring.map((cell) => `${cell.col},${cell.row}`));
+    const oldCols = floor.columns ?? 0;
+    const oldRows = floor.rows ?? 0;
+    const extras = floor.cells.filter((cell) => {
+      if (cell.kind === 'hud') return false;
+      if (cell.col === undefined || cell.row === undefined) return false;
+      if (!inBounds(template, cell.col, cell.row)) return false;
+      if (isHudSlot(template, cell.col, cell.row)) return false;
+      if (used.has(`${cell.col},${cell.row}`)) return false;
+      const wasPerimeter =
+        cell.col === 0 ||
+        cell.row === 0 ||
+        (oldCols > 0 && cell.col === oldCols - 1) ||
+        (oldRows > 0 && cell.row === oldRows - 1);
+      return !wasPerimeter;
+    });
+    const hud = template.cells.filter((cell) => cell.kind === 'hud');
+    mapped = [...ring, ...extras, ...hud];
+  }
+
   const keepStairIds = new Set(mapped.map((c) => c.stairId).filter(Boolean) as string[]);
   const stairs = board.stairs.filter(
     (s) => s.fromFloorId !== floorId || keepStairIds.has(s.id),
@@ -104,7 +153,7 @@ export function placeCorridor(
   cellId: string,
 ): Board {
   const floor = board.floors.find((f) => f.id === floorId);
-  if (!floor || !inBounds(floor, col, row) || isHudSlot(floor, col, row) || cellAt(floor, col, row)) {
+  if (!floor || !inBounds(floor, col, row) || cellAt(floor, col, row)) {
     return board;
   }
   return mapFloor(board, floorId, (current) => ({
@@ -160,7 +209,7 @@ export function moveCell(
   row: number,
 ): Board {
   const floor = board.floors.find((f) => f.id === floorId);
-  if (!floor || !inBounds(floor, col, row) || isHudSlot(floor, col, row) || cellAt(floor, col, row)) {
+  if (!floor || !inBounds(floor, col, row) || cellAt(floor, col, row)) {
     return board;
   }
   return mapFloor(board, floorId, (current) => ({

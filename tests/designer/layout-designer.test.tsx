@@ -74,4 +74,67 @@ describe('LayoutDesigner', () => {
     const next = onBoardChange.mock.calls[0][0];
     expect(next.floors[0].cells.some((c: { col?: number; row?: number }) => c.col === 1 && c.row === 1)).toBe(true);
   });
+
+  it('erase of a HUD tile then Tile places a corridor on that square', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    const { rerender } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="erase"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    const onBoardChange = vi.fn();
+    rerender(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="erase"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(`slot-${hud.col}-${hud.row}`));
+    expect(onBoardChange).toHaveBeenCalled();
+    const erased = onBoardChange.mock.calls[0][0];
+    expect(erased.floors[0].cells.some((c: { id: string }) => c.id === hud.id)).toBe(false);
+
+    const onPlace = vi.fn();
+    rerender(
+      <LayoutDesigner
+        board={erased}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="corridor"
+        issues={[]}
+        onBoardChange={onPlace}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(`slot-${hud.col}-${hud.row}`));
+    expect(onPlace).toHaveBeenCalled();
+    const placed = onPlace.mock.calls[0][0];
+    expect(
+      placed.floors[0].cells.some(
+        (c: { kind?: string; col?: number; row?: number }) =>
+          c.kind === 'corridor' && c.col === hud.col && c.row === hud.row,
+      ),
+    ).toBe(true);
+  });
 });

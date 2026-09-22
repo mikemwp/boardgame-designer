@@ -13,6 +13,7 @@ export function createDocument(input: {
   source: NewGameSource;
   bootstrap: StoredBootstrap;
   now: string;
+  published?: boolean;
 }): GameDocument {
   return {
     id: input.id,
@@ -21,7 +22,12 @@ export function createDocument(input: {
     bootstrap: input.bootstrap,
     createdAt: input.now,
     updatedAt: input.now,
+    ...(input.published ? { published: true } : {}),
   };
+}
+
+export function isPublished(doc: GameDocument | undefined): boolean {
+  return doc?.published === true;
 }
 
 export function seedLibrary(now: string, id: string): LibraryState {
@@ -74,6 +80,21 @@ export function getActive(state: LibraryState): GameDocument | undefined {
   return state.drafts.find((d) => d.id === state.activeId);
 }
 
+export function deleteDraft(state: LibraryState, id: string): LibraryState {
+  const target = state.drafts.find((d) => d.id === id);
+  if (!target || isPublished(target)) return state;
+  const drafts = state.drafts.filter((d) => d.id !== id);
+  if (drafts.length === 0) {
+    return { ...state, drafts, activeId: null };
+  }
+  const remaining = { ...state, drafts, activeId: drafts[0]!.id };
+  const nextActive =
+    state.activeId && state.activeId !== id && drafts.some((d) => d.id === state.activeId)
+      ? state.activeId
+      : listDrafts(remaining)[0]!.id;
+  return { ...state, drafts, activeId: nextActive };
+}
+
 export function listDrafts(state: LibraryState): GameDocument[] {
   return [...state.drafts].sort((a, b) => {
     if (a.updatedAt === b.updatedAt) return a.name.localeCompare(b.name);
@@ -114,6 +135,7 @@ function parseDocument(value: unknown): GameDocument | null {
     updatedAt: value.updatedAt,
     source: value.source,
     bootstrap: value.bootstrap,
+    ...(value.published === true ? { published: true } : {}),
   };
 }
 
@@ -127,7 +149,9 @@ export function parseLibrary(raw: string | null): LibraryState | null {
     const drafts = value.drafts
       .map(parseDocument)
       .filter((d): d is GameDocument => d !== null);
-    if (drafts.length === 0) return null;
+    if (drafts.length === 0) {
+      return { version: 1, activeId: null, drafts: [] };
+    }
     const activeId =
       typeof value.activeId === 'string' && drafts.some((d) => d.id === value.activeId)
         ? value.activeId

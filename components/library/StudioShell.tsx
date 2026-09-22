@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutDesigner } from '@/components/designer/LayoutDesigner';
 import type { DesignerTool } from '@/components/designer/DesignerPalette';
 import { GameHud } from '@/components/hud/GameHud';
+import { DeleteGameDialog } from '@/components/library/DeleteGameDialog';
 import { LibraryBar, type StudioMode } from '@/components/library/LibraryBar';
 import { NewGameDialog } from '@/components/library/NewGameDialog';
 import { OpenGameDialog } from '@/components/library/OpenGameDialog';
 import { validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
+import { isPublished } from '@/lib/library/state';
 import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
@@ -18,11 +20,12 @@ import type { NewGameSource } from '@/lib/library/types';
 import { waitUntilPlayCanvasSlotFree } from '@/lib/view/playcanvas-lifecycle';
 
 export function StudioShell(options: UseLibraryOptions = {}) {
-  const { active, activeId, drafts, ready, newGame, openGame, saveActive } =
+  const { active, activeId, drafts, ready, newGame, openGame, saveActive, deleteActive } =
     useLibrary(options);
   const [snapshot, setSnapshot] = useState<GameState | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [openOpen, setOpenOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [mode, setMode] = useState<StudioMode>('design');
   const [workingBoard, setWorkingBoard] = useState<Board | null>(null);
   const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
@@ -99,6 +102,15 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setOpenOpen(false);
   };
 
+  const onConfirmDelete = () => {
+    if (!active || isPublished(active)) {
+      setDeleteOpen(false);
+      return;
+    }
+    deleteActive();
+    setDeleteOpen(false);
+  };
+
   const onTest = () => {
     if (!workingBoard) return;
     const nextIssues = validateLayout(workingBoard);
@@ -143,6 +155,12 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         onNew={() => setNewOpen(true)}
         onSave={() => persistWorking({ touchUpdatedAt: true })}
         onOpen={() => setOpenOpen(true)}
+        onDelete={() => {
+          if (!active || isPublished(active)) return;
+          setDeleteOpen(true);
+        }}
+        canDelete={Boolean(active) && !isPublished(active)}
+        published={isPublished(active)}
         onDesign={() => setMode('design')}
         onTest={onTest}
       />
@@ -176,6 +194,12 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         <p className="text-slate-400">Create a game to start playing.</p>
       )}
       <NewGameDialog open={newOpen} onOpenChange={setNewOpen} onCreate={onCreate} />
+      <DeleteGameDialog
+        open={deleteOpen}
+        gameName={active?.name ?? 'this draft'}
+        onOpenChange={setDeleteOpen}
+        onConfirm={onConfirmDelete}
+      />
       <OpenGameDialog
         open={openOpen}
         onOpenChange={setOpenOpen}

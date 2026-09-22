@@ -137,4 +137,53 @@ describe('useLibrary', () => {
     expect(result.current.activeId).toBe('seed-1');
     expect(result.current.active?.name).toBe('Climb (sample)');
   });
+
+  it('deleteActive removes a draft and selects another', () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        now: () => '2026-09-21T16:00:00.000Z',
+        createId: () => 'blank',
+      }),
+    );
+
+    act(() => {
+      result.current.newGame({ name: 'Sandbox', source: 'empty' });
+    });
+    expect(result.current.activeId).toBe('blank');
+    act(() => {
+      result.current.deleteActive();
+    });
+    expect(result.current.activeId).toBe('seed-1');
+    expect(result.current.drafts.map((d) => d.id)).toEqual(['seed-1']);
+    const reloaded = loadLibrary(storage, { now: NOW, id: 'other' });
+    expect(reloaded.activeId).toBe('seed-1');
+    expect(reloaded.drafts).toHaveLength(1);
+  });
+
+  it('deleteActive of the last draft leaves an empty library', () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        now: () => NOW,
+        createId: () => 'x',
+      }),
+    );
+
+    act(() => {
+      result.current.deleteActive();
+    });
+    expect(result.current.activeId).toBeNull();
+    expect(result.current.drafts).toEqual([]);
+    expect(result.current.active).toBeUndefined();
+    const reloaded = loadLibrary(storage, { now: NOW, id: 'other' });
+    expect(reloaded.drafts).toEqual([]);
+    expect(reloaded.activeId).toBeNull();
+  });
 });

@@ -5,6 +5,7 @@ import { toStoredBootstrap } from '@/lib/library/bootstrap';
 import {
   addDraft,
   createDocument,
+  deleteDraft,
   getActive,
   listDrafts,
   saveDraft,
@@ -111,6 +112,15 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     [now, storage],
   );
 
+  const deleteActive = useCallback(() => {
+    setState((current) => {
+      if (!current?.activeId) return current;
+      const next = deleteDraft(current, current.activeId);
+      writeLibrary(storage, next);
+      return next;
+    });
+  }, [storage]);
+
   return {
     ready: state !== null,
     drafts: state ? listDrafts(state) : ([] as GameDocument[]),
@@ -119,6 +129,7 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     newGame,
     openGame,
     saveActive,
+    deleteActive,
     persist,
   };
 }

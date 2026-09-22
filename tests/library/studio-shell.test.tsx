@@ -163,4 +163,27 @@ describe('StudioShell', () => {
     const lobby = reloaded.drafts[0]?.bootstrap.board.floors.find((f) => f.id === 'lobby');
     expect(lobby?.cells.find((c) => c.id === 'lobby-c0')?.packId).toBe('climb');
   });
+
+  it('Delete asks for confirm then removes the active draft', () => {
+    renderStudio(memoryStorage(), 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    expect(screen.getByText('Sandbox')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByText(/Delete Sandbox/i)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    expect(screen.getByText('Climb (sample)')).toBeDefined();
+    expect(screen.queryByText('Sandbox')).toBeNull();
+  });
+
+  it('deleting the last draft shows the empty create state', () => {
+    renderStudio();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    expect(screen.getByText('No game')).toBeDefined();
+    expect(screen.getByText('Create a game to start playing.')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
+  });
 });
