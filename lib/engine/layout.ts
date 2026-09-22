@@ -252,6 +252,9 @@ export function previewBoardForFloor(board: Board, floorId: string): Board {
   );
 }
 
-export function listPackIds(cards: Array<{ pack: string }>): string[] {
-  return [...new Set(cards.map((card) => card.pack))].sort();
+export function listPackIds(cards: Array<{ pack: string }>, packIds: string[] = []): string[] {
+  return [...new Set([...packIds, ...cards.map((card) => card.pack)])]
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0)
+    .sort();
 }

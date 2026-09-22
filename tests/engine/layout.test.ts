@@ -171,4 +171,8 @@ describe('listPackIds', () => {
       'notes',
     ]);
   });
+
+  it('keeps catalog packs that have no cards yet', () => {
+    expect(listPackIds([], ['notes'])).toEqual(['notes']);
+  });
 });
