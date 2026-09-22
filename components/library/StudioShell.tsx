@@ -11,7 +11,7 @@ import { OpenGameDialog } from '@/components/library/OpenGameDialog';
 import { UnsavedChangesDialog } from '@/components/library/UnsavedChangesDialog';
 import { preferredMovementViz } from '@/lib/designer/hud';
 import { listDraftPackIds } from '@/lib/designer/packs';
-import { validateLayout, type LayoutIssue } from '@/lib/designer/validate';
+import { canPublishPlay, validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
 import { formatGameTitle } from '@/lib/library/version';
@@ -44,6 +44,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     saveActive,
     markActiveEdited,
     deleteActive,
+    publishActive,
   } = useLibrary(options);
   const [snapshot, setSnapshot] = useState<GameState | null>(null);
   const [newOpen, setNewOpen] = useState(false);
@@ -218,6 +219,18 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     persistWorking({ touchUpdatedAt: true, bump: 'save' });
   };
 
+  const onPublish = () => {
+    if (!workingBoard) return;
+    const nextIssues = validateLayout(workingBoard);
+    setIssues(nextIssues);
+    if (nextIssues.length > 0) {
+      setMode('design');
+      return;
+    }
+    persistWorking({ touchUpdatedAt: true, bump: 'none' });
+    publishActive();
+  };
+
   const onTest = () => {
     if (!workingBoard) return;
     const nextIssues = validateLayout(workingBoard);
@@ -260,6 +273,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           activeName={formatGameTitle(active)}
           canSave={Boolean(active)}
           canTest={Boolean(active)}
+          canPublish={Boolean(active && workingBoard && canPublishPlay(workingBoard))}
           mode={mode}
           onNew={() => requestLeave('new')}
           onSave={onSave}
@@ -272,6 +286,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           published={isPublished(active)}
           onDesign={() => setMode('design')}
           onTest={onTest}
+          onPublish={onPublish}
         />
       </div>
       {active && workingBoard && workingPlayers ? (

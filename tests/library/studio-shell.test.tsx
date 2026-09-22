@@ -193,6 +193,7 @@ describe('StudioShell', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Publish' })).toHaveProperty('disabled', true);
   });
 
   it('creates an empty board after the last draft is deleted without restoring Climb', () => {
@@ -326,6 +327,42 @@ describe('StudioShell', () => {
       timerSeconds: 9,
       extraButton: 'Done',
     });
+  });
+
+  it('Publish on Climb becomes (Published) v1 and disables Delete', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-22T21:00:00.000Z');
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    expect(screen.getByText('Climb (sample) (Published) v1')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(reloaded.drafts[0]?.status).toBe('published');
+    expect(reloaded.drafts[0]?.version).toBe('1');
+    expect(reloaded.drafts[0]?.slug).toBe('climb-sample');
+  });
+
+  it('blocks Publish on an invalid empty board the same way as Test', () => {
+    renderStudio(memoryStorage(), 'seed-1', '2026-09-21T13:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    expect(screen.getByRole('button', { name: 'Publish' })).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    expect(screen.queryByText('Sandbox (Published) v1')).toBeNull();
+    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
+  });
+
+  it('edit after publish flips to (draft) v1.1; next publish keeps v1.1', () => {
+    renderStudio();
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
+    expect(screen.getByText('Climb (sample) (draft) v1.1')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    expect(screen.getByText('Climb (sample) (Published) v1.1')).toBeDefined();
   });
 
   it('Test uses spinner when a spinner HUD widget is designed', async () => {

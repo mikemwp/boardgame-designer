@@ -11,6 +11,7 @@ import {
   publishDocument,
   saveDraft,
   setActive,
+  uniquePublishedSlug,
 } from '@/lib/library/state';
 import {
   browserStorage,
@@ -138,7 +139,11 @@ export function useLibrary(options: UseLibraryOptions = {}) {
       if (!current?.activeId) return current;
       const active = getActive(current);
       if (!active) return current;
-      const published = publishDocument(active, now());
+      const published = publishDocument(
+        active,
+        now(),
+        active.slug ?? uniquePublishedSlug(current, active.name, active.id),
+      );
       const next = {
         ...current,
         drafts: current.drafts.map((d) => (d.id === active.id ? published : d)),

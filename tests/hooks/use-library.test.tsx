@@ -5,6 +5,7 @@ import { loadLibrary, memoryStorage } from '@/lib/library/storage';
 import { toStoredBootstrap } from '@/lib/library/bootstrap';
 import { emptyBootstrap } from '@/lib/samples/empty';
 import { climbSample } from '@/lib/samples/climb';
+import { formatGameTitle } from '@/lib/library/version';
 
 const NOW = '2026-09-21T12:00:00.000Z';
 
@@ -207,6 +208,29 @@ describe('useLibrary', () => {
     expect(result.current.active?.source).toBe('copy');
     expect(result.current.active?.bootstrap.cards).toHaveLength(3);
     expect(result.current.drafts).toHaveLength(2);
+  });
+
+  it('publishActive freezes the active game as published v1 with a slug', () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        now: () => '2026-09-22T21:00:00.000Z',
+        createId: () => 'x',
+      }),
+    );
+
+    act(() => {
+      result.current.publishActive();
+    });
+
+    expect(result.current.active?.status).toBe('published');
+    expect(result.current.active?.version).toBe('1');
+    expect(result.current.active?.slug).toBe('climb-sample');
+    expect(result.current.active?.publishedAt).toBe('2026-09-22T21:00:00.000Z');
+    expect(formatGameTitle(result.current.active!)).toBe('Climb (sample) (Published) v1');
   });
 
   it('newGame after an empty library does not reseed Climb', () => {
