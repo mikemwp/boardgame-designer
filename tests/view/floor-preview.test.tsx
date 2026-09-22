@@ -5,11 +5,13 @@ vi.mock('@/components/board/PlayCanvasViewport', () => ({
   PlayCanvasViewport: ({
     children,
     slotId,
+    className,
   }: {
     children: React.ReactNode;
     slotId?: string;
+    className?: string;
   }) => (
-    <div data-testid="pc-app" data-slot-id={slotId}>{children}</div>
+    <div data-testid="pc-app" data-slot-id={slotId} className={className}>{children}</div>
   ),
 }));
 
@@ -49,8 +51,12 @@ describe('FloorPreview', () => {
     );
     const preview = screen.getByTestId('floor-preview');
     expect(preview.className).toMatch(/h-full/);
+    expect(preview.className).toMatch(/min-h-64/);
     expect(preview.className).not.toMatch(/flex-1/);
-    expect(screen.getByTestId('pc-app').getAttribute('data-slot-id')).toBe('design-floor-preview');
+    const viewport = screen.getByTestId('pc-app');
+    expect(viewport.getAttribute('data-slot-id')).toBe('design-floor-preview');
+    expect(viewport.className).toMatch(/min-h-64/);
+    expect(viewport.className).toMatch(/h-full/);
   });
 
   it('renders only the selected floor cells and never a 3D die', () => {

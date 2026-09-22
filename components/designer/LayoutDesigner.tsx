@@ -147,7 +147,7 @@ export function LayoutDesigner({
   };
 
   return (
-    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[3fr_2fr]">
+    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[2fr_1fr]">
       <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
         <div
           className="flex min-w-0 flex-nowrap items-end gap-2 overflow-x-auto"
@@ -199,8 +199,8 @@ export function LayoutDesigner({
         </div>
         <ValidationList issues={issues} />
       </div>
-      <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-        <div className="h-64 max-h-[40%] shrink-0 overflow-y-auto" data-testid="tile-actions-pane">
+      <aside className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden max-lg:min-h-[36rem]">
+        <div className="min-h-0 flex-1 basis-0 overflow-y-auto" data-testid="tile-actions-pane">
           <CellInspector
             board={board}
             floorId={floor.id}
@@ -233,7 +233,7 @@ export function LayoutDesigner({
             }}
           />
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden" data-testid="preview-pane">
+        <div className="min-h-0 flex-1 basis-0 overflow-hidden" data-testid="preview-pane">
           <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
         </div>
       </aside>

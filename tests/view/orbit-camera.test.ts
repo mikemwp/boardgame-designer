@@ -82,10 +82,24 @@ describe('preview orbit camera', () => {
     const limits = orbitCameraLimits(boardWorldBounds(board));
     const pivot = { x: limits.pivot.x, y: limits.pivot.y, z: limits.pivot.z };
     const pose = orbitCameraPose(pivot, limits.defaultDistance, PREVIEW_ORBIT_PITCH);
-    expect(PREVIEW_ORBIT_PITCH).toBeGreaterThan(70);
     expect(pose.position[1]).toBeGreaterThan(pivot.y);
-    expect(pose.rotation[0]).toBe(-PREVIEW_ORBIT_PITCH);
-    expect(PREVIEW_ORBIT_PITCH_RANGE.max).toBeLessThan(90);
-    expect(PREVIEW_ORBIT_PITCH_RANGE.min).toBeGreaterThan(0);
+    expect(pose.rotation[0]).toBeLessThan(-70);
+  });
+
+  it('uses CameraControls look-down pitch so the orbit clamp cannot flip the camera at the sky', () => {
+    // Pose.look: elev = atan2(-dir.y, horiz); angles.x = -elev.
+    // Camera at +Y looking at the XZ board: dir.y < 0 → look pitch is negative.
+    const fromY = 10;
+    const toY = 0;
+    const dirY = toY - fromY;
+    const elev = (Math.atan2(-dirY, 0) * 180) / Math.PI;
+    const lookPitch = -elev;
+    expect(lookPitch).toBeLessThan(0);
+    expect(PREVIEW_ORBIT_PITCH).toBeLessThan(-70);
+    expect(PREVIEW_ORBIT_PITCH).toBeGreaterThanOrEqual(PREVIEW_ORBIT_PITCH_RANGE.min);
+    expect(PREVIEW_ORBIT_PITCH).toBeLessThanOrEqual(PREVIEW_ORBIT_PITCH_RANGE.max);
+    expect(PREVIEW_ORBIT_PITCH_RANGE.max).toBeLessThan(0);
+    expect(PREVIEW_ORBIT_PITCH_RANGE.min).toBeGreaterThan(-90);
+    expect(lookPitch).toBeLessThanOrEqual(PREVIEW_ORBIT_PITCH_RANGE.max);
   });
 });

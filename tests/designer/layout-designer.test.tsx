@@ -58,7 +58,7 @@ describe('LayoutDesigner', () => {
     expect(screen.getByTestId('board-shape-fields').className).toMatch(/flex-nowrap/);
   });
 
-  it('splits the canvas 3/5 and fills leftover height with the preview', () => {
+  it('splits the canvas 2/3 and shares the right column 50/50', () => {
     const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     const { container } = render(
       <LayoutDesigner
@@ -75,13 +75,20 @@ describe('LayoutDesigner', () => {
       />,
     );
     const split = container.firstElementChild as HTMLElement;
-    expect(split.className).toMatch(/3fr_2fr/);
+    expect(split.className).toMatch(/2fr_1fr/);
+    expect(split.className).not.toMatch(/3fr_2fr/);
     expect(split.className).not.toMatch(/minmax\(20rem/);
     const preview = screen.getByTestId('preview-pane');
+    const tileActions = screen.getByTestId('tile-actions-pane');
     expect(preview.className).toMatch(/flex-1/);
+    expect(preview.className).toMatch(/basis-0/);
     expect(preview.className).toMatch(/min-h-0/);
     expect(preview.className).not.toMatch(/h-48/);
-    expect(screen.getByTestId('tile-actions-pane').className).toMatch(/shrink-0/);
+    expect(tileActions.className).toMatch(/flex-1/);
+    expect(tileActions.className).toMatch(/basis-0/);
+    expect(tileActions.className).not.toMatch(/shrink-0/);
+    expect(tileActions.className).not.toMatch(/h-64/);
+    expect(tileActions.className).not.toMatch(/max-h-\[40%\]/);
   });
 
   it('adds Level 2+ and keeps Level 1 after deleting later levels', () => {
