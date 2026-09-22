@@ -65,7 +65,30 @@ describe('renamePack and deletePack', () => {
     expect(deleted.cards).toEqual([]);
     expect(deleted.board.floors[0]?.cells.find((c) => c.id === 'ground-c1')?.packId).toBeUndefined();
   });
+
+  it('rewrites and drops hold quota keys with the pack', () => {
+    const held = createBoard(
+      [{ ...createLoopedFloor('ground', 'Level 1', 0), holdEnabled: true, holdQuotas: { notes: 2 } }],
+      [],
+    );
+    const renamed = renamePack({
+      packIds: ['notes'],
+      cards: [],
+      board: held,
+      from: 'notes',
+      to: 'clues',
+    });
+    expect(renamed.board.floors[0]?.holdQuotas).toEqual({ clues: 2 });
+    const deleted = deletePack({
+      packIds: renamed.packIds,
+      cards: [],
+      board: renamed.board,
+      packId: 'clues',
+    });
+    expect(deleted.board.floors[0]?.holdQuotas).toEqual({});
+  });
 });
+
 
 describe('cards', () => {
   it('adds, updates, and deletes a titled card', () => {

@@ -26,20 +26,37 @@ export function createPack(packIds: string[], id: string): string[] {
   return listDraftPackIds([], [...packIds, trimmed]);
 }
 
+function rewriteHoldQuotas(
+  holdQuotas: Record<string, number>,
+  from: string,
+  to: string | undefined,
+): Record<string, number> {
+  const next: Record<string, number> = {};
+  for (const [key, value] of Object.entries(holdQuotas)) {
+    if (key === from) continue;
+    next[key] = value;
+  }
+  if (to !== undefined && from in holdQuotas) {
+    next[to] = holdQuotas[from]!;
+  }
+  return next;
+}
+
 function rewriteBoardPack(board: Board, from: string, to: string | undefined): Board {
   return {
     ...board,
-    floors: board.floors.map((floor) => ({
-      ...floor,
-      cells: floor.cells.map((cell) => {
+    floors: board.floors.map((floor) => {
+      const cells = floor.cells.map((cell) => {
         if (cell.packId !== from) return cell;
         if (to === undefined) {
           const { packId: _removed, ...rest } = cell;
           return rest;
         }
         return { ...cell, packId: to };
-      }),
-    })),
+      });
+      if (!floor.holdQuotas) return { ...floor, cells };
+      return { ...floor, holdQuotas: rewriteHoldQuotas(floor.holdQuotas, from, to), cells };
+    }),
   };
 }
 

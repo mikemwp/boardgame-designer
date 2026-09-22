@@ -353,4 +353,28 @@ describe('LayoutDesigner', () => {
     const next = onBoardChange.mock.calls[0][0] as Board;
     expect(next.floors[0]!.cells.find((c) => c.id === hud.id)?.hudWidget).toBe('spinner');
   });
+
+  it('enables level hold from Tile Actions', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[{ pack: 'climb' }]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    expect(screen.getByTestId('hold-editor')).toBeDefined();
+    fireEvent.click(screen.getByLabelText('Level hold'));
+    const next = onBoardChange.mock.calls[0][0] as Board;
+    expect(next.floors[0]?.holdEnabled).toBe(true);
+  });
 });
+

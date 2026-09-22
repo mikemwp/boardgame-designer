@@ -6,6 +6,7 @@ import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { CellInspector } from '@/components/designer/CellInspector';
 import { DesignerPalette, type DesignerTool } from '@/components/designer/DesignerPalette';
 import { FloorTabs } from '@/components/designer/FloorTabs';
+import { HoldEditor } from '@/components/designer/HoldEditor';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { PackEditor } from '@/components/designer/PackEditor';
 import { ValidationList } from '@/components/designer/ValidationList';
@@ -31,6 +32,7 @@ import {
   renameFloor,
   setCellPack,
   setEndCell,
+  setFloorHold,
   setHudWidget,
   setStartCell,
 } from '@/lib/designer/mutate';
@@ -273,6 +275,12 @@ export function LayoutDesigner({
         </div>
         <div className="min-h-0 flex-1 basis-0 overflow-y-auto" data-testid="tile-actions-pane">
           {sideTab === 'actions' ? (
+          <>
+          <HoldEditor
+            floor={floor}
+            packIds={catalog}
+            onChange={(patch) => onBoardChange(setFloorHold(board, floor.id, patch))}
+          />
           <CellInspector
             board={board}
             floorId={floor.id}
@@ -312,6 +320,7 @@ export function LayoutDesigner({
               onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
             }}
           />
+          </>
           ) : (
           <PackEditor
             packs={catalog}
