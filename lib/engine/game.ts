@@ -5,6 +5,7 @@ import { canSpendPass, createPassesLeft, spendPass } from './passes';
 import { movementRange, sampleMovement, type Rng } from './dice';
 import { applyAction, countsTowardReveal, dealFromPack, type CardState } from './cards';
 import { canExitHold, createHoldState, recordHoldReveal, type HoldState } from './hold';
+import { landingPackId } from './layout';
 import { allowedMoveValues, walkSteps } from './movement';
 import type { GameCommand, GameEvent } from './events';
 
@@ -100,14 +101,16 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
     }
     const moved: GameState = { ...state, players, hold, lastEvent };
     const destCell = destFloor?.cells.find((c) => c.id === dest.cellId);
-    if (destCell?.packId && destCell.kind !== 'stair') {
-      return dealOnLand(moved, destCell.packId);
+    const destPack = destFloor && destCell ? landingPackId(destFloor, destCell) : undefined;
+    if (destPack) {
+      return dealOnLand(moved, destPack);
     }
     return moved;
   }
 
-  if (cell.packId) {
-    return dealOnLand(state, cell.packId);
+  const packId = landingPackId(floor, cell);
+  if (packId) {
+    return dealOnLand(state, packId);
   }
 
   return {

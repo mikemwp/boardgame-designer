@@ -5,6 +5,7 @@ import { createGame, dispatch } from '@/lib/engine/game';
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
 import { climbSample } from '@/lib/samples/climb';
 import type { GameBootstrap } from '@/lib/engine/game';
+import { defaultGameConfig } from '@/lib/engine/types';
 
 function loopBootstrap(overrides?: Partial<GameBootstrap>): GameBootstrap {
   const floors = [
@@ -71,6 +72,39 @@ describe('ROLL_DICE', () => {
     expect(next.lastRoll?.value).toBeGreaterThanOrEqual(0);
     expect(next.lastRoll?.sides).toBe(6);
     expect(next.lastRoll?.id).toBe(1);
+  });
+
+  it('deals the room pack when landing on the door and stays on the door', () => {
+    const bootstrap: GameBootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
+              { id: 'l1', index: 1, kind: 'door', col: 1, row: 0 },
+              { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
+              { id: 'room', index: 3, kind: 'room', col: 1, row: 1, packId: 'notes' },
+            ],
+          },
+        ],
+        [],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([{ id: 'n1', pack: 'notes', title: 'Clue' }]),
+      config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' },
+    };
+    const next = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    expect(next.lastRoll?.value).toBe(1);
+    expect(next.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
+    expect(next.cards.currentCard?.id).toBe('n1');
+    expect(next.lastEvent?.type).toBe('CARD_DEALT');
   });
 
   it('moves along the loop and deals on a content landing', () => {
