@@ -6,8 +6,34 @@ import type { HudRect, TokenPos } from '@/lib/engine/types';
 
 const FLOOR_HEIGHT = 2;
 export const TILE_SIZE = 1;
+const HALF_TILE = TILE_SIZE / 2;
 
 export interface Vec3 { x: number; y: number; z: number }
+
+export interface BoardWorldBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  minZ: number;
+  maxZ: number;
+}
+
+export interface OrbitCameraLimits {
+  pivot: Vec3;
+  distanceMin: number;
+  distanceMax: number;
+  defaultDistance: number;
+}
+
+const EMPTY_BOUNDS: BoardWorldBounds = {
+  minX: -HALF_TILE,
+  maxX: HALF_TILE,
+  minY: 0,
+  maxY: 0,
+  minZ: -HALF_TILE,
+  maxZ: HALF_TILE,
+};
 
 function hudOrigin(hud: HudRect = DEFAULT_HUD): { col: number; row: number } {
   return {
@@ -62,6 +88,55 @@ export function tokenPosToWorld(
   const cell = floor?.cells.find((c) => c.id === token.cellId);
   if (!floor || !cell) return { x: 0, y: 0, z: 0 };
   return cellToWorld(floor.index, cell, floor.hud);
+}
+
+export function boardWorldBounds(board: Board): BoardWorldBounds {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let hasCells = false;
+
+  for (const floor of board.floors) {
+    for (const cell of floor.cells) {
+      if (cell.col === undefined || cell.row === undefined) continue;
+      const world = cellToWorld(floor.index, cell, floor.hud);
+      hasCells = true;
+      minX = Math.min(minX, world.x - HALF_TILE);
+      maxX = Math.max(maxX, world.x + HALF_TILE);
+      minY = Math.min(minY, world.y);
+      maxY = Math.max(maxY, world.y);
+      minZ = Math.min(minZ, world.z - HALF_TILE);
+      maxZ = Math.max(maxZ, world.z + HALF_TILE);
+    }
+  }
+
+  return hasCells
+    ? { minX, maxX, minY, maxY, minZ, maxZ }
+    : { ...EMPTY_BOUNDS };
+}
+
+export function orbitCameraLimits(bounds: BoardWorldBounds): OrbitCameraLimits {
+  const spanX = Math.max(bounds.maxX - bounds.minX, TILE_SIZE);
+  const spanZ = Math.max(bounds.maxZ - bounds.minZ, TILE_SIZE);
+  const spanY = Math.max(bounds.maxY - bounds.minY, 0);
+  const span = Math.max(spanX, spanZ, TILE_SIZE);
+  const pivot = {
+    x: (bounds.minX + bounds.maxX) / 2,
+    y: (bounds.minY + bounds.maxY) / 2,
+    z: (bounds.minZ + bounds.maxZ) / 2,
+  };
+
+  const distanceMin = Math.max(TILE_SIZE * 2.5, span * 0.9);
+  const distanceMax = Math.max(distanceMin + TILE_SIZE * 2, span * 3.5 + spanY * 1.5);
+  const defaultDistance = Math.min(
+    distanceMax,
+    Math.max(distanceMin, Math.hypot(span * 1.2, spanY + TILE_SIZE * 4)),
+  );
+
+  return { pivot, distanceMin, distanceMax, defaultDistance };
 }
 
 export function worldWaypoints(board: Board, from: TokenPos, to: TokenPos, steps?: number): Vec3[] {

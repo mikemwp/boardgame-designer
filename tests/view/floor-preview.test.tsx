@@ -19,6 +19,10 @@ vi.mock('@playcanvas/react/components', () => ({
   Light: () => null,
 }));
 
+vi.mock('@playcanvas/react/scripts', () => ({
+  OrbitControls: () => null,
+}));
+
 vi.mock('@playcanvas/react/hooks', () => ({
   useMaterial: () => ({}),
 }));
