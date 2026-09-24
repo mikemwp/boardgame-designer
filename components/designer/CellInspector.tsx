@@ -1,12 +1,13 @@
 'use client';
 
-import { AudioField } from '@/components/designer/AudioField';
+import { AudioField, MediaField } from '@/components/designer/AudioField';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { HUD_WIDGETS, hudWidgetOf } from '@/lib/designer/hud';
+import { tileActionKind } from '@/lib/designer/tile-chrome';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { AudioRef, Cell, HudWidget } from '@/lib/engine/types';
+import type { AudioRef, Cell, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
@@ -24,11 +25,7 @@ function endTileLabel(cell: Cell): string {
 }
 
 function cellHeading(cell: Cell): string {
-  if (cell.kind === 'hud') return 'HUD';
-  if (cell.kind === 'stair') return 'Stair';
-  if (cell.kind === 'room') return 'Room';
-  if (cell.kind === 'door') return 'Door';
-  return 'Tile';
+  return tileActionKind(cell);
 }
 
 export function CellInspector({
@@ -47,6 +44,8 @@ export function CellInspector({
   gameId,
   media,
   onSetAudio,
+  onSetImage,
+  onSetVideo,
 }: {
   board: Board;
   floorId: string;
@@ -63,6 +62,8 @@ export function CellInspector({
   gameId?: string;
   media?: MediaStore;
   onSetAudio?: (audio: AudioRef | undefined) => void;
+  onSetImage?: (image: ImageRef | undefined) => void;
+  onSetVideo?: (video: VideoRef | undefined) => void;
 }) {
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
@@ -72,12 +73,18 @@ export function CellInspector({
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-lg border border-slate-800 p-3" data-testid="tile-actions">
-      <p className="text-sm font-medium text-slate-100">Tile Actions</p>
+      <div className="flex items-baseline gap-2">
+        <p className="text-sm font-medium text-slate-100">Tile Actions</p>
+        {cell ? (
+          <p className="text-sm text-slate-300" data-testid="tile-actions-kind">
+            {cellHeading(cell)}
+          </p>
+        ) : null}
+      </div>
       {!cell ? (
         <p className="text-sm text-slate-400">Select a tile to edit pack, stairs, start, or end.</p>
       ) : (
         <>
-          <p className="text-sm text-slate-300">{cellHeading(cell)}</p>
           {cell.kind === 'hud' ? (
             <>
               <Label htmlFor="hud-type">HUD type</Label>
@@ -184,13 +191,35 @@ export function CellInspector({
             </>
           )}
           {cell.kind !== 'hud' && cell.kind !== 'door' && onSetAudio ? (
-            <AudioField
-              value={cell.audio}
-              gameId={gameId ?? 'draft'}
-              media={media}
-              onChange={onSetAudio}
-              idPrefix={`cell-${cell.id}`}
-            />
+            <>
+              <AudioField
+                value={cell.audio}
+                gameId={gameId ?? 'draft'}
+                media={media}
+                onChange={onSetAudio}
+                idPrefix={`cell-${cell.id}`}
+              />
+              {onSetImage ? (
+                <MediaField
+                  kind="image"
+                  value={cell.image}
+                  gameId={gameId ?? 'draft'}
+                  media={media}
+                  onChange={(next) => onSetImage(next as ImageRef | undefined)}
+                  idPrefix={`cell-${cell.id}`}
+                />
+              ) : null}
+              {onSetVideo ? (
+                <MediaField
+                  kind="video"
+                  value={cell.video}
+                  gameId={gameId ?? 'draft'}
+                  media={media}
+                  onChange={(next) => onSetVideo(next as VideoRef | undefined)}
+                  idPrefix={`cell-${cell.id}`}
+                />
+              ) : null}
+            </>
           ) : null}
           {cell.kind !== 'hud' ? (
             <>

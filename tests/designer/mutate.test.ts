@@ -25,6 +25,8 @@ import {
   setHudWidget,
   setStartCell,
   setCellAudio,
+  setCellImage,
+  setCellVideo,
 } from '@/lib/designer/mutate';
 
 function groundBoard() {
@@ -51,15 +53,21 @@ describe('placeCorridor', () => {
 });
 
 describe('placeHud', () => {
-  it('places HUD tiles in the center and rejects corridor slots', () => {
+  it('places HUD on any free square including the inner ring', () => {
     const board = groundBoard();
     const floor = board.floors[0]!;
     const hudCol = floor.hud!.col;
     const hudRow = floor.hud!.row;
-    expect(placeHud(board, 'ground', 1, 1, 'ground-h99')).toEqual(board);
+    const inner = placeHud(board, 'ground', 1, 1, 'ground-h99');
+    expect(inner.floors[0]?.cells.find((c) => c.id === 'ground-h99')).toMatchObject({
+      kind: 'hud',
+      col: 1,
+      row: 1,
+    });
+    expect(placeHud(board, 'ground', 0, 0, 'ground-h98')).toEqual(board);
     const erased = eraseCell(board, 'ground', `ground-h0`);
-    const next = placeHud(erased, 'ground', hudCol, hudRow, 'ground-h99');
-    expect(next.floors[0]?.cells.find((c) => c.id === 'ground-h99')).toMatchObject({
+    const next = placeHud(erased, 'ground', hudCol, hudRow, 'ground-h97');
+    expect(next.floors[0]?.cells.find((c) => c.id === 'ground-h97')).toMatchObject({
       kind: 'hud',
       col: hudCol,
       row: hudRow,
@@ -377,6 +385,52 @@ describe('setCellAudio', () => {
     const marked = setCellAudio(groundBoard(), 'ground', 'ground-c0', clip);
     const resized = applyFloorShape(marked, 'ground', { kind: 'square', tilesPerSide: 10 });
     expect(resized.floors[0]?.cells.find((c) => c.id === 'ground-c0')?.audio).toEqual(clip);
+  });
+});
+
+describe('setCellImage and setCellVideo', () => {
+  const image = {
+    id: 'img1',
+    name: 'tile.png',
+    source: 'url' as const,
+    src: 'https://ex/tile.png',
+  };
+  const video = {
+    id: 'vid1',
+    name: 'cut.mp4',
+    source: 'url' as const,
+    src: 'https://ex/cut.mp4',
+  };
+
+  it('sets image and video independently of audio', () => {
+    const clip = {
+      id: 'a1',
+      name: 'land.mp3',
+      source: 'url' as const,
+      src: 'https://ex/land.mp3',
+    };
+    let board = setCellAudio(groundBoard(), 'ground', 'ground-c1', clip);
+    board = setCellImage(board, 'ground', 'ground-c1', image);
+    board = setCellVideo(board, 'ground', 'ground-c1', video);
+    const cell = board.floors[0]?.cells.find((c) => c.id === 'ground-c1');
+    expect(cell).toMatchObject({ audio: clip, image, video });
+    const clearedImage = setCellImage(board, 'ground', 'ground-c1', undefined);
+    const after = clearedImage.floors[0]?.cells.find((c) => c.id === 'ground-c1');
+    expect(after?.image).toBeUndefined();
+    expect(after?.audio).toEqual(clip);
+    expect(after?.video).toEqual(video);
+  });
+});
+
+describe('applyFloorShape extra HUD', () => {
+  it('keeps an inner-ring HUD tile when the square stays free', () => {
+    const placed = placeHud(groundBoard(), 'ground', 1, 1, 'ground-h-ring');
+    const resized = applyFloorShape(placed, 'ground', { kind: 'square', tilesPerSide: 10 });
+    expect(resized.floors[0]?.cells.find((c) => c.id === 'ground-h-ring')).toMatchObject({
+      kind: 'hud',
+      col: 1,
+      row: 1,
+    });
   });
 });
 

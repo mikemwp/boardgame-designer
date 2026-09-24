@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cellAt, DEFAULT_COLUMNS, DEFAULT_ROWS } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
 import { buildShapeLayout, DESIGNER_POLAR_PAD, shapeSlotBounds } from '@/lib/engine/shape-layout';
-import { hudWidgetLabel, hudWidgetOf } from '@/lib/designer/hud';
+import { designerCellLabel } from '@/lib/designer/tile-chrome';
 import type { Floor } from '@/lib/engine/types';
 
 const GRID_GAP_PX = 4;
@@ -188,7 +188,7 @@ export function LayoutGrid({
           else if (cell) className += ' border-slate-500 bg-slate-600 text-slate-50';
           else className += ' border-slate-800 bg-slate-950 text-slate-500';
           if (selected) className += ' ring-2 ring-sky-400';
-          if (cell?.start) className += ' outline outline-1 outline-emerald-400';
+          if (cell?.start) className += ' outline outline-1 outline-emerald-400 text-white';
           if (cell?.end) className += ' outline outline-1 outline-rose-400';
           const ariaLabel = cell ? cell.id : `Empty ${col},${row}`;
           return (
@@ -211,15 +211,7 @@ export function LayoutGrid({
               }}
               onClick={() => onSlotActivate(col, row)}
             >
-              {cell?.kind === 'hud'
-                ? hudWidgetLabel(hudWidgetOf(cell))
-                : cell?.kind === 'stair'
-                  ? 'Stair'
-                  : cell?.kind === 'room'
-                    ? 'Room'
-                    : cell?.kind === 'door'
-                      ? 'Door'
-                      : ''}
+              {cell ? designerCellLabel(cell) : ''}
             </button>
           );
         })}

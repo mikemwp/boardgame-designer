@@ -65,6 +65,21 @@ describe('FloorStack', () => {
     expect(screen.getByTestId('entity-ground-c0')).toBeDefined();
   });
 
+  it('names start and HUD cells without painting text labels', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const start = floor.cells.find((c) => c.kind !== 'hud')!;
+    const hud = floor.cells.find((c) => c.kind === 'hud')!;
+    const board = createBoard(
+      [{ ...floor, cells: floor.cells.map((c) => (c.id === start.id ? { ...c, start: true } : c)) }],
+      [],
+    );
+    render(<FloorStack board={board} selectedCellId={start.id} />);
+    expect(screen.getByTestId(`entity-${start.id}`)).toBeDefined();
+    expect(screen.getByTestId(`entity-${hud.id}`)).toBeDefined();
+    expect(screen.queryByText('Start')).toBeNull();
+    expect(screen.queryByText('HUD')).toBeNull();
+  });
+
   it('renders an empty board without crashing', () => {
     expect(() => render(<FloorStack board={createBoard([], [])} />)).not.toThrow();
     expect(screen.queryByTestId(/entity-/)).toBeNull();

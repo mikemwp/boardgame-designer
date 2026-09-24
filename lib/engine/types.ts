@@ -76,6 +76,14 @@ export interface ImageRef {
   mime?: string;
 }
 
+export interface VideoRef {
+  id: string;
+  name: string;
+  source: MediaSourceKind;
+  src?: string;
+  mime?: string;
+}
+
 export type StartMenuAction = 'play' | 'continue';
 
 export interface SplashScreen {
@@ -113,6 +121,8 @@ export interface Cell {
   end?: boolean;
   hudWidget?: HudWidget;
   audio?: AudioRef;
+  image?: ImageRef;
+  video?: VideoRef;
 }
 
 export interface Stair {

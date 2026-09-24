@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { AudioField } from '@/components/designer/AudioField';
+import { AudioField, MediaField } from '@/components/designer/AudioField';
 import { memoryMediaStore } from '@/lib/library/media-store';
 
 describe('AudioField', () => {
@@ -58,5 +58,52 @@ describe('AudioField', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Clear' })).toBeDefined();
     expect(screen.getByTestId('audio-preview')).toBeDefined();
+  });
+
+  it('commits an image URL without touching other kinds', () => {
+    const onChange = vi.fn();
+    render(
+      <MediaField
+        kind="image"
+        gameId="g1"
+        media={memoryMediaStore()}
+        onChange={onChange}
+        idPrefix="tile"
+      />,
+    );
+    expect(screen.getByText('Image')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Image URL'), {
+      target: { value: 'https://example.com/tile.png' },
+    });
+    fireEvent.blur(screen.getByLabelText('Image URL'));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'url',
+        src: 'https://example.com/tile.png',
+      }),
+    );
+  });
+
+  it('commits a video URL', () => {
+    const onChange = vi.fn();
+    render(
+      <MediaField
+        kind="video"
+        gameId="g1"
+        media={memoryMediaStore()}
+        onChange={onChange}
+        idPrefix="tile"
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/cut.mp4' },
+    });
+    fireEvent.blur(screen.getByLabelText('Video URL'));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'url',
+        src: 'https://example.com/cut.mp4',
+      }),
+    );
   });
 });

@@ -3,6 +3,7 @@ import {
   memoryMediaStore,
   isAllowedAudioMime,
   isAllowedImageMime,
+  isAllowedVideoMime,
 } from '@/lib/library/media-store';
 
 describe('memoryMediaStore', () => {
@@ -38,5 +39,7 @@ describe('memoryMediaStore', () => {
     expect(isAllowedAudioMime('audio/mpeg')).toBe(true);
     expect(isAllowedAudioMime('application/pdf')).toBe(false);
     expect(isAllowedImageMime('image/png')).toBe(true);
+    expect(isAllowedVideoMime('video/mp4')).toBe(true);
+    expect(isAllowedVideoMime('application/pdf')).toBe(false);
   });
 });

@@ -26,6 +26,8 @@ describe('CellInspector', () => {
       />,
     );
     expect(screen.getByText('Tile Actions')).toBeDefined();
+    expect(screen.getByTestId('tile-actions-kind').textContent).toBe('Tile');
+    expect(screen.queryByLabelText('Title')).toBeNull();
     expect(screen.queryByLabelText('Floor name')).toBeNull();
     expect(screen.queryByLabelText('Level name')).toBeNull();
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'climb' } });
@@ -189,13 +191,17 @@ describe('CellInspector', () => {
         onClearStair={() => {}}
         gameId="g1"
         onSetAudio={onSetAudio}
+        onSetImage={() => {}}
+        onSetVideo={() => {}}
       />,
     );
     expect(screen.getByText('Audio')).toBeDefined();
-    fireEvent.change(screen.getByPlaceholderText('https://…'), {
+    expect(screen.getByText('Image')).toBeDefined();
+    expect(screen.getByText('Video')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Audio URL'), {
       target: { value: 'https://example.com/tile.mp3' },
     });
-    fireEvent.blur(screen.getByPlaceholderText('https://…'));
+    fireEvent.blur(screen.getByLabelText('Audio URL'));
     expect(onSetAudio).toHaveBeenCalled();
 
     rerender(
@@ -215,6 +221,8 @@ describe('CellInspector', () => {
       />,
     );
     expect(screen.queryByText('Audio')).toBeNull();
+    expect(screen.queryByText('Image')).toBeNull();
+    expect(screen.queryByText('Video')).toBeNull();
   });
 
   it('sets HUD type on a HUD cell and hides pack controls', () => {

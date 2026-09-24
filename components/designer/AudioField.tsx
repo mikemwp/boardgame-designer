@@ -4,16 +4,43 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { AudioRef } from '@/lib/engine/types';
+import type { AudioRef, ImageRef, VideoRef } from '@/lib/engine/types';
 import {
   AUDIO_SIZE_WARN_BYTES,
   isAllowedAudioMime,
+  isAllowedImageMime,
+  isAllowedVideoMime,
   memoryMediaStore,
   objectUrlFor,
   type MediaStore,
 } from '@/lib/library/media-store';
 
-const AUDIO_ACCEPT = 'audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm';
+export type MediaKind = 'audio' | 'image' | 'video';
+export type MediaRef = AudioRef | ImageRef | VideoRef;
+
+const KIND_CONFIG = {
+  audio: {
+    label: 'Audio',
+    accept: 'audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm',
+    empty: 'No audio. Paste a URL or choose a file.',
+    fileError: 'Use an MP3, WAV, OGG, M4A, or WEBM file.',
+    isAllowed: isAllowedAudioMime,
+  },
+  image: {
+    label: 'Image',
+    accept: 'image/png,image/jpeg,image/webp,image/gif',
+    empty: 'No image. Paste a URL or choose a file.',
+    fileError: 'Use a PNG, JPEG, WEBP, or GIF file.',
+    isAllowed: isAllowedImageMime,
+  },
+  video: {
+    label: 'Video',
+    accept: 'video/mp4,video/webm,video/ogg,video/quicktime',
+    empty: 'No video. Paste a URL or choose a file.',
+    fileError: 'Use an MP4, WEBM, or OGG file.',
+    isAllowed: isAllowedVideoMime,
+  },
+} as const;
 
 function urlName(src: string): string {
   try {
@@ -34,19 +61,22 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-export function AudioField({
+export function MediaField({
+  kind,
   value,
   gameId,
   media,
   onChange,
   idPrefix,
 }: {
-  value?: AudioRef;
+  kind: MediaKind;
+  value?: MediaRef;
   gameId: string;
   media?: MediaStore;
-  onChange: (next: AudioRef | undefined) => void;
+  onChange: (next: MediaRef | undefined) => void;
   idPrefix: string;
 }) {
+  const config = KIND_CONFIG[kind];
   const store = media ?? memoryMediaStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLAudioElement>(null);
@@ -89,8 +119,8 @@ export function AudioField({
 
   const chooseFile = async (file: File | undefined) => {
     if (!file) return;
-    if (!isAllowedAudioMime(file.type)) {
-      setError('Use an MP3, WAV, OGG, M4A, or WEBM file.');
+    if (!config.isAllowed(file.type)) {
+      setError(config.fileError);
       return;
     }
     setError(null);
@@ -114,6 +144,7 @@ export function AudioField({
   };
 
   const playPreview = async () => {
+    if (kind !== 'audio') return;
     const el = previewRef.current;
     if (!el || !value) return;
     let src = value.source === 'url' ? value.src : undefined;
@@ -127,16 +158,16 @@ export function AudioField({
   };
 
   return (
-    <div className="flex flex-col gap-2" data-testid={`${idPrefix}-audio`}>
-      <Label htmlFor={`${idPrefix}-url`}>Audio</Label>
+    <div className="flex flex-col gap-2" data-testid={`${idPrefix}-${kind}`}>
+      <Label htmlFor={`${idPrefix}-${kind}-url`}>{config.label}</Label>
       {!value ? (
-        <p className="text-sm text-slate-400">No audio. Paste a URL or choose a file.</p>
+        <p className="text-sm text-slate-400">{config.empty}</p>
       ) : (
         <p className="text-sm text-slate-200">{value.name}</p>
       )}
       <Input
-        id={`${idPrefix}-url`}
-        aria-label="Audio URL"
+        id={`${idPrefix}-${kind}-url`}
+        aria-label={`${config.label} URL`}
         placeholder="https://…"
         value={urlDraft}
         onChange={(e) => setUrlDraft(e.target.value)}
@@ -145,8 +176,8 @@ export function AudioField({
       <input
         ref={fileRef}
         type="file"
-        accept={AUDIO_ACCEPT}
-        aria-label="Choose file"
+        accept={config.accept}
+        aria-label={kind === 'audio' ? 'Choose file' : `Choose ${config.label.toLowerCase()} file`}
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -160,20 +191,47 @@ export function AudioField({
         </Button>
         {value ? (
           <>
-            <Button type="button" variant="outline" onClick={() => void playPreview()}>
-              Play
-            </Button>
+            {kind === 'audio' ? (
+              <Button type="button" variant="outline" onClick={() => void playPreview()}>
+                Play
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={() => void clear()}>
               Clear
             </Button>
           </>
         ) : null}
       </div>
-      <audio ref={previewRef} data-testid="audio-preview" className="hidden" />
+      {kind === 'audio' ? <audio ref={previewRef} data-testid="audio-preview" className="hidden" /> : null}
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
       {sizeWarn ? (
         <p className="text-sm text-amber-400">This file is larger than 5 MB. It may not save on every browser.</p>
       ) : null}
     </div>
+  );
+}
+
+export function AudioField({
+  value,
+  gameId,
+  media,
+  onChange,
+  idPrefix,
+}: {
+  value?: AudioRef;
+  gameId: string;
+  media?: MediaStore;
+  onChange: (next: AudioRef | undefined) => void;
+  idPrefix: string;
+}) {
+  return (
+    <MediaField
+      kind="audio"
+      value={value}
+      gameId={gameId}
+      media={media}
+      onChange={(next) => onChange(next as AudioRef | undefined)}
+      idPrefix={idPrefix}
+    />
   );
 }

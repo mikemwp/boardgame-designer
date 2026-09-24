@@ -14,7 +14,7 @@ import { listDraftPackIds } from '@/lib/designer/packs';
 import { canPublishPlay, validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
-import { formatGameTitle } from '@/lib/library/version';
+import { documentStatus, formatGameTitle } from '@/lib/library/version';
 import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
@@ -325,6 +325,12 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onGameStartChange={onGameStartChange}
             gameId={active.id}
             media={media}
+            metadata={{
+              lastSaved: active.lastSaved,
+              status: documentStatus(active),
+              version: active.version,
+              savedLocation: 'This device',
+            }}
           />
         ) : testViewportReady ? (
           <GameHud

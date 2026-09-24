@@ -95,7 +95,7 @@ export function cellToWorld(
   hud: HudRect = DEFAULT_HUD,
   floor?: Floor,
 ): Vec3 {
-  if (floor) {
+  if (floor && isPolarFloor(floor)) {
     const poly = slotPolygon(floor, cell as Cell);
     if (poly.length > 0) {
       const centroid = polygonCentroid(poly);
@@ -155,20 +155,24 @@ export function boardWorldBounds(board: Board): BoardWorldBounds {
     }
 
     for (const cell of floor.cells) {
-      const poly = slotPolygon(floor, cell);
-      if (poly.length > 0) {
-        const y = floor.index * FLOOR_HEIGHT;
-        hasCells = true;
-        for (const p of poly) {
-          minX = Math.min(minX, p.x);
-          maxX = Math.max(maxX, p.x);
-          minY = Math.min(minY, y);
-          maxY = Math.max(maxY, y);
-          minZ = Math.min(minZ, p.z);
-          maxZ = Math.max(maxZ, p.z);
+      if (isPolarFloor(floor)) {
+        const poly = slotPolygon(floor, cell);
+        if (poly.length > 0) {
+          const y = floor.index * FLOOR_HEIGHT;
+          hasCells = true;
+          for (const p of poly) {
+            minX = Math.min(minX, p.x);
+            maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+            minZ = Math.min(minZ, p.z);
+            maxZ = Math.max(maxZ, p.z);
+          }
+          continue;
         }
-      } else if (cell.col !== undefined && cell.row !== undefined) {
-        const world = cellToWorld(floor.index, cell, floor.hud);
+      }
+      if (cell.col !== undefined && cell.row !== undefined) {
+        const world = cellToWorld(floor.index, cell, floor.hud, floor);
         hasCells = true;
         minX = Math.min(minX, world.x - HALF_TILE);
         maxX = Math.max(maxX, world.x + HALF_TILE);

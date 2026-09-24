@@ -31,7 +31,7 @@ describe('LayoutDesigner', () => {
     expect(screen.getByRole('button', { name: 'Select' })).toBeDefined();
   });
 
-  it('keeps floor tabs and tool buttons on one toolbar row', () => {
+  it('centers board shape on the canvas top row and keeps tools in the bottom pane', () => {
     const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     render(
       <LayoutDesigner
@@ -48,18 +48,24 @@ describe('LayoutDesigner', () => {
       />,
     );
     const toolbar = screen.getByTestId('designer-toolbar');
-    expect(toolbar.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(true);
-    expect(toolbar.contains(screen.getByRole('button', { name: 'Select' }))).toBe(true);
     expect(toolbar.contains(screen.getByLabelText('Board shape'))).toBe(true);
-    expect(toolbar.contains(screen.getByLabelText('Level name'))).toBe(true);
-    expect(screen.getByTestId('designer-palette').className).toMatch(/ml-auto/);
-    expect(toolbar.className).toMatch(/flex-nowrap/);
-    expect(toolbar.className).not.toMatch(/grid-cols-1/);
+    expect(toolbar.contains(screen.getByLabelText('Tiles'))).toBe(true);
+    expect(toolbar.className).toMatch(/justify-center/);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(false);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Select' }))).toBe(false);
+    expect(toolbar.contains(screen.getByLabelText('Level name'))).toBe(false);
+    const bottom = screen.getByTestId('designer-bottom-pane');
+    expect(bottom.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(true);
+    expect(bottom.contains(screen.getByRole('button', { name: 'Select' }))).toBe(true);
+    expect(bottom.contains(screen.getByLabelText('Level name'))).toBe(true);
+    expect(screen.getByTestId('designer-bottom-row-blank')).toBeDefined();
+    expect(screen.getByTestId('designer-saved-location').textContent).toBe('This device');
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     expect(screen.getByTestId('designer-palette').className).toMatch(/flex-nowrap/);
     expect(screen.getByTestId('board-shape-fields').className).toMatch(/flex-nowrap/);
   });
 
-  it('splits the canvas 2/3 and shares the right column 50/50', () => {
+  it('splits the canvas 2/3 and stretches the right pane without an inline preview', () => {
     const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     const { container } = render(
       <LayoutDesigner
@@ -79,14 +85,10 @@ describe('LayoutDesigner', () => {
     expect(split.className).toMatch(/2fr_1fr/);
     expect(split.className).not.toMatch(/3fr_2fr/);
     expect(split.className).not.toMatch(/minmax\(20rem/);
-    const preview = screen.getByTestId('preview-pane');
+    expect(screen.queryByTestId('preview-pane')).toBeNull();
+    expect(screen.queryByTestId('floor-preview')).toBeNull();
     const tileActions = screen.getByTestId('tile-actions-pane');
-    expect(preview.className).toMatch(/flex-1/);
-    expect(preview.className).toMatch(/basis-0/);
-    expect(preview.className).toMatch(/min-h-0/);
-    expect(preview.className).not.toMatch(/h-48/);
     expect(tileActions.className).toMatch(/flex-1/);
-    expect(tileActions.className).toMatch(/basis-0/);
     expect(tileActions.className).not.toMatch(/shrink-0/);
     expect(tileActions.className).not.toMatch(/h-64/);
     expect(tileActions.className).not.toMatch(/max-h-\[40%\]/);
@@ -354,7 +356,7 @@ describe('LayoutDesigner', () => {
     expect(next.floors[0]!.cells.find((c) => c.id === hud.id)?.hudWidget).toBe('spinner');
   });
 
-  it('enables level hold from Tile Actions', () => {
+  it('enables level hold from the Levels tab', () => {
     const onBoardChange = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
     render(
@@ -371,10 +373,56 @@ describe('LayoutDesigner', () => {
         onToolChange={() => {}}
       />,
     );
+    expect(screen.queryByTestId('hold-editor')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Levels' }));
     expect(screen.getByTestId('hold-editor')).toBeDefined();
     fireEvent.click(screen.getByLabelText('Level hold'));
     const next = onBoardChange.mock.calls[0][0] as Board;
     expect(next.floors[0]?.holdEnabled).toBe(true);
+  });
+
+  it('places HUD on the inner free ring', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="hud"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('slot-1-1'));
+    const next = onBoardChange.mock.calls[0][0] as Board;
+    expect(next.floors[0]?.cells.some((c) => c.kind === 'hud' && c.col === 1 && c.row === 1)).toBe(true);
+  });
+
+  it('opens the 3D preview in a popup', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    expect(screen.queryByTestId('floor-preview')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(screen.getByTestId('preview-dialog')).toBeDefined();
+    expect(screen.getByTestId('floor-preview')).toBeDefined();
   });
 
   it('opens the Start tab and adds a splash', () => {

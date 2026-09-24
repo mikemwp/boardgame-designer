@@ -6,7 +6,8 @@ import {
   isHudSlot,
 } from '@/lib/engine/layout';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
-import { adjacentWorldDistance, cellToWorld, TILE_SIZE } from '@/lib/view/board-layout';
+import { adjacentWorldDistance, cellToWorld, gridToWorld, TILE_SIZE } from '@/lib/view/board-layout';
+import { orbitCameraPose } from '@/lib/view/orbit-camera';
 
 describe('square ring layout', () => {
   it('uses equal tile counts on each side of the HUD ring', () => {
@@ -65,5 +66,28 @@ describe('cellToWorld', () => {
     const zs = worlds.map((w) => w.z);
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(2 * TILE_SIZE, 5);
     expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(2 * TILE_SIZE, 5);
+  });
+
+  it('places a painted inner-ring cell from col/row, not ring index', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'square', tilesPerSide: 8 });
+    const painted = { id: 'ground-extra', index: 99, kind: 'corridor' as const, col: 3, row: 6 };
+    const withPainted = { ...floor, cells: [...floor.cells, painted] };
+    const world = cellToWorld(0, painted, floor.hud, withPainted);
+    expect(world).toEqual(gridToWorld(0, 3, 6, floor.hud));
+    const ringByIndex = floor.cells.find((c) => c.index === 99 || c.slot === 99);
+    if (ringByIndex) {
+      const ringWorld = cellToWorld(0, ringByIndex, floor.hud, floor);
+      expect(world).not.toEqual(ringWorld);
+    }
+    const neighbor = cellToWorld(
+      0,
+      { index: 100, col: 3, row: 5 },
+      floor.hud,
+      withPainted,
+    );
+    expect(adjacentWorldDistance(world, neighbor)).toBe(TILE_SIZE);
+    const before = { ...world };
+    orbitCameraPose({ x: 0, y: 0, z: 0 }, 8, -85, 90);
+    expect(cellToWorld(0, painted, floor.hud, withPainted)).toEqual(before);
   });
 });

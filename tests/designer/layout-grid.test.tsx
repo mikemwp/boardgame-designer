@@ -38,6 +38,20 @@ describe('LayoutGrid', () => {
     expect(onMoveCell).toHaveBeenCalledWith('ground-c7', 1, 1);
   });
 
+  it('labels a start tile with white Start text and a green border', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const start = floor.cells.find((c) => c.col === 0 && c.row === 0)!;
+    const withStart = {
+      ...floor,
+      cells: floor.cells.map((c) => (c.id === start.id ? { ...c, start: true } : c)),
+    };
+    render(<LayoutGrid floor={withStart} onSlotActivate={() => {}} onMoveCell={() => {}} />);
+    const slot = screen.getByTestId(`slot-${start.col}-${start.row}`);
+    expect(slot.textContent).toBe('Start');
+    expect(slot.className).toMatch(/outline-emerald-400/);
+    expect(slot.className).toMatch(/text-white/);
+  });
+
   it('labels room and door tiles on the cartesian grid', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     const neighbor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;

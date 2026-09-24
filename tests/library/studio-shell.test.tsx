@@ -68,7 +68,8 @@ describe('StudioShell', () => {
   it('opens in Design on Climb and Test reveals Roll dice', async () => {
     renderStudio();
     expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
-    expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
+    expect(screen.queryByTestId('floor-preview')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
@@ -76,6 +77,7 @@ describe('StudioShell', () => {
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
     expect(screen.getByText('No card drawn')).toBeDefined();
     expect(screen.queryByTestId('floor-preview')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Preview' })).toBeNull();
   });
 
   it('does not wrap Test in the designer 2/3 split', async () => {
@@ -112,7 +114,7 @@ describe('StudioShell', () => {
     fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     expect(screen.getByText('Sandbox (draft)')).toBeDefined();
-    expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
@@ -136,7 +138,7 @@ describe('StudioShell', () => {
     await flushTestViewport();
     expect(screen.getByText('Passes left: climb 1')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Design' }));
-    expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Lobby' })).toBeDefined();
   });
 
@@ -221,7 +223,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
     expect(screen.getByText('Sandbox (draft)')).toBeDefined();
-    expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     expect(screen.queryByText('Climb (sample) (draft)')).toBeNull();
 
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
@@ -240,7 +242,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
     fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
     fireEvent.click(screen.getByRole('button', { name: 'New card' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Tile Actions' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
     fireEvent.click(screen.getByTestId('slot-0-0'));
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'pack-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -268,7 +270,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByTestId('slot-1-0'));
     fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
     fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Tile Actions' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
     fireEvent.click(screen.getByTestId('slot-1-1'));
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'pack-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'End room' }));
@@ -323,7 +325,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New card' }));
     fireEvent.change(screen.getByLabelText('Timer seconds'), { target: { value: '9' } });
     fireEvent.change(screen.getByLabelText('Extra button'), { target: { value: 'Done' } });
-    fireEvent.click(screen.getByRole('tab', { name: 'Tile Actions' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Levels' }));
     fireEvent.click(screen.getByLabelText('Level hold'));
     fireEvent.change(screen.getByLabelText('Quota for pack-1'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));

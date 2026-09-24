@@ -114,6 +114,20 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(room.audio?.name).toBe('land.mp3');
   });
 
+  it('allows audio, image, and video on the same cell', () => {
+    const tile: Cell = {
+      id: 'c1',
+      index: 0,
+      kind: 'corridor',
+      audio: { id: 'a1', name: 'land.mp3', source: 'url', src: 'https://ex/land.mp3' },
+      image: { id: 'i1', name: 'tile.png', source: 'url', src: 'https://ex/tile.png' },
+      video: { id: 'v1', name: 'cut.mp4', source: 'url', src: 'https://ex/cut.mp4' },
+    };
+    expect(tile.audio?.id).toBe('a1');
+    expect(tile.image?.id).toBe('i1');
+    expect(tile.video?.id).toBe('v1');
+  });
+
   it('allows optional audio on a card', () => {
     const card: import('@/lib/engine/types').Card = {
       id: 'c1',

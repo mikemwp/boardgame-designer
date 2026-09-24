@@ -10,7 +10,7 @@ import {
 } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
-import type { AudioRef, BoardShape, Cell, Floor, HudWidget } from '@/lib/engine/types';
+import type { AudioRef, BoardShape, Cell, Floor, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 
@@ -18,7 +18,9 @@ function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
   return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
 }
 
-function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end' | 'hudWidget' | 'audio'> {
+function designerProps(
+  prev: Cell,
+): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end' | 'hudWidget' | 'audio' | 'image' | 'video'> {
   return {
     kind: prev.kind,
     packId: prev.kind === 'stair' ? undefined : prev.packId,
@@ -27,6 +29,8 @@ function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | '
     end: prev.end,
     hudWidget: prev.hudWidget,
     audio: prev.audio,
+    image: prev.image,
+    video: prev.video,
   };
 }
 
@@ -102,7 +106,6 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
     const oldCols = floor.columns ?? 0;
     const oldRows = floor.rows ?? 0;
     const extras = floor.cells.filter((cell) => {
-      if (cell.kind === 'hud') return false;
       if (cell.col === undefined || cell.row === undefined) return false;
       if (!inBounds(template, cell.col, cell.row)) return false;
       if (isHudSlot(template, cell.col, cell.row)) return false;
@@ -112,6 +115,7 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
         cell.row === 0 ||
         (oldCols > 0 && cell.col === oldCols - 1) ||
         (oldRows > 0 && cell.row === oldRows - 1);
+      if (cell.kind === 'hud') return true;
       return !wasPerimeter;
     });
     const hud = template.cells
@@ -159,7 +163,7 @@ export function placeHud(
   cellId: string,
 ): Board {
   const floor = board.floors.find((f) => f.id === floorId);
-  if (!floor || !inBounds(floor, col, row) || !isHudSlot(floor, col, row) || cellAt(floor, col, row)) {
+  if (!floor || !inBounds(floor, col, row) || cellAt(floor, col, row)) {
     return board;
   }
   return mapFloor(board, floorId, (current) => ({
@@ -342,25 +346,53 @@ export function eraseCell(board: Board, floorId: string, cellId: string): Board 
   return next;
 }
 
-export function setCellAudio(
+function setCellMedia<K extends 'audio' | 'image' | 'video'>(
   board: Board,
   floorId: string,
   cellId: string,
-  audio: AudioRef | undefined,
+  key: K,
+  value: Cell[K],
 ): Board {
   return mapFloor(board, floorId, (current) => ({
     ...current,
     cells: current.cells.map((cell) => {
       if (cell.id !== cellId) return cell;
       if (cell.kind === 'hud' || cell.kind === 'door') return cell;
-      if (!audio) {
+      if (!value) {
         const next = { ...cell };
-        delete next.audio;
+        delete next[key];
         return next;
       }
-      return { ...cell, audio };
+      return { ...cell, [key]: value };
     }),
   }));
+}
+
+export function setCellAudio(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  audio: AudioRef | undefined,
+): Board {
+  return setCellMedia(board, floorId, cellId, 'audio', audio);
+}
+
+export function setCellImage(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  image: ImageRef | undefined,
+): Board {
+  return setCellMedia(board, floorId, cellId, 'image', image);
+}
+
+export function setCellVideo(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  video: VideoRef | undefined,
+): Board {
+  return setCellMedia(board, floorId, cellId, 'video', video);
 }
 
 export function setCellPack(

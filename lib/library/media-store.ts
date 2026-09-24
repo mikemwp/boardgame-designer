@@ -37,8 +37,14 @@ export function isAllowedAudioMime(mime: string): boolean {
   return ALLOWED_AUDIO.has(mime);
 }
 
+const ALLOWED_VIDEO = new Set(['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']);
+
 export function isAllowedImageMime(mime: string): boolean {
   return ALLOWED_IMAGE.has(mime);
+}
+
+export function isAllowedVideoMime(mime: string): boolean {
+  return ALLOWED_VIDEO.has(mime);
 }
 
 export function mediaKey(gameId: string, assetId: string): string {

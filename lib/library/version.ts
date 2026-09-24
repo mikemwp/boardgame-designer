@@ -22,6 +22,18 @@ export function formatGameTitle(doc: GameDocument | undefined): string {
   return `${doc.name} (draft) v${doc.version}`;
 }
 
+export function formatDesignerStatus(status: GameStatus, version?: string | null): string {
+  if (status === 'published') return version ? `Published v${version}` : 'Published';
+  return version ? `draft v${version}` : 'draft';
+}
+
+export function formatDesignerLastSaved(iso?: string): string {
+  if (!iso) return 'Not saved yet';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'Not saved yet';
+  return `Last saved ${date.toLocaleString()}`;
+}
+
 export function markEditedAfterPublish(doc: GameDocument): GameDocument {
   if (documentStatus(doc) !== 'published') return doc;
   return {

@@ -11,6 +11,13 @@ import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { PackEditor } from '@/components/designer/PackEditor';
 import { StartEditor } from '@/components/designer/StartEditor';
 import { ValidationList } from '@/components/designer/ValidationList';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   addFloor,
   applyFloorShape,
@@ -32,6 +39,8 @@ import {
   clearDoor,
   renameFloor,
   setCellAudio,
+  setCellImage,
+  setCellVideo,
   setCellPack,
   setEndCell,
   setFloorHold,
@@ -56,8 +65,19 @@ import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { inferShape } from '@/lib/engine/shape';
 import { emptyGameStart } from '@/lib/engine/audio';
-import type { Card, GameStart } from '@/lib/engine/types';
+import type { Card, GameStart, ImageRef, VideoRef } from '@/lib/engine/types';
+import type { GameStatus } from '@/lib/library/types';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
+import { formatDesignerLastSaved, formatDesignerStatus } from '@/lib/library/version';
+
+export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'start';
+
+export type DesignerMetadata = {
+  lastSaved?: string;
+  status?: GameStatus;
+  version?: string | null;
+  savedLocation?: string;
+};
 
 export function LayoutDesigner({
   board,
@@ -76,6 +96,7 @@ export function LayoutDesigner({
   onGameStartChange,
   gameId,
   media,
+  metadata,
 }: {
   board: Board;
   cards: Card[];
@@ -93,11 +114,13 @@ export function LayoutDesigner({
   onGameStartChange?: (start: GameStart) => void;
   gameId?: string;
   media?: MediaStore;
+  metadata?: DesignerMetadata;
 }) {
   const start = gameStart ?? emptyGameStart();
   const [fallbackMedia] = useState(() => memoryMediaStore());
   const mediaStore = media ?? fallbackMedia;
-  const [sideTab, setSideTab] = useState<'actions' | 'packs' | 'start'>('actions');
+  const [sideTab, setSideTab] = useState<DesignerSideTab>('tiles');
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
@@ -210,42 +233,22 @@ export function LayoutDesigner({
     onSelectCell(existing?.id ?? null);
   };
 
+  const tabClass = (id: DesignerSideTab) =>
+    `rounded-md px-2 py-1 text-sm ${
+      sideTab === id ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
+    }`;
+
   return (
     <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[2fr_1fr]">
       <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
         <div
-          className="flex min-w-0 flex-nowrap items-end gap-2 overflow-x-auto"
+          className="flex min-w-0 flex-nowrap items-end justify-center"
           data-testid="designer-toolbar"
         >
-          <FloorTabs
-            floors={board.floors}
-            selectedFloorId={floor.id}
-            onSelect={(id) => {
-              onSelectFloor(id);
-              onSelectCell(null);
-            }}
-            onAdd={() => {
-              const id = nextFloorId(board);
-              const next = addFloor(board, id, nextLevelLabel(board.floors), floor.shape);
-              onBoardChange(next);
-              onSelectFloor(id);
-              onSelectCell(null);
-            }}
-            onDelete={(id) => {
-              const idx = board.floors.findIndex((f) => f.id === id);
-              const next = deleteFloor(board, id);
-              const pick = next.floors[Math.min(idx, next.floors.length - 1)] ?? next.floors[0];
-              onBoardChange(next);
-              onSelectFloor(pick?.id ?? id);
-              onSelectCell(null);
-            }}
-            onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
-          />
           <BoardShapeFields
             shape={normalizeShape(floor.shape)}
             onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
           />
-          <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto shrink-0 justify-end" />
         </div>
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <LayoutGrid
@@ -262,189 +265,240 @@ export function LayoutDesigner({
           />
         </div>
         <ValidationList issues={issues} />
+        <div
+          className="shrink-0 border-t border-slate-800"
+          data-testid="designer-bottom-pane"
+        >
+          <div
+            className="flex min-w-0 flex-nowrap items-end gap-2 overflow-x-auto border-b border-slate-800 py-2"
+            data-testid="designer-bottom-row-tools"
+          >
+            <FloorTabs
+              floors={board.floors}
+              selectedFloorId={floor.id}
+              onSelect={(id) => {
+                onSelectFloor(id);
+                onSelectCell(null);
+              }}
+              onAdd={() => {
+                const id = nextFloorId(board);
+                const next = addFloor(board, id, nextLevelLabel(board.floors), floor.shape);
+                onBoardChange(next);
+                onSelectFloor(id);
+                onSelectCell(null);
+              }}
+              onDelete={(id) => {
+                const idx = board.floors.findIndex((f) => f.id === id);
+                const next = deleteFloor(board, id);
+                const pick = next.floors[Math.min(idx, next.floors.length - 1)] ?? next.floors[0];
+                onBoardChange(next);
+                onSelectFloor(pick?.id ?? id);
+                onSelectCell(null);
+              }}
+              onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
+            />
+            <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto shrink-0 justify-end" />
+          </div>
+          <div
+            className="min-h-10 border-b border-slate-800"
+            data-testid="designer-bottom-row-blank"
+            aria-hidden
+          />
+          <div
+            className="flex flex-wrap items-center justify-between gap-2 py-2"
+            data-testid="designer-bottom-row-meta"
+          >
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300">
+              <span data-testid="designer-last-saved">{formatDesignerLastSaved(metadata?.lastSaved)}</span>
+              <span data-testid="designer-status">
+                {formatDesignerStatus(metadata?.status ?? 'draft', metadata?.version)}
+              </span>
+              <span data-testid="designer-saved-location">{metadata?.savedLocation ?? 'This device'}</span>
+            </div>
+            <Button type="button" onClick={() => setPreviewOpen(true)}>
+              Preview
+            </Button>
+          </div>
+        </div>
       </div>
-      <aside className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden max-lg:min-h-[36rem]">
+      <aside className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden max-lg:min-h-[36rem]">
         <div className="flex gap-1" data-testid="designer-side-tabs" role="tablist" aria-label="Designer side pane">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={sideTab === 'actions'}
-            className={`rounded-md px-2 py-1 text-sm ${
-              sideTab === 'actions' ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
-            }`}
-            onClick={() => setSideTab('actions')}
-          >
-            Tile Actions
+          <button type="button" role="tab" aria-selected={sideTab === 'levels'} className={tabClass('levels')} onClick={() => setSideTab('levels')}>
+            Levels
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={sideTab === 'packs'}
-            className={`rounded-md px-2 py-1 text-sm ${
-              sideTab === 'packs' ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
-            }`}
-            onClick={() => setSideTab('packs')}
-          >
+          <button type="button" role="tab" aria-selected={sideTab === 'tiles'} className={tabClass('tiles')} onClick={() => setSideTab('tiles')}>
+            Tiles
+          </button>
+          <button type="button" role="tab" aria-selected={sideTab === 'packs'} className={tabClass('packs')} onClick={() => setSideTab('packs')}>
             Packs
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={sideTab === 'start'}
-            className={`rounded-md px-2 py-1 text-sm ${
-              sideTab === 'start' ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
-            }`}
-            onClick={() => setSideTab('start')}
-          >
+          <button type="button" role="tab" aria-selected={sideTab === 'start'} className={tabClass('start')} onClick={() => setSideTab('start')}>
             Start
           </button>
         </div>
-        <div className="min-h-0 flex-1 basis-0 overflow-y-auto" data-testid="tile-actions-pane">
-          {sideTab === 'start' ? (
-          <StartEditor
-            value={start}
-            gameId={gameId ?? 'draft'}
-            media={mediaStore}
-            onChange={(next) => onGameStartChange?.(next)}
-          />
-          ) : sideTab === 'actions' ? (
-          <>
-          <HoldEditor
-            floor={floor}
-            packIds={catalog}
-            onChange={(patch) => onBoardChange(setFloorHold(board, floor.id, patch))}
-          />
-          <CellInspector
-            board={board}
-            floorId={floor.id}
-            cellId={selectedCellId}
-            packIds={listPackIds(cards, catalog)}
-            onSetPack={(packId) => {
-              if (!selectedCellId) return;
-              onBoardChange(setCellPack(board, floor.id, selectedCellId, packId));
-            }}
-            onSetStart={() => {
-              if (!selectedCellId) return;
-              onBoardChange(setStartCell(board, floor.id, selectedCellId));
-            }}
-            onSetEnd={() => {
-              if (!selectedCellId) return;
-              onBoardChange(setEndCell(board, floor.id, selectedCellId));
-            }}
-            onAttachStair={() => {
-              if (!selectedCellId) return;
-              onBoardChange(attachStair(board, floor.id, selectedCellId));
-            }}
-            onLinkStair={(toFloorId, toCellId) => {
-              const cell = floor.cells.find((c) => c.id === selectedCellId);
-              if (!cell?.stairId) return;
-              onBoardChange(linkStair(board, cell.stairId, toFloorId, toCellId));
-            }}
-            onClearStair={() => {
-              if (!selectedCellId) return;
-              onBoardChange(clearStair(board, floor.id, selectedCellId));
-            }}
-            onClearDoor={() => {
-              if (!selectedCellId) return;
-              onBoardChange(clearDoor(board, floor.id, selectedCellId));
-            }}
-            onSetHudWidget={(widget) => {
-              if (!selectedCellId) return;
-              onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
-            }}
-            gameId={gameId}
-            media={mediaStore}
-            onSetAudio={(audio) => {
-              if (!selectedCellId) return;
-              onBoardChange(setCellAudio(board, floor.id, selectedCellId, audio));
-            }}
-          />
-          </>
+        <div className="min-h-0 flex-1 overflow-y-auto" data-testid="tile-actions-pane">
+          {sideTab === 'levels' ? (
+            <HoldEditor
+              floor={floor}
+              packIds={catalog}
+              onChange={(patch) => onBoardChange(setFloorHold(board, floor.id, patch))}
+            />
+          ) : sideTab === 'start' ? (
+            <StartEditor
+              value={start}
+              gameId={gameId ?? 'draft'}
+              media={mediaStore}
+              onChange={(next) => onGameStartChange?.(next)}
+            />
+          ) : sideTab === 'tiles' ? (
+            <CellInspector
+              board={board}
+              floorId={floor.id}
+              cellId={selectedCellId}
+              packIds={listPackIds(cards, catalog)}
+              onSetPack={(packId) => {
+                if (!selectedCellId) return;
+                onBoardChange(setCellPack(board, floor.id, selectedCellId, packId));
+              }}
+              onSetStart={() => {
+                if (!selectedCellId) return;
+                onBoardChange(setStartCell(board, floor.id, selectedCellId));
+              }}
+              onSetEnd={() => {
+                if (!selectedCellId) return;
+                onBoardChange(setEndCell(board, floor.id, selectedCellId));
+              }}
+              onAttachStair={() => {
+                if (!selectedCellId) return;
+                onBoardChange(attachStair(board, floor.id, selectedCellId));
+              }}
+              onLinkStair={(toFloorId, toCellId) => {
+                const cell = floor.cells.find((c) => c.id === selectedCellId);
+                if (!cell?.stairId) return;
+                onBoardChange(linkStair(board, cell.stairId, toFloorId, toCellId));
+              }}
+              onClearStair={() => {
+                if (!selectedCellId) return;
+                onBoardChange(clearStair(board, floor.id, selectedCellId));
+              }}
+              onClearDoor={() => {
+                if (!selectedCellId) return;
+                onBoardChange(clearDoor(board, floor.id, selectedCellId));
+              }}
+              onSetHudWidget={(widget) => {
+                if (!selectedCellId) return;
+                onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
+              }}
+              gameId={gameId}
+              media={mediaStore}
+              onSetAudio={(audio) => {
+                if (!selectedCellId) return;
+                onBoardChange(setCellAudio(board, floor.id, selectedCellId, audio));
+              }}
+              onSetImage={(image: ImageRef | undefined) => {
+                if (!selectedCellId) return;
+                onBoardChange(setCellImage(board, floor.id, selectedCellId, image));
+              }}
+              onSetVideo={(video: VideoRef | undefined) => {
+                if (!selectedCellId) return;
+                onBoardChange(setCellVideo(board, floor.id, selectedCellId, video));
+              }}
+            />
           ) : (
-          <PackEditor
-            packs={catalog}
-            cards={draftCards}
-            selectedPackId={selectedPackId}
-            selectedCardId={selectedCardId}
-            onSelectPack={(id) => {
-              setSelectedPackId(id);
-              setSelectedCardId(null);
-            }}
-            onSelectCard={setSelectedCardId}
-            onCreatePack={() => {
-              const id = nextPackId(catalog);
-              const nextPacks = createPack(catalog, id);
-              onDraftChange?.({ cards: draftCards, packs: nextPacks, board });
-              setSelectedPackId(id);
-              setSelectedCardId(null);
-            }}
-            onRenamePack={(nextId) => {
-              if (!selectedPackId) return;
-              const next = renamePack({
-                packIds: catalog,
-                cards: draftCards,
-                board,
-                from: selectedPackId,
-                to: nextId,
-              });
-              onDraftChange?.(next);
-              if (next.board !== board) onBoardChange(next.board);
-              setSelectedPackId(next.packIds.includes(nextId.trim()) ? nextId.trim() : selectedPackId);
-            }}
-            onDeletePack={() => {
-              if (!selectedPackId) return;
-              const next = deletePack({
-                packIds: catalog,
-                cards: draftCards,
-                board,
-                packId: selectedPackId,
-              });
-              onDraftChange?.(next);
-              if (next.board !== board) onBoardChange(next.board);
-              setSelectedPackId(next.packIds[0] ?? null);
-              setSelectedCardId(null);
-            }}
-            onCreateCard={() => {
-              if (!selectedPackId) return;
-              const n = draftCards.filter((card) => card.pack === selectedPackId).length + 1;
-              const card: Card = {
-                id: nextCardId(draftCards, selectedPackId),
-                pack: selectedPackId,
-                title: `Card ${n}`,
-              };
-              onDraftChange?.({
-                cards: addCard(draftCards, card),
-                packs: catalog,
-                board,
-              });
-              setSelectedCardId(card.id);
-            }}
-            onUpdateCard={(patch) => {
-              if (!selectedCardId) return;
-              onDraftChange?.({
-                cards: updateCard(draftCards, selectedCardId, patch),
-                packs: catalog,
-                board,
-              });
-            }}
-            onDeleteCard={() => {
-              if (!selectedCardId) return;
-              onDraftChange?.({
-                cards: deleteCard(draftCards, selectedCardId),
-                packs: catalog,
-                board,
-              });
-              setSelectedCardId(null);
-            }}
-            gameId={gameId}
-            media={mediaStore}
-          />
+            <PackEditor
+              packs={catalog}
+              cards={draftCards}
+              selectedPackId={selectedPackId}
+              selectedCardId={selectedCardId}
+              onSelectPack={(id) => {
+                setSelectedPackId(id);
+                setSelectedCardId(null);
+              }}
+              onSelectCard={setSelectedCardId}
+              onCreatePack={() => {
+                const id = nextPackId(catalog);
+                const nextPacks = createPack(catalog, id);
+                onDraftChange?.({ cards: draftCards, packs: nextPacks, board });
+                setSelectedPackId(id);
+                setSelectedCardId(null);
+              }}
+              onRenamePack={(nextId) => {
+                if (!selectedPackId) return;
+                const next = renamePack({
+                  packIds: catalog,
+                  cards: draftCards,
+                  board,
+                  from: selectedPackId,
+                  to: nextId,
+                });
+                onDraftChange?.(next);
+                if (next.board !== board) onBoardChange(next.board);
+                setSelectedPackId(next.packIds.includes(nextId.trim()) ? nextId.trim() : selectedPackId);
+              }}
+              onDeletePack={() => {
+                if (!selectedPackId) return;
+                const next = deletePack({
+                  packIds: catalog,
+                  cards: draftCards,
+                  board,
+                  packId: selectedPackId,
+                });
+                onDraftChange?.(next);
+                if (next.board !== board) onBoardChange(next.board);
+                setSelectedPackId(next.packIds[0] ?? null);
+                setSelectedCardId(null);
+              }}
+              onCreateCard={() => {
+                if (!selectedPackId) return;
+                const n = draftCards.filter((card) => card.pack === selectedPackId).length + 1;
+                const card: Card = {
+                  id: nextCardId(draftCards, selectedPackId),
+                  pack: selectedPackId,
+                  title: `Card ${n}`,
+                };
+                onDraftChange?.({
+                  cards: addCard(draftCards, card),
+                  packs: catalog,
+                  board,
+                });
+                setSelectedCardId(card.id);
+              }}
+              onUpdateCard={(patch) => {
+                if (!selectedCardId) return;
+                onDraftChange?.({
+                  cards: updateCard(draftCards, selectedCardId, patch),
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onDeleteCard={() => {
+                if (!selectedCardId) return;
+                onDraftChange?.({
+                  cards: deleteCard(draftCards, selectedCardId),
+                  packs: catalog,
+                  board,
+                });
+                setSelectedCardId(null);
+              }}
+              gameId={gameId}
+              media={mediaStore}
+            />
           )}
         </div>
-        <div className="min-h-0 flex-1 basis-0 overflow-hidden" data-testid="preview-pane">
-          <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
-        </div>
       </aside>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent
+          className="flex h-[min(80vh,40rem)] w-full max-w-4xl flex-col sm:max-w-4xl"
+          data-testid="preview-dialog"
+        >
+          <DialogHeader>
+            <DialogTitle>Preview</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
