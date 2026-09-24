@@ -376,5 +376,31 @@ describe('LayoutDesigner', () => {
     const next = onBoardChange.mock.calls[0][0] as Board;
     expect(next.floors[0]?.holdEnabled).toBe(true);
   });
+
+  it('opens the Start tab and adds a splash', () => {
+    const onGameStartChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        onGameStartChange={onGameStartChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Start' }));
+    expect(screen.getByText('Game start')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Add splash' }));
+    expect(onGameStartChange).toHaveBeenCalled();
+    const next = onGameStartChange.mock.calls.at(-1)![0];
+    expect(next.splashes).toHaveLength(1);
+  });
 });
 

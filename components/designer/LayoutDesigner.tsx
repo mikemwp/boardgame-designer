@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FloorPreview } from '@/components/board/FloorPreview';
 import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { CellInspector } from '@/components/designer/CellInspector';
@@ -9,6 +9,7 @@ import { FloorTabs } from '@/components/designer/FloorTabs';
 import { HoldEditor } from '@/components/designer/HoldEditor';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { PackEditor } from '@/components/designer/PackEditor';
+import { StartEditor } from '@/components/designer/StartEditor';
 import { ValidationList } from '@/components/designer/ValidationList';
 import {
   addFloor,
@@ -56,7 +57,7 @@ import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { inferShape } from '@/lib/engine/shape';
 import { emptyGameStart } from '@/lib/engine/audio';
 import type { Card, GameStart } from '@/lib/engine/types';
-import type { MediaStore } from '@/lib/library/media-store';
+import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
 
 export function LayoutDesigner({
   board,
@@ -94,9 +95,9 @@ export function LayoutDesigner({
   media?: MediaStore;
 }) {
   const start = gameStart ?? emptyGameStart();
-  void start;
-  void onGameStartChange;
-  const [sideTab, setSideTab] = useState<'actions' | 'packs'>('actions');
+  const fallbackMedia = useRef(memoryMediaStore()).current;
+  const mediaStore = media ?? fallbackMedia;
+  const [sideTab, setSideTab] = useState<'actions' | 'packs' | 'start'>('actions');
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
@@ -286,9 +287,27 @@ export function LayoutDesigner({
           >
             Packs
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sideTab === 'start'}
+            className={`rounded-md px-2 py-1 text-sm ${
+              sideTab === 'start' ? 'bg-slate-800 text-slate-50' : 'text-slate-300 hover:bg-slate-900'
+            }`}
+            onClick={() => setSideTab('start')}
+          >
+            Start
+          </button>
         </div>
         <div className="min-h-0 flex-1 basis-0 overflow-y-auto" data-testid="tile-actions-pane">
-          {sideTab === 'actions' ? (
+          {sideTab === 'start' ? (
+          <StartEditor
+            value={start}
+            gameId={gameId ?? 'draft'}
+            media={mediaStore}
+            onChange={(next) => onGameStartChange?.(next)}
+          />
+          ) : sideTab === 'actions' ? (
           <>
           <HoldEditor
             floor={floor}
@@ -334,7 +353,7 @@ export function LayoutDesigner({
               onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
             }}
             gameId={gameId}
-            media={media}
+            media={mediaStore}
             onSetAudio={(audio) => {
               if (!selectedCellId) return;
               onBoardChange(setCellAudio(board, floor.id, selectedCellId, audio));
@@ -418,7 +437,7 @@ export function LayoutDesigner({
               setSelectedCardId(null);
             }}
             gameId={gameId}
-            media={media}
+            media={mediaStore}
           />
           )}
         </div>
