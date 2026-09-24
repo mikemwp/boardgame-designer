@@ -98,4 +98,38 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(card.timerSeconds).toBe(12);
     expect(card.extraButton).toBe('Done');
   });
+
+  it('allows optional audio on a corridor, stair, and room cell', () => {
+    const clip: import('@/lib/engine/types').AudioRef = {
+      id: 'a1',
+      name: 'land.mp3',
+      source: 'url',
+      src: 'https://example.com/land.mp3',
+    };
+    const tile: Cell = { id: 'c1', index: 0, kind: 'corridor', audio: clip };
+    const stair: Cell = { id: 'c2', index: 1, kind: 'stair', audio: clip };
+    const room: Cell = { id: 'r1', index: 8, kind: 'room', audio: clip };
+    expect(tile.audio?.id).toBe('a1');
+    expect(stair.audio?.source).toBe('url');
+    expect(room.audio?.name).toBe('land.mp3');
+  });
+
+  it('allows optional audio on a card', () => {
+    const card: import('@/lib/engine/types').Card = {
+      id: 'c1',
+      pack: 'notes',
+      title: 'Clue',
+      audio: { id: 'a2', name: 'deal.wav', source: 'file', mime: 'audio/wav' },
+    };
+    expect(card.audio?.source).toBe('file');
+  });
+
+  it('describes an empty game start with no overlay content', () => {
+    const start: import('@/lib/engine/types').GameStart = {
+      splashes: [],
+      menu: { items: [] },
+    };
+    expect(start.splashes).toEqual([]);
+    expect(start.menu.items).toEqual([]);
+  });
 });

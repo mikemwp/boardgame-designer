@@ -58,6 +58,46 @@ export interface HudRect {
   height: number;
 }
 
+export type MediaSourceKind = 'url' | 'file';
+
+export interface AudioRef {
+  id: string;
+  name: string;
+  source: MediaSourceKind;
+  src?: string;
+  mime?: string;
+}
+
+export interface ImageRef {
+  id: string;
+  name: string;
+  source: MediaSourceKind;
+  src?: string;
+  mime?: string;
+}
+
+export type StartMenuAction = 'play' | 'continue';
+
+export interface SplashScreen {
+  id: string;
+  caption?: string;
+  image?: ImageRef;
+  durationMs?: number;
+  skippable?: boolean;
+}
+
+export interface StartMenuItem {
+  id: string;
+  label: string;
+  action: StartMenuAction;
+}
+
+export interface GameStart {
+  audio?: AudioRef;
+  splashes: SplashScreen[];
+  menu: { items: StartMenuItem[] };
+}
+
 export interface Cell {
   id: string;
   index: number;
@@ -72,6 +112,7 @@ export interface Cell {
   start?: boolean;
   end?: boolean;
   hudWidget?: HudWidget;
+  audio?: AudioRef;
 }
 
 export interface Stair {
@@ -115,6 +156,7 @@ export interface Card {
   tags?: string[];
   timerSeconds?: number;
   extraButton?: string;
+  audio?: AudioRef;
 }
 
 export interface CardPack {
