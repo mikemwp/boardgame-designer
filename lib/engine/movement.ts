@@ -11,7 +11,7 @@ export function sortedCells(floor: { cells: Cell[] }): Cell[] {
 }
 
 export function walkableCells(floor: { cells: Cell[] }): Cell[] {
-  return sortedCells(floor).filter((cell) => cell.kind !== 'hud' && cell.kind !== 'room');
+  return sortedCells(floor).filter((cell) => cell.kind !== 'hud');
 }
 
 function pathCells(floor: { cells: Cell[]; shape?: Floor['shape'] }): Cell[] {

@@ -1,7 +1,6 @@
 import { createBoard, type Board } from '@/lib/engine/board';
 import { uniquifyCellIds } from '@/lib/engine/cell-ids';
 import {
-  adjacentCells,
   cellAt,
   createLoopedFloor,
   inBounds,
@@ -12,8 +11,10 @@ import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import type { AudioRef, BoardShape, Cell, Floor, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
 import { isVanillaFloor } from '@/lib/designer/level-size';
+import { dropRoomsOnFloor } from '@/lib/designer/rooms';
 
 export { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
+export { attachRoom, deleteRoom, resetRoom, setRoomMode } from '@/lib/designer/rooms';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 
@@ -25,13 +26,24 @@ function designerProps(
   prev: Cell,
 ): Pick<
   Cell,
-  'kind' | 'packId' | 'spinnerId' | 'stairId' | 'start' | 'end' | 'hudWidget' | 'audio' | 'image' | 'video'
+  | 'kind'
+  | 'packId'
+  | 'spinnerId'
+  | 'stairId'
+  | 'roomId'
+  | 'start'
+  | 'end'
+  | 'hudWidget'
+  | 'audio'
+  | 'image'
+  | 'video'
 > {
   return {
     kind: prev.kind,
     packId: prev.kind === 'stair' ? undefined : prev.packId,
     spinnerId: prev.kind === 'hud' ? undefined : prev.spinnerId,
     stairId: prev.stairId,
+    roomId: prev.roomId,
     start: prev.start,
     end: prev.end,
     hudWidget: prev.hudWidget,
@@ -41,10 +53,14 @@ function designerProps(
   };
 }
 
+function nextBoard(board: Board, floors: Floor[], stairs = board.stairs): Board {
+  return createBoard(floors, stairs, board.rooms);
+}
+
 function mapFloor(board: Board, floorId: string, fn: (floor: Floor) => Floor): Board {
-  return createBoard(
+  return nextBoard(
+    board,
     board.floors.map((floor) => (floor.id === floorId ? retileFloor(fn(floor)) : floor)),
-    board.stairs,
   );
 }
 
@@ -153,7 +169,8 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
   const stairs = board.stairs.filter(
     (s) => s.fromFloorId !== floorId || keepStairIds.has(s.id),
   );
-  return createBoard(
+  return nextBoard(
+    board,
     board.floors.map((f) =>
       f.id === floorId
         ? { ...template, cells: mapped, holdEnabled: floor.holdEnabled, holdQuotas: floor.holdQuotas }
@@ -191,39 +208,16 @@ export function placeHud(
 
 export function placeRoom(
   board: Board,
-  floorId: string,
-  col: number,
-  row: number,
-  cellId: string,
+  _floorId: string,
+  _col: number,
+  _row: number,
+  _cellId: string,
 ): Board {
-  const floor = board.floors.find((f) => f.id === floorId);
-  if (!floor || !inBounds(floor, col, row) || cellAt(floor, col, row)) {
-    return board;
-  }
-  return mapFloor(board, floorId, (current) => ({
-    ...current,
-    cells: [
-      ...current.cells,
-      {
-        id: cellId,
-        index: current.cells.length,
-        kind: 'room' as const,
-        col,
-        row,
-      },
-    ],
-  }));
+  return board;
 }
 
-export function placeDoor(board: Board, floorId: string, cellId: string): Board {
-  const floor = board.floors.find((f) => f.id === floorId);
-  const cell = floor?.cells.find((c) => c.id === cellId);
-  if (!floor || !cell || cell.kind !== 'corridor') return board;
-  if (!adjacentCells(floor, cell).some((other) => other.kind === 'room')) return board;
-  return mapFloor(board, floorId, (current) => ({
-    ...current,
-    cells: current.cells.map((c) => (c.id === cellId ? { ...c, kind: 'door' as const } : c)),
-  }));
+export function placeDoor(board: Board, _floorId: string, _cellId: string): Board {
+  return board;
 }
 
 export function clearDoor(board: Board, floorId: string, cellId: string): Board {
@@ -343,15 +337,16 @@ export function eraseCell(board: Board, floorId: string, cellId: string): Board 
   const cell = floor?.cells.find((c) => c.id === cellId);
   if (!floor || !cell) return board;
   const stairs = board.stairs.filter((s) => s.id !== cell.stairId);
-  const next = createBoard(
+  const nextRooms = cell.roomId ? (board.rooms ?? []).filter((room) => room.id !== cell.roomId) : board.rooms;
+  return createBoard(
     board.floors.map((current) => {
       if (current.id !== floorId) return current;
       const cells = current.cells.filter((c) => c.id !== cellId);
       return retileFloor({ ...current, cells });
     }),
     stairs,
+    nextRooms && nextRooms.length > 0 ? nextRooms : undefined,
   );
-  return next;
 }
 
 function setCellMedia<K extends 'audio' | 'image' | 'video'>(
@@ -428,6 +423,7 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
   const cell = floor?.cells.find((c) => c.id === cellId);
   if (!floor || !cell || cell.kind === 'hud') return board;
   const stairs = cell.stairId ? board.stairs.filter((stair) => stair.id !== cell.stairId) : board.stairs;
+  const nextRooms = cell.roomId ? (board.rooms ?? []).filter((room) => room.id !== cell.roomId) : board.rooms;
   return createBoard(
     board.floors.map((current) => {
       if (current.id !== floorId) return current;
@@ -439,6 +435,7 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
             packId: _pack,
             spinnerId: _spinner,
             stairId: _stair,
+            roomId: _room,
             start: _start,
             end: _end,
             audio: _audio,
@@ -451,6 +448,7 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
       });
     }),
     stairs,
+    nextRooms && nextRooms.length > 0 ? nextRooms : undefined,
   );
 }
 
@@ -475,7 +473,8 @@ export function setStartCell(board: Board, floorId: string, cellId: string): Boa
     (floor) => floor.id === floorId && floor.cells.some((cell) => cell.id === cellId),
   );
   if (!exists) return board;
-  return createBoard(
+  return nextBoard(
+    board,
     board.floors.map((floor) => ({
       ...floor,
       cells: floor.cells.map((cell) => ({
@@ -484,7 +483,6 @@ export function setStartCell(board: Board, floorId: string, cellId: string): Boa
         end: floor.id === floorId && cell.id === cellId ? false : cell.end,
       })),
     })),
-    board.stairs,
   );
 }
 
@@ -493,7 +491,8 @@ export function setEndCell(board: Board, floorId: string, cellId: string): Board
     (floor) => floor.id === floorId && floor.cells.some((cell) => cell.id === cellId),
   );
   if (!exists) return board;
-  return createBoard(
+  return nextBoard(
+    board,
     board.floors.map((floor) => ({
       ...floor,
       cells: floor.cells.map((cell) => ({
@@ -502,7 +501,6 @@ export function setEndCell(board: Board, floorId: string, cellId: string): Board
         start: floor.id === floorId && cell.id === cellId ? false : cell.start,
       })),
     })),
-    board.stairs,
   );
 }
 
@@ -510,15 +508,15 @@ export function addFloor(board: Board, id: string, label: string, shape?: BoardS
   if (board.floors.some((floor) => floor.id === id)) return board;
   const shapeInput = normalizeShape(shape ?? board.floors.at(-1)?.shape);
   const floor = createLoopedFloor(id, label, board.floors.length, shapeInput);
-  return createBoard([...board.floors, floor], board.stairs);
+  return nextBoard(board, [...board.floors, floor]);
 }
 
 export function renameFloor(board: Board, floorId: string, label: string): Board {
   const trimmed = label.trim();
   if (!trimmed) return board;
-  return createBoard(
+  return nextBoard(
+    board,
     board.floors.map((floor) => (floor.id === floorId ? { ...floor, label: trimmed } : floor)),
-    board.stairs,
   );
 }
 
@@ -531,7 +529,7 @@ export function deleteFloor(board: Board, floorId: string): Board {
   const stairs = board.stairs.filter(
     (stair) => stair.fromFloorId !== floorId && stair.toFloorId !== floorId,
   );
-  return createBoard(floors, stairs);
+  return createBoard(floors, stairs, dropRoomsOnFloor(board, floorId));
 }
 
 export function nextStairId(cellId: string): string {
@@ -556,10 +554,14 @@ export function attachStair(board: Board, floorId: string, cellId: string): Boar
       ),
     });
   });
-  return createBoard(floors, [
-    ...board.stairs,
-    { id: stairId, fromFloorId: floorId, toFloorId: '', toCellId: '', legal: false },
-  ]);
+  return createBoard(
+    floors,
+    [
+      ...board.stairs,
+      { id: stairId, fromFloorId: floorId, toFloorId: '', toCellId: '', legal: false },
+    ],
+    board.rooms,
+  );
 }
 
 export function linkStair(
@@ -579,6 +581,7 @@ export function linkStair(
         ? { ...stair, toFloorId, toCellId, legal: true }
         : stair,
     ),
+    board.rooms,
   );
 }
 
@@ -635,5 +638,6 @@ export function clearStair(board: Board, floorId: string, cellId: string): Board
   return createBoard(
     floors,
     board.stairs.filter((stair) => stair.id !== cell.stairId),
+    board.rooms,
   );
 }

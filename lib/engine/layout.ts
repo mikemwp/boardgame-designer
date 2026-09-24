@@ -28,7 +28,7 @@ export function defaultHudFill(layout: ReturnType<typeof buildShapeLayout>): Arr
 }
 
 export function isOffPathCell(cell: { kind?: string }): boolean {
-  return cell.kind === 'hud' || cell.kind === 'room';
+  return cell.kind === 'hud';
 }
 
 export function loopCells(floor: Floor): Cell[] {
@@ -53,7 +53,7 @@ export function roomForDoor(floor: Floor, door: Cell): Cell | undefined {
 export function landingPackId(floor: Floor, cell: Cell): string | undefined {
   if (cell.kind === 'stair') return undefined;
   if (cell.kind === 'door') {
-    return roomForDoor(floor, cell)?.packId;
+    return roomForDoor(floor, cell)?.packId ?? cell.packId;
   }
   return cell.packId;
 }
@@ -271,7 +271,7 @@ export function ensureFloorLayout(floor: Floor): Floor {
 
 export function ensureBoardLayout(board: Board): Board {
   const floors = board.floors.map((floor) => ensureFloorLayout(floor));
-  return createBoard(floors, board.stairs);
+  return createBoard(floors, board.stairs, board.rooms);
 }
 
 export function startToken(board: Board): { floorId: string; cellId: string } | undefined {
@@ -324,6 +324,7 @@ export function previewBoardForFloor(board: Board, floorId: string): Board {
   return createBoard(
     [{ ...floor, index: 0 }],
     board.stairs.filter((s) => s.fromFloorId === floorId),
+    board.rooms,
   );
 }
 

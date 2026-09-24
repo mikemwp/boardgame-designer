@@ -2,6 +2,7 @@ import { createBoard, type Board } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
 import type { Cell, Floor } from '@/lib/engine/types';
+import { dropRoomsOnFloor } from '@/lib/designer/rooms';
 
 function posKey(cell: Pick<Cell, 'col' | 'row'>): string | null {
   if (cell.col === undefined || cell.row === undefined) return null;
@@ -56,5 +57,6 @@ export function resetFloor(board: Board, floorId: string): Board {
   return createBoard(
     board.floors.map((entry) => (entry.id === floorId ? next : entry)),
     board.stairs.filter((stair) => stair.fromFloorId !== floorId),
+    dropRoomsOnFloor(board, floorId),
   );
 }

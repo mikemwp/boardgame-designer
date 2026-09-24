@@ -1,12 +1,17 @@
-import type { Floor, Stair } from './types';
+import type { Floor, RoomDef, Stair } from './types';
 
 export interface Board {
   floors: Floor[];
   stairs: Stair[];
+  rooms?: RoomDef[];
 }
 
-export function createBoard(floors: Floor[], stairs: Stair[]): Board {
-  return { floors: [...floors], stairs: [...stairs] };
+export function createBoard(floors: Floor[], stairs: Stair[], rooms?: RoomDef[]): Board {
+  return {
+    floors: [...floors],
+    stairs: [...stairs],
+    ...(rooms ? { rooms: [...rooms] } : {}),
+  };
 }
 
 export function getFloor(board: Board, floorId: string): Floor | undefined {

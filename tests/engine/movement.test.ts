@@ -85,16 +85,15 @@ describe('walkSteps', () => {
     expect(after?.region).toBe('hub');
   });
 
-  it('walks doors on the loop and skips room cells', () => {
+  it('walks room hosts on the loop', () => {
     const floor = {
       id: 'lobby',
       index: 0,
       label: 'Lobby',
       cells: [
         { id: 'l0', index: 0, kind: 'corridor' as const },
-        { id: 'l1', index: 1, kind: 'door' as const },
+        { id: 'l1', index: 1, kind: 'room' as const, roomId: 'room-1' },
         { id: 'l2', index: 2, kind: 'corridor' as const },
-        { id: 'room', index: 3, kind: 'room' as const, packId: 'notes' },
       ],
     };
     expect(walkSteps(floor, 'l0', 1)?.id).toBe('l1');

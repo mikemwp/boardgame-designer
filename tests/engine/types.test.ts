@@ -28,12 +28,17 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(stair.packId).toBeUndefined();
   });
 
-  it('allows card-only room and door cells', () => {
-    const room: Cell = { id: 'r1', index: 8, kind: 'room', packId: 'notes', col: 1, row: 1 };
-    const door: Cell = { id: 'd1', index: 1, kind: 'door', col: 1, row: 0 };
+  it('allows a room host on the loop with a RoomDef', () => {
+    const room: Cell = { id: 'c3', index: 3, kind: 'room', roomId: 'room-1', packId: 'notes', col: 0, row: 3 };
+    const def: import('@/lib/engine/types').RoomDef = {
+      id: 'room-1',
+      name: 'Room 1',
+      mode: 'single',
+    };
     expect(room.kind).toBe('room');
-    expect(door.kind).toBe('door');
+    expect(room.roomId).toBe('room-1');
     expect(room.packId).toBe('notes');
+    expect(def.mode).toBe('single');
   });
 
   it('stores per-floor hold quotas', () => {

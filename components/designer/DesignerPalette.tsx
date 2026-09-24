@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
-export type DesignerTool = 'select' | 'corridor' | 'room' | 'door' | 'stair' | 'hud' | 'erase';
+export type DesignerTool = 'select' | 'corridor' | 'room' | 'stair' | 'hud' | 'erase';
 
 const TOOLS: Array<{ id: DesignerTool; label: string }> = [
   { id: 'select', label: 'Select' },
@@ -10,7 +10,6 @@ const TOOLS: Array<{ id: DesignerTool; label: string }> = [
   { id: 'hud', label: 'HUD' },
   { id: 'stair', label: 'Stair' },
   { id: 'room', label: 'Room' },
-  { id: 'door', label: 'Door' },
   { id: 'erase', label: 'Erase' },
 ];
 

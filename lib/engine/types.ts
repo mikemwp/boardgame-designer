@@ -130,6 +130,16 @@ export interface InventoryItem {
   starting?: boolean;
 }
 
+export type RoomMode = 'single' | 'multi';
+
+export interface RoomDef {
+  id: string;
+  name: string;
+  mode: RoomMode;
+  shape?: BoardShape;
+  cells?: Cell[];
+}
+
 export interface Cell {
   id: string;
   index: number;
@@ -137,6 +147,7 @@ export interface Cell {
   packId?: string;
   spinnerId?: string;
   stairId?: string;
+  roomId?: string;
   col?: number;
   row?: number;
   region?: CellRegion;

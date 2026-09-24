@@ -14,10 +14,10 @@ import {
   nextCellId,
   placeCorridor,
   placeCorridorOnSlot,
+  attachRoom,
   placeDoor,
   placeHud,
   placeRoom,
-  clearDoor,
   renameFloor,
   setCellPack,
   setEndCell,
@@ -77,31 +77,16 @@ describe('placeHud', () => {
 });
 
 describe('placeRoom and placeDoor', () => {
-  it('places a room on an inner square and converts an adjacent corridor to a door', () => {
-    const placed = placeRoom(groundBoard(), 'ground', 1, 1, 'ground-room');
-    const room = placed.floors[0]?.cells.find((c) => c.id === 'ground-room');
-    expect(room).toMatchObject({ kind: 'room', col: 1, row: 1 });
-    expect(placeRoom(placed, 'ground', 1, 1, 'ground-room-2')).toEqual(placed);
-
-    const neighbor = placed.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
-    const withDoor = placeDoor(placed, 'ground', neighbor.id);
-    expect(withDoor.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('door');
-    expect(placeDoor(placed, 'ground', 'ground-c0').floors[0]?.cells.find((c) => c.id === 'ground-c0')?.kind).not.toBe(
-      'door',
-    );
-
-    const cleared = clearDoor(withDoor, 'ground', neighbor.id);
-    expect(cleared.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('corridor');
+  it('do not write inner-square rooms or doors', () => {
+    const board = groundBoard();
+    expect(placeRoom(board, 'ground', 1, 1, 'ground-room')).toEqual(board);
+    expect(placeDoor(board, 'ground', 'ground-c0')).toEqual(board);
   });
 
-  it('assigns a pack on a room and refuses a pack on a door', () => {
-    let board = placeRoom(groundBoard(), 'ground', 1, 1, 'ground-room');
-    const neighbor = board.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
-    board = placeDoor(board, 'ground', neighbor.id);
-    board = setCellPack(board, 'ground', 'ground-room', 'notes');
-    expect(board.floors[0]?.cells.find((c) => c.id === 'ground-room')?.packId).toBe('notes');
-    const refused = setCellPack(board, 'ground', neighbor.id, 'notes');
-    expect(refused.floors[0]?.cells.find((c) => c.id === neighbor.id)?.packId).toBeUndefined();
+  it('assigns a pack on a room host on the loop', () => {
+    let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
+    board = setCellPack(board, 'ground', 'ground-c3', 'notes');
+    expect(board.floors[0]?.cells.find((c) => c.id === 'ground-c3')?.packId).toBe('notes');
   });
 });
 
@@ -364,12 +349,9 @@ describe('setCellAudio', () => {
     const hud = groundBoard().floors[0]!.cells.find((c) => c.kind === 'hud')!;
     expect(setCellAudio(groundBoard(), 'ground', hud.id, clip).floors[0]?.cells.find((c) => c.id === hud.id)?.audio).toBeUndefined();
 
-    let board = placeRoom(groundBoard(), 'ground', 1, 1, 'ground-room');
-    const neighbor = board.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
-    board = placeDoor(board, 'ground', neighbor.id);
-    expect(setCellAudio(board, 'ground', neighbor.id, clip).floors[0]?.cells.find((c) => c.id === neighbor.id)?.audio).toBeUndefined();
-    const roomed = setCellAudio(board, 'ground', 'ground-room', clip);
-    expect(roomed.floors[0]?.cells.find((c) => c.id === 'ground-room')?.audio).toEqual(clip);
+    let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
+    const roomed = setCellAudio(board, 'ground', 'ground-c3', clip);
+    expect(roomed.floors[0]?.cells.find((c) => c.id === 'ground-c3')?.audio).toEqual(clip);
   });
 
   it('keeps audio when reshaping the floor', () => {

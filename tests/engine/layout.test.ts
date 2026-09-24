@@ -185,34 +185,33 @@ describe('stairLabel and previewBoardForFloor', () => {
   });
 });
 
-describe('rooms stay off the corridor loop', () => {
-  it('does not drop a room when retileFloor / ensureBoardLayout runs', () => {
+describe('rooms stay on the corridor loop', () => {
+  it('keeps a host room on the loop after retileFloor / ensureBoardLayout', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
+    const host = floor.cells.find((c) => c.id === 'ground-c3')!;
     const withRoom = {
       ...floor,
-      cells: [
-        ...floor.cells,
-        { id: 'ground-room', index: 99, kind: 'room' as const, col: 1, row: 1, packId: 'notes' },
-      ],
+      cells: floor.cells.map((cell) =>
+        cell.id === host.id ? { ...cell, kind: 'room' as const, roomId: 'room-1', packId: 'notes' } : cell,
+      ),
     };
     const board = ensureBoardLayout(createBoard([withRoom], []));
-    const room = board.floors[0]?.cells.find((c) => c.id === 'ground-room');
-    expect(room).toMatchObject({ kind: 'room', col: 1, row: 1, packId: 'notes' });
-    expect(loopCells(board.floors[0]!).every((c) => c.kind !== 'room')).toBe(true);
+    const room = board.floors[0]?.cells.find((c) => c.id === host.id);
+    expect(room).toMatchObject({ kind: 'room', roomId: 'room-1', packId: 'notes' });
+    expect(loopCells(board.floors[0]!).some((c) => c.id === host.id)).toBe(true);
     expect(orderCellsAlongLoop(loopCells(board.floors[0]!))).not.toBeNull();
   });
 
-  it('landingPackId uses the adjacent room pack on a door', () => {
+  it('landingPackId uses the host room pack', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    const corridor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
-    const room = { id: 'ground-room', index: 99, kind: 'room' as const, col: 1, row: 1, packId: 'notes' };
-    const door = { ...corridor, kind: 'door' as const };
+    const host = floor.cells.find((c) => c.id === 'ground-c3')!;
+    const room = { ...host, kind: 'room' as const, roomId: 'room-1', packId: 'notes' };
     const next = {
       ...floor,
-      cells: floor.cells.map((c) => (c.id === corridor.id ? door : c)).concat(room),
+      cells: floor.cells.map((c) => (c.id === host.id ? room : c)),
     };
-    expect(landingPackId(next, door)).toBe('notes');
-    expect(landingPackId(next, corridor)).toBeUndefined();
+    expect(landingPackId(next, room)).toBe('notes');
+    expect(landingPackId(next, host)).toBeUndefined();
   });
 });
 
