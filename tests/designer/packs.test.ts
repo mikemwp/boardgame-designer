@@ -110,4 +110,13 @@ describe('cards', () => {
     expect(cleared[0]?.timerSeconds).toBeUndefined();
     expect(cleared[0]?.extraButton).toBeUndefined();
   });
+
+  it('sets and clears card audio', () => {
+    const added = addCard([], { id: 'notes-1', pack: 'notes', title: 'Clue' });
+    const clip = { id: 'a2', name: 'deal.wav', source: 'file' as const, mime: 'audio/wav' };
+    const withAudio = updateCard(added, 'notes-1', { audio: clip });
+    expect(withAudio[0]?.audio).toEqual(clip);
+    const cleared = updateCard(withAudio, 'notes-1', { audio: undefined });
+    expect(cleared[0]?.audio).toBeUndefined();
+  });
 });

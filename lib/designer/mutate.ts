@@ -10,7 +10,7 @@ import {
 } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
-import type { BoardShape, Cell, Floor, HudWidget } from '@/lib/engine/types';
+import type { AudioRef, BoardShape, Cell, Floor, HudWidget } from '@/lib/engine/types';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 
@@ -18,7 +18,7 @@ function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
   return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
 }
 
-function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end' | 'hudWidget'> {
+function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end' | 'hudWidget' | 'audio'> {
   return {
     kind: prev.kind,
     packId: prev.kind === 'stair' ? undefined : prev.packId,
@@ -26,6 +26,7 @@ function designerProps(prev: Cell): Pick<Cell, 'kind' | 'packId' | 'stairId' | '
     start: prev.start,
     end: prev.end,
     hudWidget: prev.hudWidget,
+    audio: prev.audio,
   };
 }
 
@@ -339,6 +340,26 @@ export function eraseCell(board: Board, floorId: string, cellId: string): Board 
     stairs,
   );
   return next;
+}
+
+export function setCellAudio(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  audio: AudioRef | undefined,
+): Board {
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((cell) => {
+      if (cell.id !== cellId) return cell;
+      if (cell.kind === 'hud' || cell.kind === 'door') return cell;
+      if (!audio) {
+        const { audio: _drop, ...rest } = cell;
+        return rest;
+      }
+      return { ...cell, audio };
+    }),
+  }));
 }
 
 export function setCellPack(

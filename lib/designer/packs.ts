@@ -103,7 +103,7 @@ export function addCard(cards: Card[], card: Card): Card[] {
 export function updateCard(
   cards: Card[],
   cardId: string,
-  patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton'>>,
+  patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio'>>,
 ): Card[] {
   if (patch.title !== undefined && patch.title.trim().length === 0) return cards;
   return cards.map((card) => {
@@ -126,6 +126,10 @@ export function updateCard(
       const extraButton = patch.extraButton.trim();
       if (extraButton) next.extraButton = extraButton;
       else delete next.extraButton;
+    }
+    if ('audio' in patch) {
+      if (patch.audio) next.audio = patch.audio;
+      else delete next.audio;
     }
     return next;
   });

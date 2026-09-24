@@ -24,6 +24,7 @@ import {
   setFloorHold,
   setHudWidget,
   setStartCell,
+  setCellAudio,
 } from '@/lib/designer/mutate';
 
 function groundBoard() {
@@ -346,6 +347,38 @@ function assertCartesianGeometry(
     expect(cell.row).toBeLessThanOrEqual(n - 3);
   }
 }
+
+describe('setCellAudio', () => {
+  const clip = {
+    id: 'a1',
+    name: 'land.mp3',
+    source: 'url' as const,
+    src: 'https://ex/land.mp3',
+  };
+
+  it('sets and clears corridor audio and refuses HUD and door', () => {
+    const set = setCellAudio(groundBoard(), 'ground', 'ground-c1', clip);
+    expect(set.floors[0]?.cells.find((c) => c.id === 'ground-c1')?.audio).toEqual(clip);
+    const cleared = setCellAudio(set, 'ground', 'ground-c1', undefined);
+    expect(cleared.floors[0]?.cells.find((c) => c.id === 'ground-c1')?.audio).toBeUndefined();
+
+    const hud = groundBoard().floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    expect(setCellAudio(groundBoard(), 'ground', hud.id, clip).floors[0]?.cells.find((c) => c.id === hud.id)?.audio).toBeUndefined();
+
+    let board = placeRoom(groundBoard(), 'ground', 1, 1, 'ground-room');
+    const neighbor = board.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
+    board = placeDoor(board, 'ground', neighbor.id);
+    expect(setCellAudio(board, 'ground', neighbor.id, clip).floors[0]?.cells.find((c) => c.id === neighbor.id)?.audio).toBeUndefined();
+    const roomed = setCellAudio(board, 'ground', 'ground-room', clip);
+    expect(roomed.floors[0]?.cells.find((c) => c.id === 'ground-room')?.audio).toEqual(clip);
+  });
+
+  it('keeps audio when reshaping the floor', () => {
+    const marked = setCellAudio(groundBoard(), 'ground', 'ground-c0', clip);
+    const resized = applyFloorShape(marked, 'ground', { kind: 'square', tilesPerSide: 10 });
+    expect(resized.floors[0]?.cells.find((c) => c.id === 'ground-c0')?.audio).toEqual(clip);
+  });
+});
 
 describe('polar place and move', () => {
   it('places into an erased circle wedge and moves with slot ids', () => {
