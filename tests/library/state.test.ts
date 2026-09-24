@@ -244,6 +244,27 @@ describe('deleteDraft', () => {
   });
 });
 
+describe('gameStart persistence', () => {
+  it('keeps gameStart when parsing a stored library', () => {
+    const doc = createDocument({
+      id: 'g1',
+      name: 'Intro',
+      source: 'empty',
+      bootstrap: {
+        ...emptyStored(),
+        gameStart: {
+          splashes: [{ id: 's1', caption: 'Hello' }],
+          menu: { items: [] },
+        },
+      },
+      now: '2026-09-23T12:00:00.000Z',
+    });
+    const raw = JSON.stringify({ version: 1, activeId: 'g1', drafts: [doc] });
+    const parsed = parseLibrary(raw);
+    expect(parsed?.drafts[0]?.bootstrap.gameStart?.splashes[0]?.caption).toBe('Hello');
+  });
+});
+
 describe('publish slug', () => {
   function doc(overrides: Partial<ReturnType<typeof createDocument>> = {}) {
     return {

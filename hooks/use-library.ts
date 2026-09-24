@@ -25,6 +25,7 @@ import type {
   NewGameInput,
   StoredBootstrap,
 } from '@/lib/library/types';
+import { browserMediaStore, type MediaStore } from '@/lib/library/media-store';
 import { markEditedAfterPublish } from '@/lib/library/version';
 import { climbSample } from '@/lib/samples/climb';
 import { emptyBootstrap } from '@/lib/samples/empty';
@@ -34,12 +35,14 @@ export interface UseLibraryOptions {
   initialState?: LibraryState;
   now?: () => string;
   createId?: () => string;
+  media?: MediaStore;
 }
 
 export function useLibrary(options: UseLibraryOptions = {}) {
   const storage = options.storage ?? browserStorage();
   const now = options.now ?? (() => new Date().toISOString());
   const createId = options.createId ?? (() => crypto.randomUUID());
+  const media = options.media ?? browserMediaStore();
   const [state, setState] = useState<LibraryState | null>(() => options.initialState ?? null);
 
   useEffect(() => {
@@ -76,8 +79,12 @@ export function useLibrary(options: UseLibraryOptions = {}) {
           source = 'copy';
           bootstrap = origin ? cloneJson(origin.bootstrap) : bootstrap;
         }
+        const id = createId();
+        if (typeof input.source === 'object') {
+          void media.copyGame(input.source.copyFrom, id);
+        }
         const doc = createDocument({
-          id: createId(),
+          id,
           name: input.name.trim(),
           source,
           bootstrap,
@@ -88,7 +95,7 @@ export function useLibrary(options: UseLibraryOptions = {}) {
         return next;
       });
     },
-    [createId, now, storage],
+    [createId, media, now, storage],
   );
 
   const openGame = useCallback(
@@ -156,11 +163,12 @@ export function useLibrary(options: UseLibraryOptions = {}) {
   const deleteActive = useCallback(() => {
     setState((current) => {
       if (!current?.activeId) return current;
+      void media.deleteGame(current.activeId);
       const next = deleteDraft(current, current.activeId);
       writeLibrary(storage, next);
       return next;
     });
-  }, [storage]);
+  }, [media, storage]);
 
   return {
     ready: state !== null,

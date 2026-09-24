@@ -6,6 +6,7 @@ import { toStoredBootstrap } from '@/lib/library/bootstrap';
 import { emptyBootstrap } from '@/lib/samples/empty';
 import { climbSample } from '@/lib/samples/climb';
 import { formatGameTitle } from '@/lib/library/version';
+import { memoryMediaStore } from '@/lib/library/media-store';
 
 const NOW = '2026-09-21T12:00:00.000Z';
 
@@ -208,6 +209,50 @@ describe('useLibrary', () => {
     expect(result.current.active?.source).toBe('copy');
     expect(result.current.active?.bootstrap.cards).toHaveLength(3);
     expect(result.current.drafts).toHaveLength(2);
+  });
+
+  it('copy-from duplicates media blobs under the new game id', async () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const media = memoryMediaStore();
+    await media.put('seed-1', 'a1', new Blob(['x'], { type: 'audio/mpeg' }));
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        media,
+        now: () => '2026-09-21T18:00:00.000Z',
+        createId: () => 'copy-1',
+      }),
+    );
+
+    act(() => {
+      result.current.newGame({ name: 'From Climb', source: { copyFrom: 'seed-1' } });
+    });
+
+    expect(await media.get('copy-1', 'a1')).toBeDefined();
+  });
+
+  it('deleteActive removes that game media blobs', async () => {
+    const storage = memoryStorage();
+    const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const media = memoryMediaStore();
+    await media.put('seed-1', 'a1', new Blob(['x'], { type: 'audio/mpeg' }));
+    const { result } = renderHook(() =>
+      useLibrary({
+        storage,
+        initialState,
+        media,
+        now: () => NOW,
+        createId: () => 'x',
+      }),
+    );
+
+    act(() => {
+      result.current.deleteActive();
+    });
+
+    expect(await media.get('seed-1', 'a1')).toBeUndefined();
   });
 
   it('publishActive freezes the active game as published v1 with a slug', () => {

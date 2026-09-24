@@ -70,6 +70,31 @@ describe('PlayPublishedGame', () => {
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
   });
 
+  it('shows the start overlay when the published snapshot has a Play menu', async () => {
+    const storage = memoryStorage();
+    const seeded = loadLibrary(storage, { now: NOW, id: 'seed-1' });
+    const published = publishDocument(
+      {
+        ...seeded.drafts[0]!,
+        bootstrap: {
+          ...seeded.drafts[0]!.bootstrap,
+          gameStart: {
+            splashes: [],
+            menu: { items: [{ id: 'm1', label: 'Play', action: 'play' }] },
+          },
+        },
+      },
+      NOW,
+      'climb-sample',
+    );
+    writeLibrary(storage, { ...seeded, drafts: [published] });
+    render(<PlayPublishedGame slug="climb-sample" storage={storage} />);
+    await flush();
+    expect(screen.getByTestId('game-start-overlay')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toHaveProperty('disabled', true);
+  });
+
   it('shows loading on first paint before storage is read', () => {
     const storage = memoryStorage();
     writeLibrary(storage, seedLibrary(NOW, 'seed-1'));

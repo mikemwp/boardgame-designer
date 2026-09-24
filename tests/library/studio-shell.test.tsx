@@ -365,6 +365,21 @@ describe('StudioShell', () => {
     expect(screen.getByText('Climb (sample) (Published) v1.1')).toBeDefined();
   });
 
+  it('Save then Open restores a splash caption', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-23T12:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add splash' }));
+    fireEvent.change(screen.getByLabelText('Caption'), { target: { value: 'Welcome back' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(getActive(reloaded)?.bootstrap.gameStart?.splashes[0]?.caption).toBe('Welcome back');
+  });
+
   it('Test uses spinner when a spinner HUD widget is designed', async () => {
     renderStudio();
     fireEvent.click(screen.getByRole('button', { name: 'Select' }));

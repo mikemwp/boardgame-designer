@@ -1,4 +1,4 @@
-import { defaultGameConfig, type GameConfig, type TokenPos } from './types';
+import { defaultGameConfig, type GameConfig, type GameStart, type TokenPos } from './types';
 import { getFloor, type Board } from './board';
 import { initPlayerPasses, moveToken, setPlayerPassesLeft, type PlayerState } from './players';
 import { canSpendPass, createPassesLeft, spendPass } from './passes';
@@ -36,6 +36,7 @@ export interface GameBootstrap {
   cards: CardState;
   config?: Partial<GameConfig>;
   rng?: Rng;
+  gameStart?: GameStart;
 }
 
 export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameConfig> & { rng?: Rng }): GameState {

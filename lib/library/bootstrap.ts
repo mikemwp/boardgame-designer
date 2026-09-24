@@ -3,6 +3,7 @@ import { createCardState } from '@/lib/engine/cards';
 import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import type { PlayerState } from '@/lib/engine/players';
 import { defaultGameConfig } from '@/lib/engine/types';
+import type { GameStart } from '@/lib/engine/types';
 import type { StoredBootstrap } from '@/lib/library/types';
 
 export function cloneJson<T>(value: T): T {
@@ -21,6 +22,7 @@ export function toStoredBootstrap(bootstrap: GameBootstrap, packIds: string[] = 
     cards,
     packs: listDraftPackIds(cards, packIds),
     config: cloneJson({ ...defaultGameConfig(), ...bootstrap.config }),
+    ...(bootstrap.gameStart ? { gameStart: cloneJson(bootstrap.gameStart) } : {}),
   };
 }
 
@@ -30,6 +32,7 @@ export function fromStoredBootstrap(stored: StoredBootstrap): GameBootstrap {
     players: cloneJson(stored.players),
     cards: createCardState(cloneJson(stored.cards)),
     config: cloneJson({ ...defaultGameConfig(), ...stored.config }),
+    ...(stored.gameStart ? { gameStart: cloneJson(stored.gameStart) } : {}),
   };
 }
 
@@ -37,6 +40,7 @@ export function captureBootstrap(
   game: Pick<GameState, 'board' | 'cards' | 'config'>,
   startPlayers: PlayerState,
   packIds: string[] = [],
+  gameStart?: GameStart,
 ): StoredBootstrap {
   const cards = cloneJson(game.cards.deck);
   return {
@@ -45,5 +49,6 @@ export function captureBootstrap(
     cards,
     packs: listDraftPackIds(cards, packIds),
     config: cloneJson(game.config),
+    ...(gameStart ? { gameStart: cloneJson(gameStart) } : {}),
   };
 }

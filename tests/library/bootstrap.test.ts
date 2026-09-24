@@ -69,4 +69,18 @@ describe('stored bootstrap codec', () => {
   it('derives climb packs from the sample deck', () => {
     expect(toStoredBootstrap(climbSample).packs).toEqual(['climb']);
   });
+
+  it('round-trips gameStart with the draft', () => {
+    const gameStart = {
+      audio: { id: 'g1', name: 'intro.mp3', source: 'url' as const, src: 'https://ex/intro.mp3' },
+      splashes: [{ id: 's1', caption: 'Hello' }],
+      menu: { items: [{ id: 'm1', label: 'Play', action: 'play' as const }] },
+    };
+    const stored = toStoredBootstrap({ ...emptyBootstrap(), gameStart });
+    expect(stored.gameStart?.splashes[0]?.caption).toBe('Hello');
+    expect(fromStoredBootstrap(stored).gameStart?.menu.items[0]?.action).toBe('play');
+    const game = createGame(emptyBootstrap());
+    const captured = captureBootstrap(game, stored.players, stored.packs, gameStart);
+    expect(captured.gameStart?.audio?.id).toBe('g1');
+  });
 });

@@ -19,8 +19,10 @@ import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
-import type { Card } from '@/lib/engine/types';
+import { emptyGameStart } from '@/lib/engine/audio';
+import type { Card, GameStart } from '@/lib/engine/types';
 import { cloneJson, fromStoredBootstrap, storedPackIds } from '@/lib/library/bootstrap';
+import { browserMediaStore } from '@/lib/library/media-store';
 import type { NewGameInput } from '@/lib/library/types';
 import { waitUntilPlayCanvasSlotFree } from '@/lib/view/playcanvas-lifecycle';
 
@@ -29,11 +31,13 @@ function snapshotKey(
   players: PlayerState | null,
   cards: Card[] = [],
   packs: string[] = [],
+  gameStart: GameStart = emptyGameStart(),
 ): string {
-  return JSON.stringify({ board, players, cards, packs });
+  return JSON.stringify({ board, players, cards, packs, gameStart });
 }
 
 export function StudioShell(options: UseLibraryOptions = {}) {
+  const media = useRef(options.media ?? browserMediaStore()).current;
   const {
     active,
     activeId,
@@ -45,7 +49,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     markActiveEdited,
     deleteActive,
     publishActive,
-  } = useLibrary(options);
+  } = useLibrary({ ...options, media });
   const [snapshot, setSnapshot] = useState<GameState | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [openOpen, setOpenOpen] = useState(false);
@@ -56,6 +60,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
   const [workingCards, setWorkingCards] = useState<Card[]>([]);
   const [workingPacks, setWorkingPacks] = useState<string[]>([]);
+  const [workingGameStart, setWorkingGameStart] = useState<GameStart>(emptyGameStart());
   const [selectedFloorId, setSelectedFloorId] = useState<string>('');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [tool, setTool] = useState<DesignerTool>('select');
@@ -71,6 +76,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setWorkingPlayers(null);
       setWorkingCards([]);
       setWorkingPacks([]);
+      setWorkingGameStart(emptyGameStart());
       setDirty(false);
       savedKeyRef.current = '';
       return;
@@ -79,17 +85,19 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     const players = cloneJson(active.bootstrap.players);
     const cards = cloneJson(active.bootstrap.cards);
     const packs = storedPackIds(active.bootstrap);
+    const gameStart = cloneJson(active.bootstrap.gameStart ?? emptyGameStart());
     setWorkingBoard(board);
     setWorkingPlayers(players);
     setWorkingCards(cards);
     setWorkingPacks(packs);
+    setWorkingGameStart(gameStart);
     setSelectedFloorId(board.floors[0]?.id ?? '');
     setSelectedCellId(null);
     setIssues([]);
     setMode('design');
     setSnapshot(null);
     setDirty(false);
-    savedKeyRef.current = snapshotKey(board, players, cards, packs);
+    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart);
   }, [active?.id]);
 
   const persistWorking = useCallback(
@@ -104,15 +112,16 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           cards,
           packs,
           config: snapshot?.config ?? active.bootstrap.config,
+          gameStart: cloneJson(workingGameStart),
         },
         options,
       );
       if (options?.touchUpdatedAt !== false && options?.bump === 'save') {
-        savedKeyRef.current = snapshotKey(workingBoard, workingPlayers, cards, packs);
+        savedKeyRef.current = snapshotKey(workingBoard, workingPlayers, cards, packs, workingGameStart);
         setDirty(false);
       }
     },
-    [active, workingBoard, workingPlayers, workingCards, workingPacks, snapshot, saveActive],
+    [active, workingBoard, workingPlayers, workingCards, workingPacks, workingGameStart, snapshot, saveActive],
   );
 
   const skipAutoSaveRef = useRef(true);
@@ -129,7 +138,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     if (!active || !workingBoard || !workingPlayers) return;
     const timer = window.setTimeout(() => persistWorking({ touchUpdatedAt: false }), 400);
     return () => window.clearTimeout(timer);
-  }, [active?.id, workingBoard, workingPlayers, workingCards, workingPacks, persistWorking]);
+  }, [active?.id, workingBoard, workingPlayers, workingCards, workingPacks, workingGameStart, persistWorking]);
 
   useEffect(() => {
     const onPageHide = () => persistWorking({ touchUpdatedAt: false });
@@ -149,10 +158,17 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     players: PlayerState | null,
     cards: Card[],
     packs: string[],
+    gameStart: GameStart = workingGameStart,
   ) => {
-    if (snapshotKey(board, players, cards, packs) !== savedKeyRef.current) {
+    if (snapshotKey(board, players, cards, packs, gameStart) !== savedKeyRef.current) {
       setDirty(true);
     }
+  };
+
+  const onGameStartChange = (next: GameStart) => {
+    setWorkingGameStart(next);
+    if (active) markActiveEdited();
+    markDirtyIfChanged(workingBoard, workingPlayers, workingCards, workingPacks, next);
   };
 
   const onBoardChange = (board: Board) => {
@@ -210,6 +226,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setWorkingPlayers(null);
     setWorkingCards([]);
     setWorkingPacks([]);
+    setWorkingGameStart(emptyGameStart());
     setSnapshot(null);
     deleteActive();
     setDeleteOpen(false);
@@ -304,6 +321,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onSelectFloor={setSelectedFloorId}
             onSelectCell={setSelectedCellId}
             onToolChange={setTool}
+            gameStart={workingGameStart}
+            onGameStartChange={onGameStartChange}
+            gameId={active.id}
+            media={media}
           />
         ) : testViewportReady ? (
           <GameHud
@@ -319,10 +340,11 @@ export function StudioShell(options: UseLibraryOptions = {}) {
                   snapshot?.config.movementViz ?? active.bootstrap.config.movementViz,
                 ),
               },
-              gameStart: active.bootstrap.gameStart,
+              gameStart: workingGameStart,
             })}
-            gameStart={active.bootstrap.gameStart}
+            gameStart={workingGameStart}
             gameId={active.id}
+            media={media}
             onStateChange={setSnapshot}
           />
         ) : null
