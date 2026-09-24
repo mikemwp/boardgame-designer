@@ -40,7 +40,11 @@ export function PlayPublishedGame({
         </Link>
       </div>
       {ready && doc ? (
-        <GameHud bootstrap={fromStoredBootstrap(doc.bootstrap)} />
+        <GameHud
+          bootstrap={fromStoredBootstrap(doc.bootstrap)}
+          gameStart={doc.bootstrap.gameStart}
+          gameId={doc.id}
+        />
       ) : null}
     </div>
   );

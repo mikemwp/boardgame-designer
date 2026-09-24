@@ -153,6 +153,39 @@ describe('GameHud', () => {
     expect(roll).toHaveProperty('disabled', false);
   });
 
+  it('shows no overlay on empty Climb and keeps Roll', () => {
+    render(<GameHud bootstrap={climbSample} />);
+    expect(screen.queryByTestId('game-start-overlay')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeDefined();
+  });
+
+  it('locks Roll behind splash then Play', () => {
+    render(
+      <GameHud
+        bootstrap={climbSample}
+        gameStart={{
+          splashes: [{ id: 's1', caption: 'Welcome', skippable: true, durationMs: 0 }],
+          menu: {
+            items: [
+              { id: 'm1', label: 'Play', action: 'play' },
+              { id: 'm2', label: 'Continue', action: 'continue' },
+            ],
+          },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('game-start-overlay')).toBeDefined();
+    expect(screen.getByText('Welcome')).toBeDefined();
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    expect(screen.queryByTestId('game-start-overlay')).toBeNull();
+    expect(roll).toHaveProperty('disabled', false);
+  });
+
   it('hides Last roll and Player bar when other HUD widgets are designed', () => {
     const board = {
       ...climbSample.board,

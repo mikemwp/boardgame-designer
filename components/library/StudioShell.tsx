@@ -319,7 +319,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
                   snapshot?.config.movementViz ?? active.bootstrap.config.movementViz,
                 ),
               },
+              gameStart: active.bootstrap.gameStart,
             })}
+            gameStart={active.bootstrap.gameStart}
+            gameId={active.id}
             onStateChange={setSnapshot}
           />
         ) : null
