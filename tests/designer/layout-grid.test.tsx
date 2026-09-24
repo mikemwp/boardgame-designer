@@ -35,7 +35,7 @@ describe('LayoutGrid', () => {
     expect(screen.getAllByText('HUD').length).toBeGreaterThan(0);
     fireEvent.pointerDown(screen.getByTestId('slot-0-7'));
     fireEvent.pointerUp(screen.getByTestId('slot-1-1'));
-    expect(onMoveCell).toHaveBeenCalledWith('ground-c21', 1, 1);
+    expect(onMoveCell).toHaveBeenCalledWith('ground-c7', 1, 1);
   });
 
   it('labels room and door tiles on the cartesian grid', () => {

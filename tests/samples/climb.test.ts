@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { climbSample, CLIMB_LABEL } from '@/lib/samples/climb';
 import { createGame, dispatch } from '@/lib/engine/game';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import { forwardPathSteps } from '@/lib/engine/movement';
+import { cellsToXZ, eachStepClockwiseFromPlusY, isClockwiseFromPlusY } from '@/tests/helpers/clockwise';
 
 const climbLayout = buildShapeLayout({ kind: 'square', tilesPerSide: 3 });
 
@@ -60,5 +62,15 @@ describe('climb sample', () => {
       }
     }
     expect(climbSample.board.floors[1]?.cells.some((c) => c.start)).toBe(false);
+  });
+
+  it('walks each floor loop clockwise as viewed from +Y', () => {
+    for (const floor of climbSample.board.floors) {
+      const start = floor.cells.find((c) => c.kind !== 'hud')!;
+      const visited = [start, ...forwardPathSteps(floor, start.id, 7)];
+      const xz = cellsToXZ(visited);
+      expect(isClockwiseFromPlusY(xz)).toBe(true);
+      expect(eachStepClockwiseFromPlusY(xz)).toBe(true);
+    }
   });
 });

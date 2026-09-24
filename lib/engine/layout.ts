@@ -161,12 +161,58 @@ function neighborsOf(cells: Cell[], cell: Cell): Cell[] {
   return cells.filter((other) => other.id !== cell.id && areAdjacent(cell, other));
 }
 
+function cellXZ(cell: { col?: number; row?: number }): { x: number; z: number } | null {
+  if (cell.col === undefined || cell.row === undefined) return null;
+  return { x: cell.col, z: cell.row };
+}
+
+function loopCenter(cells: Cell[]): { x: number; z: number } | null {
+  let x = 0;
+  let z = 0;
+  let n = 0;
+  for (const cell of cells) {
+    const p = cellXZ(cell);
+    if (!p) continue;
+    x += p.x;
+    z += p.z;
+    n += 1;
+  }
+  if (n === 0) return null;
+  return { x: x / n, z: z / n };
+}
+
+/** True if from→to around center is clockwise on XZ when viewed from +Y. */
+function isClockwiseTurn(
+  center: { x: number; z: number },
+  from: { x: number; z: number },
+  to: { x: number; z: number },
+): boolean {
+  const ax = from.x - center.x;
+  const az = from.z - center.z;
+  const bx = to.x - center.x;
+  const bz = to.z - center.z;
+  return ax * bz - az * bx < 0;
+}
+
+function pickNextAlongLoop(cells: Cell[], current: Cell, candidates: Cell[]): Cell | undefined {
+  const center = loopCenter(cells);
+  const from = cellXZ(current);
+  const clockwise =
+    center && from
+      ? candidates.filter((cell) => {
+          const to = cellXZ(cell);
+          return to !== null && isClockwiseTurn(center, from, to);
+        })
+      : [];
+  const pool = clockwise.length > 0 ? clockwise : candidates;
+  return [...pool].sort((a, b) => a.index - b.index)[0];
+}
+
 export function orderCellsAlongLoop(cells: Cell[]): Cell[] | null {
   if (cells.length < 4) return null;
   const start = cells.find((cell) => cell.start) ?? cells[0];
   if (!start) return null;
-  const startNeighbors = neighborsOf(cells, start).sort((a, b) => a.index - b.index);
-  const first = startNeighbors[0];
+  const first = pickNextAlongLoop(cells, start, neighborsOf(cells, start));
   if (!first) return null;
   const ordered: Cell[] = [start];
   let prev = start;
@@ -175,9 +221,11 @@ export function orderCellsAlongLoop(cells: Cell[]): Cell[] | null {
     ordered.push(current);
     if (ordered.length === cells.length) break;
     const visited = new Set(ordered.map((cell) => cell.id));
-    const next = neighborsOf(cells, current)
-      .filter((n) => n.id !== prev.id && !visited.has(n.id))
-      .sort((a, b) => a.index - b.index)[0];
+    const next = pickNextAlongLoop(
+      cells,
+      current,
+      neighborsOf(cells, current).filter((n) => n.id !== prev.id && !visited.has(n.id)),
+    );
     if (!next) return null;
     prev = current;
     current = next;

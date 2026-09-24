@@ -88,10 +88,12 @@ function walkRectRing(
   const right = left + length - 1;
   const bottom = top + width - 1;
   const positions: Array<{ col: number; row: number }> = [];
-  for (let col = left; col <= right; col += 1) positions.push({ col, row: top });
-  for (let row = top + 1; row < bottom; row += 1) positions.push({ col: right, row });
-  for (let col = right; col >= left; col -= 1) positions.push({ col, row: bottom });
-  for (let row = bottom - 1; row > top; row -= 1) positions.push({ col: left, row });
+  // Clockwise on XZ when viewed from +Y (X right, Z up): down the left, across
+  // the bottom, up the right, back along the top.
+  for (let row = top; row < bottom; row += 1) positions.push({ col: left, row });
+  for (let col = left; col < right; col += 1) positions.push({ col, row: bottom });
+  for (let row = bottom; row > top; row -= 1) positions.push({ col: right, row });
+  for (let col = right; col > left; col -= 1) positions.push({ col, row: top });
   return positions;
 }
 
@@ -105,8 +107,9 @@ function linkRing(slots: TileSlot[]): void {
 }
 
 function wedgeTrapezoid(index: number, count: number, innerR: number, outerR: number): Vec2[] {
-  const a0 = (index / count) * Math.PI * 2 - Math.PI / 2;
-  const a1 = ((index + 1) / count) * Math.PI * 2 - Math.PI / 2;
+  // Decreasing angle from -π/2 is clockwise on XZ when viewed from +Y.
+  const a0 = (-index / count) * Math.PI * 2 - Math.PI / 2;
+  const a1 = (-(index + 1) / count) * Math.PI * 2 - Math.PI / 2;
   const inner0 = { x: Math.cos(a0) * innerR, z: Math.sin(a0) * innerR };
   const inner1 = { x: Math.cos(a1) * innerR, z: Math.sin(a1) * innerR };
   const outer1 = { x: Math.cos(a1) * outerR, z: Math.sin(a1) * outerR };
@@ -166,7 +169,7 @@ function hubSpokeSlots(
   for (let s = 0; s < shape.spokeCount; s += 1) {
     const hubIndex = attach[s]!;
     const hubSlot = hub[hubIndex]!;
-    const angle = ((hubIndex + 0.5) / shape.hubTiles) * Math.PI * 2 - Math.PI / 2;
+    const angle = (-(hubIndex + 0.5) / shape.hubTiles) * Math.PI * 2 - Math.PI / 2;
     for (let k = 0; k < shape.spokeTiles; k += 1) {
       const id = `spoke-${s}-${k}`;
       spokes.push({

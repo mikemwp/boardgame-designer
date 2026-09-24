@@ -5,11 +5,13 @@ import { createLoopedFloor } from '@/lib/engine/layout';
 import {
   allowedMoveValues,
   forwardPathCells,
+  forwardPathSteps,
   sampleMoveValue,
   sampleStairLanding,
   walkSteps,
   walkableCells,
 } from '@/lib/engine/movement';
+import { cellsToXZ, eachStepClockwiseFromPlusY, isClockwiseFromPlusY } from '@/tests/helpers/clockwise';
 
 const stairBoard = createBoard(
   [
@@ -105,6 +107,30 @@ describe('walkSteps', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'circle', tiles: 8 });
     expect(walkSteps(floor, floor.cells[0]!.id, 8)?.id).toBe(floor.cells[0]!.id);
     expect(walkSteps(floor, floor.cells[0]!.id, 1)?.id).toBe(floor.cells[1]!.id);
+  });
+
+  it('advances a square perimeter clockwise as viewed from +Y', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'square', tilesPerSide: 3 });
+    const start = walkableCells(floor)[0]!;
+    const visited = [start, ...forwardPathSteps(floor, start.id, 7)];
+    const xz = cellsToXZ(visited);
+    expect(visited).toHaveLength(8);
+    expect(isClockwiseFromPlusY(xz)).toBe(true);
+    expect(eachStepClockwiseFromPlusY(xz)).toBe(true);
+    for (let n = 1; n <= 8; n += 1) {
+      expect(walkSteps(floor, start.id, n)?.id).toBe(visited[n % 8]!.id);
+    }
+  });
+
+  it('advances a rectangle perimeter clockwise as viewed from +Y', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0, { kind: 'rectangle', length: 8, width: 6 });
+    const start = walkableCells(floor)[0]!;
+    const visited = [start, ...forwardPathSteps(floor, start.id, 23)];
+    const xz = cellsToXZ(visited);
+    expect(visited).toHaveLength(24);
+    expect(isClockwiseFromPlusY(xz)).toBe(true);
+    expect(eachStepClockwiseFromPlusY(xz)).toBe(true);
+    expect(walkSteps(floor, start.id, 5)?.id).toBe(visited[5]!.id);
   });
 });
 

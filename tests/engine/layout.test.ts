@@ -18,6 +18,7 @@ import {
   startToken,
 } from '@/lib/engine/layout';
 import { addPlayer, createPlayerState } from '@/lib/engine/players';
+import { cellsToXZ, isClockwiseFromPlusY } from '@/tests/helpers/clockwise';
 
 const square3Positions = buildShapeLayout({ kind: 'square', tilesPerSide: 3 }).slots.map((s) => ({
   col: s.col!,
@@ -107,6 +108,25 @@ describe('orderCellsAlongLoop', () => {
     expect(ordered).toHaveLength(28);
     expect(ordered?.[0]?.id).toBe('ground-c0');
     expect(ordered?.every((c, i) => c.index === i)).toBe(true);
+  });
+
+  it('rewrites a counter-clockwise indexed ring so play walks clockwise from +Y', () => {
+    const ccw = [
+      { id: 'a', index: 0, kind: 'corridor' as const, col: 0, row: 0 },
+      { id: 'b', index: 1, kind: 'corridor' as const, col: 1, row: 0 },
+      { id: 'c', index: 2, kind: 'corridor' as const, col: 2, row: 0 },
+      { id: 'd', index: 3, kind: 'corridor' as const, col: 2, row: 1 },
+      { id: 'e', index: 4, kind: 'corridor' as const, col: 2, row: 2 },
+      { id: 'f', index: 5, kind: 'corridor' as const, col: 1, row: 2 },
+      { id: 'g', index: 6, kind: 'corridor' as const, col: 0, row: 2 },
+      { id: 'h', index: 7, kind: 'corridor' as const, col: 0, row: 1 },
+    ];
+    expect(isClockwiseFromPlusY(cellsToXZ(ccw))).toBe(false);
+    const ordered = orderCellsAlongLoop(ccw);
+    expect(ordered).not.toBeNull();
+    expect(isClockwiseFromPlusY(cellsToXZ(ordered!))).toBe(true);
+    expect(ordered?.[0]?.id).toBe('a');
+    expect(ordered?.[1]?.id).toBe('h');
   });
 
   it('returns null when a cell sticks off the loop', () => {

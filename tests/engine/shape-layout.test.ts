@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildShapeLayout, isHudSlotInLayout } from '@/lib/engine/shape-layout';
+import { cellsToXZ, eachStepClockwiseFromPlusY, isClockwiseFromPlusY } from '@/tests/helpers/clockwise';
 
 describe('square layout', () => {
   it('builds an 8×8 looping ring with a one-cell margin and HUD center', () => {
@@ -32,6 +33,13 @@ describe('square layout', () => {
     expect(layout.slots).toHaveLength(8);
     expect(layout.slots[7]!.nextId).toBe(layout.slots[0]!.id);
   });
+
+  it('orders square ring slots clockwise as viewed from +Y', () => {
+    const layout = buildShapeLayout({ kind: 'square', tilesPerSide: 8 });
+    const xz = cellsToXZ(layout.slots);
+    expect(isClockwiseFromPlusY(xz)).toBe(true);
+    expect(eachStepClockwiseFromPlusY(xz)).toBe(true);
+  });
 });
 
 describe('rectangle layout', () => {
@@ -45,6 +53,13 @@ describe('rectangle layout', () => {
     expect(Math.max(...cols) - Math.min(...cols) + 1).toBe(8);
     expect(Math.max(...rows) - Math.min(...rows) + 1).toBe(6);
     expect(layout.slots[23]!.nextId).toBe(layout.slots[0]!.id);
+  });
+
+  it('orders rectangle ring slots clockwise as viewed from +Y', () => {
+    const layout = buildShapeLayout({ kind: 'rectangle', length: 8, width: 6 });
+    const xz = cellsToXZ(layout.slots);
+    expect(isClockwiseFromPlusY(xz)).toBe(true);
+    expect(eachStepClockwiseFromPlusY(xz)).toBe(true);
   });
 });
 

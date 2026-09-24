@@ -16,10 +16,16 @@ describe('square ring layout', () => {
     expect(defaultLoopPositions(8)).toEqual(ring);
 
     const tilesPerSide = 3;
-    const top = ring.filter(({ row }) => row === ring[0]!.row);
-    const bottom = ring.filter(({ row }) => row === ring[ring.length - 3]!.row);
-    const left = ring.filter(({ col }) => col === ring[0]!.col);
-    const right = ring.filter(({ col }) => col === ring[tilesPerSide - 1]!.col);
+    const minCol = Math.min(...ring.map((p) => p.col));
+    const maxCol = Math.max(...ring.map((p) => p.col));
+    const minRow = Math.min(...ring.map((p) => p.row));
+    const maxRow = Math.max(...ring.map((p) => p.row));
+    const top = ring.filter(({ row }) => row === minRow);
+    const bottom = ring.filter(({ row }) => row === maxRow);
+    const left = ring.filter(({ col }) => col === minCol);
+    const right = ring.filter(({ col }) => col === maxCol);
+    expect(maxCol - minCol + 1).toBe(tilesPerSide);
+    expect(maxRow - minRow + 1).toBe(tilesPerSide);
 
     expect(top).toHaveLength(tilesPerSide);
     expect(bottom).toHaveLength(tilesPerSide);
