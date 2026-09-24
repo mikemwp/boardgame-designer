@@ -107,6 +107,22 @@ describe('stored bootstrap codec', () => {
     expect(again.itemAssign).toBe('choose');
   });
 
+  it('normalizes old doors and off-path rooms on load', () => {
+    const floor = emptyBootstrap().board.floors[0]!;
+    const neighbor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const stored = toStoredBootstrap(emptyBootstrap());
+    stored.board.floors[0] = {
+      ...floor,
+      cells: [
+        ...floor.cells.map((cell) => (cell.id === neighbor.id ? { ...cell, kind: 'door' as const } : cell)),
+        { id: 'ground-room', index: 99, kind: 'room', col: 1, row: 1, packId: 'closet' },
+      ],
+    };
+    const boot = fromStoredBootstrap(stored);
+    expect(boot.board.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('corridor');
+    expect(boot.board.floors[0]?.cells.some((c) => c.id === 'ground-room')).toBe(false);
+  });
+
   it('round-trips gameStart with the draft', () => {
     const gameStart = {
       audio: { id: 'g1', name: 'intro.mp3', source: 'url' as const, src: 'https://ex/intro.mp3' },

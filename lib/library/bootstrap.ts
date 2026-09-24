@@ -1,4 +1,5 @@
 import { listDraftPackIds } from '@/lib/designer/packs';
+import { normalizeBoardRooms } from '@/lib/designer/rooms';
 import { createCardState } from '@/lib/engine/cards';
 import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import type { PlayerState } from '@/lib/engine/players';
@@ -41,7 +42,7 @@ export function toStoredBootstrap(bootstrap: GameBootstrap, packIds: string[] = 
 
 export function fromStoredBootstrap(stored: StoredBootstrap): GameBootstrap {
   return {
-    board: cloneJson(stored.board),
+    board: normalizeBoardRooms(cloneJson(stored.board)),
     players: cloneJson(stored.players),
     cards: createCardState(cloneJson(stored.cards)),
     config: cloneJson({ ...defaultGameConfig(), ...stored.config }),

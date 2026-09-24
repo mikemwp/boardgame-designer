@@ -52,19 +52,16 @@ describe('LayoutGrid', () => {
     expect(slot.className).toMatch(/text-white/);
   });
 
-  it('labels room and door tiles on the cartesian grid', () => {
+  it('labels a room host on the corridor loop', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    const neighbor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
-    const withRooms = {
+    const host = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const withRoom = {
       ...floor,
-      cells: [
-        ...floor.cells.map((c) => (c.id === neighbor.id ? { ...c, kind: 'door' as const } : c)),
-        { id: 'ground-room', index: 99, kind: 'room' as const, col: 1, row: 1 },
-      ],
+      cells: floor.cells.map((c) => (c.id === host.id ? { ...c, kind: 'room' as const, roomId: 'room-1' } : c)),
     };
-    render(<LayoutGrid floor={withRooms} onSlotActivate={() => {}} onMoveCell={() => {}} />);
+    render(<LayoutGrid floor={withRoom} onSlotActivate={() => {}} onMoveCell={() => {}} />);
     expect(screen.getByText('Room')).toBeDefined();
-    expect(screen.getByText('Door')).toBeDefined();
+    expect(screen.queryByText('Door')).toBeNull();
   });
 
   it('renders an erased HUD square as empty, not as the word HUD', () => {

@@ -5,12 +5,12 @@ import { climbSample } from '@/lib/samples/climb';
 import { emptyBootstrap } from '@/lib/samples/empty';
 import {
   addFloor,
+  attachRoom,
   attachStair,
   eraseCell,
   placeCorridor,
-  placeDoor,
-  placeRoom,
   setEndCell,
+  setRoomMode,
   setStartCell,
 } from '@/lib/designer/mutate';
 import { canPublishPlay, canTestPlay, validateLayout } from '@/lib/designer/validate';
@@ -87,43 +87,24 @@ describe('validateLayout', () => {
     expect(issues.find((i) => i.code === 'missing-hud')?.message).toBe('Place at least one HUD tile.');
   });
 
-  it('blocks a room without a door and a door that does not touch a room', () => {
-    const lonely = placeRoom(
-      createBoard([createLoopedFloor('ground', 'Ground', 0)], []),
-      'ground',
-      1,
-      1,
-      'ground-room',
+  it('allows a room on the loop and blocks a multi room with no interior', () => {
+    let board = attachRoom(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 'ground-c3');
+    board = setStartCell(board, 'ground', 'ground-c0');
+    expect(validateLayout(board).some((i) => i.code === 'room-without-door' || i.code === 'door-not-connecting')).toBe(
+      false,
     );
-    const start = setStartCell(lonely, 'ground', 'ground-c0');
-    expect(validateLayout(start).some((i) => i.code === 'room-without-door')).toBe(true);
-    expect(validateLayout(start).find((i) => i.code === 'room-without-door')?.message).toBe(
-      'Ground: room needs a door.',
-    );
-    expect(validateLayout(start).some((i) => i.code === 'non-loop')).toBe(false);
+    expect(validateLayout(board).some((i) => i.code === 'non-loop')).toBe(false);
 
-    const neighbor = start.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
-    const connected = placeDoor(start, 'ground', neighbor.id);
-    expect(
-      validateLayout(connected).filter(
-        (i) => i.code === 'room-without-door' || i.code === 'door-not-connecting',
-      ),
-    ).toEqual([]);
-
-    const template = createLoopedFloor('ground', 'Ground', 0);
-    const orphanDoor = createBoard(
-      [
-        {
-          ...template,
-          cells: template.cells.map((c, i) => (i === 1 ? { ...c, kind: 'door' as const } : c)),
-        },
-      ],
-      [],
-    );
-    const orphanStarted = setStartCell(orphanDoor, 'ground', 'ground-c0');
-    expect(validateLayout(orphanStarted).some((i) => i.code === 'door-not-connecting')).toBe(true);
-    expect(validateLayout(orphanStarted).find((i) => i.code === 'door-not-connecting')?.message).toBe(
-      'Ground: door must connect a corridor to a room.',
+    const roomId = board.rooms![0]!.id;
+    board = setRoomMode(board, roomId, 'multi');
+    expect(validateLayout(board).some((i) => i.code === 'room-without-interior')).toBe(false);
+    const emptyInterior = {
+      ...board,
+      rooms: board.rooms!.map((room) => ({ ...room, cells: [] })),
+    };
+    expect(validateLayout(emptyInterior).some((i) => i.code === 'room-without-interior')).toBe(true);
+    expect(validateLayout(emptyInterior).find((i) => i.code === 'room-without-interior')?.message).toBe(
+      'Room 1: multi-tile room has no walkable interior.',
     );
   });
 
