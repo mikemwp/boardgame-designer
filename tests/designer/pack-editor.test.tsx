@@ -86,4 +86,33 @@ describe('PackEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete pack' }));
     expect(onDeletePack).toHaveBeenCalled();
   });
+
+  it('shows Audio on the selected card', () => {
+    const onUpdateCard = vi.fn();
+    render(
+      <PackEditor
+        packs={['notes']}
+        cards={[{ id: 'notes-1', pack: 'notes', title: 'Card 1' }]}
+        selectedPackId="notes"
+        selectedCardId="notes-1"
+        onSelectPack={() => {}}
+        onSelectCard={() => {}}
+        onCreatePack={() => {}}
+        onRenamePack={() => {}}
+        onDeletePack={() => {}}
+        onCreateCard={() => {}}
+        onUpdateCard={onUpdateCard}
+        onDeleteCard={() => {}}
+        gameId="g1"
+      />,
+    );
+    expect(screen.getByText('Audio')).toBeDefined();
+    fireEvent.change(screen.getByPlaceholderText('https://…'), {
+      target: { value: 'https://example.com/deal.mp3' },
+    });
+    fireEvent.blur(screen.getByPlaceholderText('https://…'));
+    expect(onUpdateCard).toHaveBeenCalledWith(
+      expect.objectContaining({ audio: expect.objectContaining({ source: 'url' }) }),
+    );
+  });
 });

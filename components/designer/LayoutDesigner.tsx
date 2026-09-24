@@ -30,6 +30,7 @@ import {
   placeRoom,
   clearDoor,
   renameFloor,
+  setCellAudio,
   setCellPack,
   setEndCell,
   setFloorHold,
@@ -53,7 +54,9 @@ import { cellAt, listPackIds } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { inferShape } from '@/lib/engine/shape';
-import type { Card } from '@/lib/engine/types';
+import { emptyGameStart } from '@/lib/engine/audio';
+import type { Card, GameStart } from '@/lib/engine/types';
+import type { MediaStore } from '@/lib/library/media-store';
 
 export function LayoutDesigner({
   board,
@@ -68,6 +71,10 @@ export function LayoutDesigner({
   onSelectFloor,
   onSelectCell,
   onToolChange,
+  gameStart,
+  onGameStartChange,
+  gameId,
+  media,
 }: {
   board: Board;
   cards: Card[];
@@ -81,7 +88,14 @@ export function LayoutDesigner({
   onSelectFloor: (id: string) => void;
   onSelectCell: (id: string | null) => void;
   onToolChange: (tool: DesignerTool) => void;
+  gameStart?: GameStart;
+  onGameStartChange?: (start: GameStart) => void;
+  gameId?: string;
+  media?: MediaStore;
 }) {
+  const start = gameStart ?? emptyGameStart();
+  void start;
+  void onGameStartChange;
   const [sideTab, setSideTab] = useState<'actions' | 'packs'>('actions');
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -319,6 +333,12 @@ export function LayoutDesigner({
               if (!selectedCellId) return;
               onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
             }}
+            gameId={gameId}
+            media={media}
+            onSetAudio={(audio) => {
+              if (!selectedCellId) return;
+              onBoardChange(setCellAudio(board, floor.id, selectedCellId, audio));
+            }}
           />
           </>
           ) : (
@@ -397,6 +417,8 @@ export function LayoutDesigner({
               });
               setSelectedCardId(null);
             }}
+            gameId={gameId}
+            media={media}
           />
           )}
         </div>

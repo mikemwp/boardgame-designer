@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AudioField } from '@/components/designer/AudioField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cardsInPack } from '@/lib/designer/packs';
 import type { Card } from '@/lib/engine/types';
+import type { MediaStore } from '@/lib/library/media-store';
 
 export function PackEditor({
   packs,
@@ -20,6 +22,8 @@ export function PackEditor({
   onCreateCard,
   onUpdateCard,
   onDeleteCard,
+  gameId,
+  media,
 }: {
   packs: string[];
   cards: Card[];
@@ -31,8 +35,10 @@ export function PackEditor({
   onRenamePack: (nextId: string) => void;
   onDeletePack: () => void;
   onCreateCard: () => void;
-  onUpdateCard: (patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton'>>) => void;
+  onUpdateCard: (patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio'>>) => void;
   onDeleteCard: () => void;
+  gameId?: string;
+  media?: MediaStore;
 }) {
   const [draftPackId, setDraftPackId] = useState(selectedPackId ?? '');
   useEffect(() => {
@@ -152,6 +158,13 @@ export function PackEditor({
                 aria-label="Extra button"
                 value={selectedCard.extraButton ?? ''}
                 onChange={(e) => onUpdateCard({ extraButton: e.target.value })}
+              />
+              <AudioField
+                value={selectedCard.audio}
+                gameId={gameId ?? 'draft'}
+                media={media}
+                onChange={(audio) => onUpdateCard({ audio })}
+                idPrefix={`card-${selectedCard.id}`}
               />
               <Button type="button" variant="outline" onClick={onDeleteCard}>
                 Delete card

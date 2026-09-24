@@ -1,11 +1,13 @@
 'use client';
 
+import { AudioField } from '@/components/designer/AudioField';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { HUD_WIDGETS, hudWidgetOf } from '@/lib/designer/hud';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { Cell, HudWidget } from '@/lib/engine/types';
+import type { AudioRef, Cell, HudWidget } from '@/lib/engine/types';
+import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
   empty: 'Empty slot',
@@ -42,6 +44,9 @@ export function CellInspector({
   onClearStair,
   onClearDoor,
   onSetHudWidget,
+  gameId,
+  media,
+  onSetAudio,
 }: {
   board: Board;
   floorId: string;
@@ -55,6 +60,9 @@ export function CellInspector({
   onClearStair: () => void;
   onClearDoor?: () => void;
   onSetHudWidget?: (widget: HudWidget) => void;
+  gameId?: string;
+  media?: MediaStore;
+  onSetAudio?: (audio: AudioRef | undefined) => void;
 }) {
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
@@ -138,6 +146,7 @@ export function CellInspector({
           ) : cell.kind === 'door' ? (
             <>
               <p className="text-sm text-slate-400">Landing here deals the adjacent room's pack.</p>
+              <p className="text-sm text-slate-400">Room audio plays on this door.</p>
               <Button type="button" variant="outline" onClick={onClearDoor}>
                 Convert to tile
               </Button>
@@ -174,6 +183,15 @@ export function CellInspector({
               ) : null}
             </>
           )}
+          {cell.kind !== 'hud' && cell.kind !== 'door' && onSetAudio ? (
+            <AudioField
+              value={cell.audio}
+              gameId={gameId ?? 'draft'}
+              media={media}
+              onChange={onSetAudio}
+              idPrefix={`cell-${cell.id}`}
+            />
+          ) : null}
           {cell.kind !== 'hud' ? (
             <>
               <Button type="button" onClick={onSetStart}>

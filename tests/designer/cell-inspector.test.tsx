@@ -140,7 +140,9 @@ describe('CellInspector', () => {
     );
     expect(screen.getByText('Door')).toBeDefined();
     expect(screen.getByText("Landing here deals the adjacent room's pack.")).toBeDefined();
+    expect(screen.getByText('Room audio plays on this door.')).toBeDefined();
     expect(screen.queryByLabelText('Pack')).toBeNull();
+    expect(screen.queryByText('Audio')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Convert to tile' }));
     expect(onClearDoor).toHaveBeenCalled();
   });
@@ -167,6 +169,52 @@ describe('CellInspector', () => {
     fireEvent.change(screen.getByLabelText('Destination level'), { target: { value: 'floor-1' } });
     fireEvent.change(screen.getByLabelText('Landing tile'), { target: { value: 'floor-1-c0' } });
     expect(onLinkStair).toHaveBeenCalledWith('floor-1', 'floor-1-c0');
+  });
+
+  it('shows Audio on a corridor and not on HUD or door', () => {
+    const onSetAudio = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    const { rerender } = render(
+      <CellInspector
+        board={board}
+        floorId="ground"
+        cellId="ground-c1"
+        packIds={['climb']}
+        onSetPack={() => {}}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        gameId="g1"
+        onSetAudio={onSetAudio}
+      />,
+    );
+    expect(screen.getByText('Audio')).toBeDefined();
+    fireEvent.change(screen.getByPlaceholderText('https://…'), {
+      target: { value: 'https://example.com/tile.mp3' },
+    });
+    fireEvent.blur(screen.getByPlaceholderText('https://…'));
+    expect(onSetAudio).toHaveBeenCalled();
+
+    rerender(
+      <CellInspector
+        board={board}
+        floorId="ground"
+        cellId={hud.id}
+        packIds={['climb']}
+        onSetPack={() => {}}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        gameId="g1"
+        onSetAudio={onSetAudio}
+      />,
+    );
+    expect(screen.queryByText('Audio')).toBeNull();
   });
 
   it('sets HUD type on a HUD cell and hides pack controls', () => {
