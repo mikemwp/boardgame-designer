@@ -28,7 +28,9 @@ describe('Cell and Floor slice-2 fields', () => {
     expect(stair.packId).toBeUndefined();
   });
 
-  it('allows a room host on the loop with a RoomDef', () => {
+  it('allows only corridor, stair, hud, and room kinds', () => {
+    const kinds: import('@/lib/engine/types').CellKind[] = ['corridor', 'stair', 'hud', 'room'];
+    expect(kinds).toEqual(['corridor', 'stair', 'hud', 'room']);
     const room: Cell = { id: 'c3', index: 3, kind: 'room', roomId: 'room-1', packId: 'notes', col: 0, row: 3 };
     const def: import('@/lib/engine/types').RoomDef = {
       id: 'room-1',

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createBoard } from '@/lib/engine/board';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
+import * as layout from '@/lib/engine/layout';
 import {
   applyStartToPlayers,
   areAdjacent,
@@ -202,7 +203,7 @@ describe('rooms stay on the corridor loop', () => {
     expect(orderCellsAlongLoop(loopCells(board.floors[0]!))).not.toBeNull();
   });
 
-  it('landingPackId uses the host room pack', () => {
+  it('landingPackId uses the cell’s own pack; rooms stay on the loop', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     const host = floor.cells.find((c) => c.id === 'ground-c3')!;
     const room = { ...host, kind: 'room' as const, roomId: 'room-1', packId: 'notes' };
@@ -212,6 +213,9 @@ describe('rooms stay on the corridor loop', () => {
     };
     expect(landingPackId(next, room)).toBe('notes');
     expect(landingPackId(next, host)).toBeUndefined();
+    const packed = { ...host, packId: 'climb' };
+    expect(landingPackId(next, packed)).toBe('climb');
+    expect(layout).not.toHaveProperty('roomForDoor');
   });
 });
 

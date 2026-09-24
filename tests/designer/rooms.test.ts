@@ -4,10 +4,10 @@ import { createLoopedFloor, loopCells } from '@/lib/engine/layout';
 import {
   attachRoom,
   attachStair,
-  placeDoor,
   placeRoom,
   setCellPack,
 } from '@/lib/designer/mutate';
+import * as mutate from '@/lib/designer/mutate';
 import {
   applyRoomShape,
   deleteRoom,
@@ -54,17 +54,16 @@ describe('attachRoom', () => {
 });
 
 describe('placeDoor', () => {
-  it('is a no-op and never writes a door', () => {
-    const board = groundBoard();
-    expect(placeDoor(board, 'ground', 'ground-c0')).toEqual(board);
-    expect(board.floors[0]?.cells.every((c) => c.kind !== 'door')).toBe(true);
+  it('is not exported', () => {
+    expect(mutate).not.toHaveProperty('placeDoor');
+    expect(mutate).not.toHaveProperty('clearDoor');
   });
 });
 
 describe('normalizeBoardRooms', () => {
-  it('turns doors into corridors and drops off-path rooms while keeping packs', () => {
+  it('keeps a room host on the loop and drops an off-path leftover room', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
-    const neighbor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const host = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
     const leftover = floor.cells.find((c) => c.col === 2 && c.row === 0)!;
     const draft = createBoard(
       [
@@ -72,7 +71,7 @@ describe('normalizeBoardRooms', () => {
           ...floor,
           cells: [
             ...floor.cells.map((cell) => {
-              if (cell.id === neighbor.id) return { ...cell, kind: 'door' as const };
+              if (cell.id === host.id) return { ...cell, kind: 'room' as const, roomId: 'room-1' };
               if (cell.id === leftover.id) return { ...cell, packId: 'notes' };
               return cell;
             }),
@@ -81,9 +80,13 @@ describe('normalizeBoardRooms', () => {
         },
       ],
       [],
+      [{ id: 'room-1', name: 'Room 1', mode: 'single' }],
     );
     const next = normalizeBoardRooms(draft);
-    expect(next.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('corridor');
+    expect(next.floors[0]?.cells.find((c) => c.id === host.id)).toMatchObject({
+      kind: 'room',
+      roomId: 'room-1',
+    });
     expect(next.floors[0]?.cells.some((c) => c.id === 'ground-room')).toBe(false);
     expect(next.floors[0]?.cells.find((c) => c.id === leftover.id)?.packId).toBe('notes');
     expect(setCellPack(next, 'ground', leftover.id, 'notes').floors[0]?.cells.find((c) => c.id === leftover.id)?.packId).toBe(

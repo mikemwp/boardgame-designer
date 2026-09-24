@@ -15,7 +15,6 @@ import {
   placeCorridor,
   placeCorridorOnSlot,
   attachRoom,
-  placeDoor,
   placeHud,
   placeRoom,
   renameFloor,
@@ -76,11 +75,10 @@ describe('placeHud', () => {
   });
 });
 
-describe('placeRoom and placeDoor', () => {
-  it('do not write inner-square rooms or doors', () => {
+describe('placeRoom', () => {
+  it('does not write an inner-square room', () => {
     const board = groundBoard();
     expect(placeRoom(board, 'ground', 1, 1, 'ground-room')).toEqual(board);
-    expect(placeDoor(board, 'ground', 'ground-c0')).toEqual(board);
   });
 
   it('assigns a pack on a room host on the loop', () => {
@@ -340,7 +338,7 @@ describe('setCellAudio', () => {
     src: 'https://ex/land.mp3',
   };
 
-  it('sets and clears corridor audio and refuses HUD and door', () => {
+  it('sets and clears corridor audio and refuses HUD', () => {
     const set = setCellAudio(groundBoard(), 'ground', 'ground-c1', clip);
     expect(set.floors[0]?.cells.find((c) => c.id === 'ground-c1')?.audio).toEqual(clip);
     const cleared = setCellAudio(set, 'ground', 'ground-c1', undefined);

@@ -156,7 +156,7 @@ describe('CellInspector', () => {
     expect(onLinkStair).toHaveBeenCalledWith('floor-1', 'floor-1-c0');
   });
 
-  it('shows Audio on a corridor and not on HUD or door', () => {
+  it('shows Audio on a corridor and not on HUD', () => {
     const onSetAudio = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
     const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;

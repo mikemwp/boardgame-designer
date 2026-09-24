@@ -90,9 +90,6 @@ describe('validateLayout', () => {
   it('allows a room on the loop and blocks a multi room with no interior', () => {
     let board = attachRoom(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 'ground-c3');
     board = setStartCell(board, 'ground', 'ground-c0');
-    expect(validateLayout(board).some((i) => i.code === 'room-without-door' || i.code === 'door-not-connecting')).toBe(
-      false,
-    );
     expect(validateLayout(board).some((i) => i.code === 'non-loop')).toBe(false);
 
     const roomId = board.rooms![0]!.id;

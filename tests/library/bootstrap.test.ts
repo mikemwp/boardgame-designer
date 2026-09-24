@@ -107,19 +107,25 @@ describe('stored bootstrap codec', () => {
     expect(again.itemAssign).toBe('choose');
   });
 
-  it('normalizes old doors and off-path rooms on load', () => {
+  it('keeps a room host on the loop and drops an off-path leftover room on load', () => {
     const floor = emptyBootstrap().board.floors[0]!;
-    const neighbor = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    const host = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
     const stored = toStoredBootstrap(emptyBootstrap());
     stored.board.floors[0] = {
       ...floor,
       cells: [
-        ...floor.cells.map((cell) => (cell.id === neighbor.id ? { ...cell, kind: 'door' as const } : cell)),
+        ...floor.cells.map((cell) =>
+          cell.id === host.id ? { ...cell, kind: 'room' as const, roomId: 'room-1' } : cell,
+        ),
         { id: 'ground-room', index: 99, kind: 'room', col: 1, row: 1, packId: 'closet' },
       ],
     };
+    stored.board.rooms = [{ id: 'room-1', name: 'Room 1', mode: 'single' }];
     const boot = fromStoredBootstrap(stored);
-    expect(boot.board.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('corridor');
+    expect(boot.board.floors[0]?.cells.find((c) => c.id === host.id)).toMatchObject({
+      kind: 'room',
+      roomId: 'room-1',
+    });
     expect(boot.board.floors[0]?.cells.some((c) => c.id === 'ground-room')).toBe(false);
   });
 
