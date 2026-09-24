@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { AudioField, MediaField } from '@/components/designer/AudioField';
+import { LevelConfirmDialog } from '@/components/designer/LevelConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { HUD_WIDGETS, hudWidgetOf } from '@/lib/designer/hud';
 import { tileActionKind } from '@/lib/designer/tile-chrome';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { AudioRef, Cell, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
+import type { AudioRef, Cell, HudWidget, ImageRef, SpinnerDef, VideoRef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
@@ -40,7 +42,10 @@ export function CellInspector({
   onLinkStair,
   onClearStair,
   onClearDoor,
+  onClear,
   onSetHudWidget,
+  spinners,
+  onSetSpinner,
   gameId,
   media,
   onSetAudio,
@@ -58,27 +63,45 @@ export function CellInspector({
   onLinkStair: (toFloorId: string, toCellId: string) => void;
   onClearStair: () => void;
   onClearDoor?: () => void;
+  onClear?: () => void;
   onSetHudWidget?: (widget: HudWidget) => void;
+  spinners?: SpinnerDef[];
+  onSetSpinner?: (spinnerId: string | undefined) => void;
   gameId?: string;
   media?: MediaStore;
   onSetAudio?: (audio: AudioRef | undefined) => void;
   onSetImage?: (image: ImageRef | undefined) => void;
   onSetVideo?: (video: VideoRef | undefined) => void;
 }) {
+  const [clearOpen, setClearOpen] = useState(false);
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
   const stair = board.stairs.find((s) => s.id === cell?.stairId);
+  const catalog = spinners ?? [];
 
   if (!floor) return null;
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-lg border border-slate-800 p-3" data-testid="tile-actions">
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-center gap-2">
         <p className="text-sm font-medium text-slate-100">Tile Actions</p>
         {cell ? (
           <p className="text-sm text-slate-300" data-testid="tile-actions-kind">
             {cellHeading(cell)}
           </p>
+        ) : null}
+        {cell && cell.kind !== 'hud' ? (
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
+            <Button type="button" variant={cell.start ? 'secondary' : 'outline'} onClick={onSetStart}>
+              Start tile
+            </Button>
+            <Button type="button" variant={cell.end ? 'secondary' : 'outline'} onClick={onSetEnd}>
+              {endTileLabel(cell)}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setClearOpen(true)}>
+              Clear
+            </Button>
+          </div>
         ) : null}
       </div>
       {!cell ? (
@@ -146,17 +169,11 @@ export function CellInspector({
                     </option>
                   ))}
               </select>
-              <Button type="button" variant="outline" onClick={onClearStair}>
-                Convert to tile
-              </Button>
             </>
           ) : cell.kind === 'door' ? (
             <>
               <p className="text-sm text-slate-400">Landing here deals the adjacent room&apos;s pack.</p>
               <p className="text-sm text-slate-400">Room audio plays on this door.</p>
-              <Button type="button" variant="outline" onClick={onClearDoor}>
-                Convert to tile
-              </Button>
             </>
           ) : (
             <>
@@ -183,10 +200,24 @@ export function CellInspector({
                   </select>
                 </>
               )}
-              {cell.kind !== 'room' ? (
-                <Button type="button" variant="outline" onClick={onAttachStair}>
-                  Make stair
-                </Button>
+              {catalog.length > 0 && onSetSpinner ? (
+                <>
+                  <Label htmlFor="cell-spinner">Spinner</Label>
+                  <select
+                    id="cell-spinner"
+                    aria-label="Spinner"
+                    className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                    value={cell.spinnerId ?? ''}
+                    onChange={(e) => onSetSpinner(e.target.value || undefined)}
+                  >
+                    <option value="">None</option>
+                    {catalog.map((spinner) => (
+                      <option key={spinner.id} value={spinner.id}>
+                        {spinner.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
               ) : null}
             </>
           )}
@@ -221,18 +252,19 @@ export function CellInspector({
               ) : null}
             </>
           ) : null}
-          {cell.kind !== 'hud' ? (
-            <>
-              <Button type="button" onClick={onSetStart}>
-                Start tile
-              </Button>
-              <Button type="button" variant="outline" onClick={onSetEnd}>
-                {endTileLabel(cell)}
-              </Button>
-            </>
-          ) : null}
         </>
       )}
+      <LevelConfirmDialog
+        open={clearOpen}
+        title="Clear this tile?"
+        description="This turns the tile back into a standard tile and removes its settings."
+        confirmLabel="Clear"
+        onOpenChange={setClearOpen}
+        onConfirm={() => {
+          onClear?.();
+          setClearOpen(false);
+        }}
+      />
     </div>
   );
 }

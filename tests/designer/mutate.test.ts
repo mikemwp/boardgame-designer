@@ -27,6 +27,7 @@ import {
   setCellAudio,
   setCellImage,
   setCellVideo,
+  clearCell,
 } from '@/lib/designer/mutate';
 
 function groundBoard() {
@@ -409,6 +410,43 @@ describe('setCellImage and setCellVideo', () => {
     expect(after?.image).toBeUndefined();
     expect(after?.audio).toEqual(clip);
     expect(after?.video).toEqual(video);
+  });
+});
+
+describe('clearCell', () => {
+  it('is a no-op on HUD', () => {
+    const board = groundBoard();
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    expect(clearCell(board, 'ground', hud.id)).toBe(board);
+  });
+
+  it('converts a stair to a corridor and drops attachments', () => {
+    let board = attachStair(groundBoard(), 'ground', 'ground-c3');
+    board = setStartCell(board, 'ground', 'ground-c3');
+    const next = clearCell(board, 'ground', 'ground-c3');
+    const cell = next.floors[0]?.cells.find((c) => c.id === 'ground-c3');
+    expect(cell?.kind).toBe('corridor');
+    expect(cell?.stairId).toBeUndefined();
+    expect(cell?.start).toBeFalsy();
+    expect(next.stairs).toEqual([]);
+  });
+
+  it('drops pack, media, start, and end on a corridor', () => {
+    let board = setCellPack(groundBoard(), 'ground', 'ground-c1', 'climb');
+    board = setStartCell(board, 'ground', 'ground-c1');
+    board = setCellAudio(board, 'ground', 'ground-c1', {
+      id: 'a1',
+      name: 'clip.mp3',
+      source: 'url',
+      src: 'https://ex/clip.mp3',
+    });
+    const next = clearCell(board, 'ground', 'ground-c1');
+    const cell = next.floors[0]?.cells.find((c) => c.id === 'ground-c1');
+    expect(cell?.kind).toBe('corridor');
+    expect(cell?.packId).toBeUndefined();
+    expect(cell?.audio).toBeUndefined();
+    expect(cell?.start).toBeFalsy();
+    expect(cell?.end).toBeFalsy();
   });
 });
 

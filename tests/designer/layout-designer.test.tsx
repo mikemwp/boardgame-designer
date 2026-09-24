@@ -481,6 +481,104 @@ describe('LayoutDesigner', () => {
     expect(screen.getByLabelText('Shape')).toHaveProperty('disabled', false);
   });
 
+  it('creates a spinner and attaches it to a corridor by name', () => {
+    const onCatalogChange = vi.fn();
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const corridor = board.floors[0]!.cells.find((c) => c.kind !== 'hud')!;
+    const { rerender } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={corridor.id}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        onCatalogChange={onCatalogChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Spinners' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New spinner' }));
+    expect(onCatalogChange).toHaveBeenCalled();
+    const created = onCatalogChange.mock.calls[0][0];
+    expect(created.spinners[0]).toMatchObject({ id: 'spinner-1', name: 'Spinner 1' });
+
+    rerender(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={corridor.id}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        spinners={created.spinners}
+        onCatalogChange={onCatalogChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
+    const spinnerSelect = screen.getByLabelText('Spinner');
+    expect(spinnerSelect.textContent).toContain('Spinner 1');
+    fireEvent.change(spinnerSelect, { target: { value: 'spinner-1' } });
+    expect(onBoardChange).toHaveBeenCalled();
+    const next = onBoardChange.mock.calls.at(-1)![0] as Board;
+    expect(next.floors[0]?.cells.find((c) => c.id === corridor.id)?.spinnerId).toBe('spinner-1');
+  });
+
+  it('creates a starting item from the Players tab', () => {
+    const onCatalogChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const { rerender } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        onCatalogChange={onCatalogChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Players' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New item' }));
+    expect(onCatalogChange).toHaveBeenCalled();
+    const created = onCatalogChange.mock.calls[0][0];
+    expect(created.items[0]).toMatchObject({ id: 'item-1', name: 'Item 1', starting: false });
+
+    rerender(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        items={created.items}
+        itemAssign={created.itemAssign}
+        onCatalogChange={onCatalogChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Select item Item 1' }));
+    fireEvent.click(screen.getByLabelText('Starting item'));
+    const updated = onCatalogChange.mock.calls.at(-1)![0];
+    expect(updated.items[0]).toMatchObject({ id: 'item-1', starting: true });
+  });
+
   it('asks before Delete level', () => {
     const onBoardChange = vi.fn();
     const board = createBoard(

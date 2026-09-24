@@ -1,6 +1,16 @@
-import { defaultGameConfig, type GameConfig, type GameStart, type TokenPos } from './types';
+import {
+  defaultGameConfig,
+  type GameConfig,
+  type GameStart,
+  type InventoryItem,
+  type ItemAssign,
+  type SpinnerDef,
+  type TokenPos,
+} from './types';
 import { getFloor, type Board } from './board';
 import { initPlayerPasses, moveToken, setPlayerPassesLeft, type PlayerState } from './players';
+import { assignStartingItems } from './inventory';
+import { sampleSegment } from './spinner';
 import { canSpendPass, createPassesLeft, spendPass } from './passes';
 import { movementRange, sampleMovement, type Rng } from './dice';
 import { applyAction, countsTowardReveal, dealFromPack, type CardState } from './cards';
@@ -17,6 +27,13 @@ export interface LastRoll {
   faces: number[];
 }
 
+export interface LastSpin {
+  spinnerId: string;
+  spinnerName: string;
+  label: string;
+  id: number;
+}
+
 export interface GameState {
   config: GameConfig;
   board: Board;
@@ -25,9 +42,13 @@ export interface GameState {
   hold: HoldState | null;
   lastEvent: GameEvent | null;
   lastRoll: LastRoll | null;
+  lastSpin: LastSpin | null;
   lastAudioCues: AudioCue[];
   audioCueId: number;
   rng: Rng;
+  spinners: SpinnerDef[];
+  items: InventoryItem[];
+  itemAssign: ItemAssign;
 }
 
 export interface GameBootstrap {
@@ -37,13 +58,20 @@ export interface GameBootstrap {
   config?: Partial<GameConfig>;
   rng?: Rng;
   gameStart?: GameStart;
+  spinners?: SpinnerDef[];
+  items?: InventoryItem[];
+  itemAssign?: ItemAssign;
 }
 
 export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameConfig> & { rng?: Rng }): GameState {
   const config = { ...defaultGameConfig(), ...bootstrap.config, ...overrides };
-  const players = config.passesEnabled && Object.keys(config.passesPerPack).length > 0
+  const rng = overrides?.rng ?? bootstrap.rng ?? Math.random;
+  const items = bootstrap.items ?? [];
+  const itemAssign = bootstrap.itemAssign ?? 'random';
+  let players = config.passesEnabled && Object.keys(config.passesPerPack).length > 0
     ? initPlayerPasses(bootstrap.players, createPassesLeft(config.passesPerPack))
     : bootstrap.players;
+  players = assignStartingItems(players, items, itemAssign, rng);
   return {
     config,
     board: bootstrap.board,
@@ -52,9 +80,13 @@ export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameCon
     hold: null,
     lastEvent: null,
     lastRoll: null,
+    lastSpin: null,
     lastAudioCues: [],
     audioCueId: 0,
-    rng: overrides?.rng ?? bootstrap.rng ?? Math.random,
+    rng,
+    spinners: bootstrap.spinners ?? [],
+    items,
+    itemAssign,
   };
 }
 
@@ -84,10 +116,29 @@ function dealOnLand(state: GameState, packId: string, landCues: AudioCue[]): Gam
   return tryExitHold(withCues({ ...state, cards, hold, lastEvent }, cues));
 }
 
+function applyOutcomeSpin(state: GameState, spinnerId: string | undefined): GameState {
+  if (!spinnerId) return state;
+  const spinner = state.spinners.find((entry) => entry.id === spinnerId);
+  if (!spinner) return state;
+  const segment = sampleSegment(spinner, state.rng);
+  if (!segment) return state;
+  return {
+    ...state,
+    lastSpin: {
+      spinnerId: spinner.id,
+      spinnerName: spinner.name,
+      label: segment.label,
+      id: (state.lastSpin?.id ?? 0) + 1,
+    },
+    lastEvent: { type: 'SPINNER_LANDED', spinnerId: spinner.id, label: segment.label },
+  };
+}
+
 function afterMove(state: GameState, playerId: string, landing: TokenPos): GameState {
   const floor = getFloor(state.board, landing.floorId);
   const cell = floor?.cells.find((c) => c.id === landing.cellId);
   if (!cell) return state;
+  state = applyOutcomeSpin(state, cell.spinnerId);
 
   const landCues = cuesForLanding(state.board, landing.floorId, landing.cellId);
 
@@ -123,11 +174,12 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
     const cues = [...landCues, ...destCues];
     const moved: GameState = { ...state, players, hold, lastEvent };
     const destCell = destFloor?.cells.find((c) => c.id === dest.cellId);
+    const spun = applyOutcomeSpin(moved, destCell?.spinnerId);
     const destPack = destFloor && destCell ? landingPackId(destFloor, destCell) : undefined;
     if (destPack) {
-      return dealOnLand(moved, destPack, cues);
+      return dealOnLand(spun, destPack, cues);
     }
-    return withCues(moved, cues);
+    return withCues(spun, cues);
   }
 
   const packId = landingPackId(floor, cell);
@@ -215,6 +267,20 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       }
       return tryExitHold({ ...state, cards, hold });
     }
+    case 'SPIN_OUTCOME':
+      return applyOutcomeSpin(state, cmd.spinnerId);
+    case 'SET_INVENTORY':
+      return {
+        ...state,
+        players: {
+          ...state.players,
+          players: state.players.players.map((player) => ({
+            ...player,
+            inventory: [...cmd.itemIds],
+          })),
+        },
+        lastEvent: { type: 'INVENTORY_SET' },
+      };
     default:
       return state;
   }

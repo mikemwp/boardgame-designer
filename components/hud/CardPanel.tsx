@@ -47,6 +47,15 @@ export function CardPanel({
         {bodyVisible && extraLabel ? (
           <Button onClick={() => onExtra?.()}>{extraLabel}</Button>
         ) : null}
+        {currentCard.spinnerId ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onDispatch({ type: 'SPIN_OUTCOME', spinnerId: currentCard.spinnerId! })}
+          >
+            Spin outcome
+          </Button>
+        ) : null}
         {actions.length > 0 ? (
           <div className="flex gap-2">
             {actions.includes('positive') && (

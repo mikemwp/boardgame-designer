@@ -71,6 +71,19 @@ describe('CardPanel', () => {
     expect(screen.getByText('Secret clue')).toBeDefined();
   });
 
+  it('shows Spin outcome and dispatches SPIN_OUTCOME', () => {
+    const onDispatch = vi.fn();
+    render(
+      <CardPanel
+        actionMode="neither"
+        currentCard={{ id: '1', pack: 'climb', title: 'Rung', spinnerId: 'spinner-1' }}
+        onDispatch={onDispatch}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Spin outcome' }));
+    expect(onDispatch).toHaveBeenCalledWith({ type: 'SPIN_OUTCOME', spinnerId: 'spinner-1' });
+  });
+
   it('shows extra button and timer after the body is visible', () => {
     const onExtra = vi.fn();
     render(

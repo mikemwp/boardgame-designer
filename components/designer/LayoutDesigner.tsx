@@ -8,6 +8,8 @@ import { DesignerPalette, type DesignerTool } from '@/components/designer/Design
 import { FloorTabs } from '@/components/designer/FloorTabs';
 import { HoldEditor } from '@/components/designer/HoldEditor';
 import { LevelConfirmDialog } from '@/components/designer/LevelConfirmDialog';
+import { PlayerEditor } from '@/components/designer/PlayerEditor';
+import { SpinnerEditor } from '@/components/designer/SpinnerEditor';
 import { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { PackEditor } from '@/components/designer/PackEditor';
@@ -38,12 +40,14 @@ import {
   placeDoor,
   placeHud,
   placeRoom,
+  clearCell,
   clearDoor,
   renameFloor,
   setCellAudio,
   setCellImage,
   setCellVideo,
   setCellPack,
+  setCellSpinner,
   setEndCell,
   setFloorHold,
   setHudWidget,
@@ -60,6 +64,20 @@ import {
   renamePack,
   updateCard,
 } from '@/lib/designer/packs';
+import {
+  addSegment,
+  createSpinner,
+  deleteSpinner,
+  nextSpinnerId,
+  removeSegment,
+  renameSpinner,
+  rewriteSpinnerRefs,
+  setSegmentLabel,
+  setSegmentPercent,
+  setSplit,
+  updateSpinner,
+} from '@/lib/designer/spinners';
+import { createItem, deleteItem, nextItemId, updateItem } from '@/lib/designer/items';
 import type { LayoutIssue } from '@/lib/designer/validate';
 import type { Board } from '@/lib/engine/board';
 import { cellAt, listPackIds } from '@/lib/engine/layout';
@@ -67,12 +85,12 @@ import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { inferShape } from '@/lib/engine/shape';
 import { emptyGameStart } from '@/lib/engine/audio';
-import type { Card, GameStart, ImageRef, VideoRef } from '@/lib/engine/types';
+import type { Card, GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef, VideoRef } from '@/lib/engine/types';
 import type { GameStatus } from '@/lib/library/types';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
 import { formatDesignerLastSaved, formatDesignerStatus } from '@/lib/library/version';
 
-export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'start';
+export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'spinners' | 'players' | 'start';
 
 export type DesignerMetadata = {
   lastSaved?: string;
@@ -96,6 +114,10 @@ export function LayoutDesigner({
   onToolChange,
   gameStart,
   onGameStartChange,
+  spinners,
+  items,
+  itemAssign,
+  onCatalogChange,
   gameId,
   media,
   metadata,
@@ -114,6 +136,17 @@ export function LayoutDesigner({
   onToolChange: (tool: DesignerTool) => void;
   gameStart?: GameStart;
   onGameStartChange?: (start: GameStart) => void;
+  spinners?: SpinnerDef[];
+  items?: InventoryItem[];
+  itemAssign?: ItemAssign;
+  onCatalogChange?: (next: {
+    spinners: SpinnerDef[];
+    items: InventoryItem[];
+    itemAssign: ItemAssign;
+    cards: Card[];
+    packs: string[];
+    board: Board;
+  }) => void;
   gameId?: string;
   media?: MediaStore;
   metadata?: DesignerMetadata;
@@ -125,8 +158,13 @@ export function LayoutDesigner({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedSpinnerId, setSelectedSpinnerId] = useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [levelConfirm, setLevelConfirm] = useState<'delete' | 'reset' | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
+  const spinnerList = spinners ?? [];
+  const itemList = items ?? [];
+  const assignMode = itemAssign ?? 'random';
   const draftCards = cards;
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
   if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
@@ -332,12 +370,197 @@ export function LayoutDesigner({
           <button type="button" role="tab" aria-selected={sideTab === 'packs'} className={tabClass('packs')} onClick={() => setSideTab('packs')}>
             Packs
           </button>
+          <button type="button" role="tab" aria-selected={sideTab === 'spinners'} className={tabClass('spinners')} onClick={() => setSideTab('spinners')}>
+            Spinners
+          </button>
+          <button type="button" role="tab" aria-selected={sideTab === 'players'} className={tabClass('players')} onClick={() => setSideTab('players')}>
+            Players
+          </button>
           <button type="button" role="tab" aria-selected={sideTab === 'start'} className={tabClass('start')} onClick={() => setSideTab('start')}>
             Start
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto" data-testid="tile-actions-pane">
-          {sideTab === 'levels' ? (
+          {sideTab === 'spinners' ? (
+            <SpinnerEditor
+              spinners={spinnerList}
+              selectedId={selectedSpinnerId}
+              onSelect={setSelectedSpinnerId}
+              onCreate={() => {
+                const id = nextSpinnerId(spinnerList);
+                const next = createSpinner(spinnerList, id);
+                onCatalogChange?.({
+                  spinners: next,
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+                setSelectedSpinnerId(id);
+              }}
+              onRename={(name) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: renameSpinner(spinnerList, selectedSpinnerId, name),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onDelete={() => {
+                if (!selectedSpinnerId) return;
+                const refs = rewriteSpinnerRefs(board, draftCards, selectedSpinnerId, undefined);
+                const nextSpinners = deleteSpinner(spinnerList, selectedSpinnerId);
+                onCatalogChange?.({
+                  spinners: nextSpinners,
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: refs.cards,
+                  packs: catalog,
+                  board: refs.board,
+                });
+                if (refs.board !== board) onBoardChange(refs.board);
+                if (refs.cards !== draftCards) {
+                  onDraftChange?.({ cards: refs.cards, packs: catalog, board: refs.board });
+                }
+                setSelectedSpinnerId(nextSpinners[0]?.id ?? null);
+              }}
+              onSplit={(split) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: setSplit(spinnerList, selectedSpinnerId, split),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onLinked={(linked) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: updateSpinner(spinnerList, selectedSpinnerId, { linked }),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onAddSegment={() => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: addSegment(spinnerList, selectedSpinnerId),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onRemoveSegment={(segmentId) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: removeSegment(spinnerList, selectedSpinnerId, segmentId),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onSegmentLabel={(segmentId, label) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: setSegmentLabel(spinnerList, selectedSpinnerId, segmentId, label),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onSegmentPercent={(segmentId, percent) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: setSegmentPercent(spinnerList, selectedSpinnerId, segmentId, percent),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+            />
+          ) : sideTab === 'players' ? (
+            <PlayerEditor
+              items={itemList}
+              itemAssign={assignMode}
+              selectedId={selectedItemId}
+              onSelect={setSelectedItemId}
+              onCreate={() => {
+                const id = nextItemId(itemList);
+                const next = createItem(itemList, id);
+                onCatalogChange?.({
+                  spinners: spinnerList,
+                  items: next,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+                setSelectedItemId(id);
+              }}
+              onRename={(name) => {
+                if (!selectedItemId) return;
+                onCatalogChange?.({
+                  spinners: spinnerList,
+                  items: updateItem(itemList, selectedItemId, { name }),
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onStarting={(starting) => {
+                if (!selectedItemId) return;
+                onCatalogChange?.({
+                  spinners: spinnerList,
+                  items: updateItem(itemList, selectedItemId, { starting }),
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onDelete={() => {
+                if (!selectedItemId) return;
+                const next = deleteItem(itemList, selectedItemId);
+                onCatalogChange?.({
+                  spinners: spinnerList,
+                  items: next,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+                setSelectedItemId(next[0]?.id ?? null);
+              }}
+              onAssign={(mode) => {
+                onCatalogChange?.({
+                  spinners: spinnerList,
+                  items: itemList,
+                  itemAssign: mode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+            />
+          ) : sideTab === 'levels' ? (
             <HoldEditor
               floor={floor}
               packIds={catalog}
@@ -384,6 +607,15 @@ export function LayoutDesigner({
               onClearDoor={() => {
                 if (!selectedCellId) return;
                 onBoardChange(clearDoor(board, floor.id, selectedCellId));
+              }}
+              onClear={() => {
+                if (!selectedCellId) return;
+                onBoardChange(clearCell(board, floor.id, selectedCellId));
+              }}
+              spinners={spinnerList}
+              onSetSpinner={(spinnerId) => {
+                if (!selectedCellId) return;
+                onBoardChange(setCellSpinner(board, floor.id, selectedCellId, spinnerId));
               }}
               onSetHudWidget={(widget) => {
                 if (!selectedCellId) return;
@@ -480,6 +712,7 @@ export function LayoutDesigner({
                 });
                 setSelectedCardId(null);
               }}
+              spinners={spinnerList}
               gameId={gameId}
               media={mediaStore}
             />

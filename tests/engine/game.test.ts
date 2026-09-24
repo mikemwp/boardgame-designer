@@ -246,6 +246,94 @@ describe('card actions and hold', () => {
   });
 });
 
+describe('outcome spin and inventory', () => {
+  it('samples lastSpin when landing on a spinner tile', () => {
+    const bootstrap = loopBootstrap();
+    bootstrap.board.floors[0]!.cells[1] = {
+      ...bootstrap.board.floors[0]!.cells[1]!,
+      spinnerId: 'spinner-1',
+    };
+    const game = createGame(
+      {
+        ...bootstrap,
+        spinners: [
+          {
+            id: 'spinner-1',
+            name: 'Luck',
+            split: 'equal',
+            segments: [
+              { id: 'a', label: 'Me' },
+              { id: 'b', label: 'You' },
+            ],
+          },
+        ],
+      },
+      { rng: () => 0 },
+    );
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.lastSpin).toMatchObject({
+      spinnerId: 'spinner-1',
+      spinnerName: 'Luck',
+      label: 'Me',
+    });
+    expect(next.lastEvent?.type).toBe('CARD_DEALT');
+  });
+
+  it('SPIN_OUTCOME records lastSpin from a card spinner', () => {
+    const game = createGame({
+      ...loopBootstrap(),
+      spinners: [
+        {
+          id: 'spinner-1',
+          name: 'Luck',
+          split: 'equal',
+          segments: [
+            { id: 'a', label: 'Me' },
+            { id: 'b', label: 'You' },
+          ],
+        },
+      ],
+    }, { rng: () => 0 });
+    const next = dispatch(game, { type: 'SPIN_OUTCOME', spinnerId: 'spinner-1' });
+    expect(next.lastSpin).toMatchObject({ spinnerName: 'Luck', label: 'Me' });
+    expect(next.lastEvent).toEqual({ type: 'SPINNER_LANDED', spinnerId: 'spinner-1', label: 'Me' });
+  });
+
+  it('SET_INVENTORY applies the same kit to every player', () => {
+    const players = addPlayer(
+      addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      {
+        id: 'p2',
+        name: 'B',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      },
+    );
+    const game = createGame({
+      ...loopBootstrap(),
+      players,
+      items: [{ id: 'item-1', name: 'Lock pick', starting: true }],
+      itemAssign: 'choose',
+    });
+    expect(game.players.players.map((p) => p.inventory)).toEqual([undefined, undefined]);
+    const next = dispatch(game, { type: 'SET_INVENTORY', itemIds: ['item-1'] });
+    expect(next.players.players.map((p) => p.inventory)).toEqual([['item-1'], ['item-1']]);
+    expect(next.lastEvent?.type).toBe('INVENTORY_SET');
+  });
+
+  it('seeds every player with starting items when random', () => {
+    const game = createGame({
+      ...loopBootstrap(),
+      items: [{ id: 'item-1', name: 'Lock pick', starting: true }],
+      itemAssign: 'random',
+    });
+    expect(game.players.players[0]?.inventory).toEqual(['item-1']);
+  });
+});
+
 describe('climb sample still boots', () => {
   it('createGame(climbSample) has no current card', () => {
     const game = createGame(climbSample);

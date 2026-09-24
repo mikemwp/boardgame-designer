@@ -106,11 +106,36 @@ export interface GameStart {
   menu: { items: StartMenuItem[] };
 }
 
+export type SpinnerSplit = 'equal' | 'percent';
+
+export type ItemAssign = 'choose' | 'random';
+
+export interface SpinnerSegment {
+  id: string;
+  label: string;
+  percent?: number;
+}
+
+export interface SpinnerDef {
+  id: string;
+  name: string;
+  split: SpinnerSplit;
+  segments: SpinnerSegment[];
+  linked?: boolean;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  starting?: boolean;
+}
+
 export interface Cell {
   id: string;
   index: number;
   kind?: CellKind;
   packId?: string;
+  spinnerId?: string;
   stairId?: string;
   col?: number;
   row?: number;
@@ -156,6 +181,7 @@ export interface Player {
   name: string;
   token: TokenPos;
   passesLeftByPack?: Record<string, number>;
+  inventory?: string[];
 }
 
 export interface Card {
@@ -167,6 +193,7 @@ export interface Card {
   timerSeconds?: number;
   extraButton?: string;
   audio?: AudioRef;
+  spinnerId?: string;
 }
 
 export interface CardPack {

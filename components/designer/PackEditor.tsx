@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cardsInPack } from '@/lib/designer/packs';
-import type { Card } from '@/lib/engine/types';
+import type { Card, SpinnerDef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 export function PackEditor({
@@ -22,6 +22,7 @@ export function PackEditor({
   onCreateCard,
   onUpdateCard,
   onDeleteCard,
+  spinners,
   gameId,
   media,
 }: {
@@ -35,7 +36,8 @@ export function PackEditor({
   onRenamePack: (nextId: string) => void;
   onDeletePack: () => void;
   onCreateCard: () => void;
-  onUpdateCard: (patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio'>>) => void;
+  onUpdateCard: (patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId'>>) => void;
+  spinners?: SpinnerDef[];
   onDeleteCard: () => void;
   gameId?: string;
   media?: MediaStore;
@@ -159,6 +161,25 @@ export function PackEditor({
                 value={selectedCard.extraButton ?? ''}
                 onChange={(e) => onUpdateCard({ extraButton: e.target.value })}
               />
+              {spinners && spinners.length > 0 ? (
+                <>
+                  <Label htmlFor="card-spinner">Spinner</Label>
+                  <select
+                    id="card-spinner"
+                    aria-label="Card spinner"
+                    className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                    value={selectedCard.spinnerId ?? ''}
+                    onChange={(e) => onUpdateCard({ spinnerId: e.target.value || undefined })}
+                  >
+                    <option value="">None</option>
+                    {spinners.map((spinner) => (
+                      <option key={spinner.id} value={spinner.id}>
+                        {spinner.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
               <AudioField
                 value={selectedCard.audio}
                 gameId={gameId ?? 'draft'}

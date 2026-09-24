@@ -23,10 +23,14 @@ function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
 
 function designerProps(
   prev: Cell,
-): Pick<Cell, 'kind' | 'packId' | 'stairId' | 'start' | 'end' | 'hudWidget' | 'audio' | 'image' | 'video'> {
+): Pick<
+  Cell,
+  'kind' | 'packId' | 'spinnerId' | 'stairId' | 'start' | 'end' | 'hudWidget' | 'audio' | 'image' | 'video'
+> {
   return {
     kind: prev.kind,
     packId: prev.kind === 'stair' ? undefined : prev.packId,
+    spinnerId: prev.kind === 'hud' ? undefined : prev.spinnerId,
     stairId: prev.stairId,
     start: prev.start,
     end: prev.end,
@@ -397,6 +401,57 @@ export function setCellVideo(
   video: VideoRef | undefined,
 ): Board {
   return setCellMedia(board, floorId, cellId, 'video', video);
+}
+
+export function setCellSpinner(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  spinnerId: string | undefined,
+): Board {
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((cell) => {
+      if (cell.id !== cellId) return cell;
+      if (cell.kind === 'hud') return cell;
+      if (!spinnerId) {
+        const { spinnerId: _drop, ...rest } = cell;
+        return rest;
+      }
+      return { ...cell, spinnerId };
+    }),
+  }));
+}
+
+export function clearCell(board: Board, floorId: string, cellId: string): Board {
+  const floor = board.floors.find((f) => f.id === floorId);
+  const cell = floor?.cells.find((c) => c.id === cellId);
+  if (!floor || !cell || cell.kind === 'hud') return board;
+  const stairs = cell.stairId ? board.stairs.filter((stair) => stair.id !== cell.stairId) : board.stairs;
+  return createBoard(
+    board.floors.map((current) => {
+      if (current.id !== floorId) return current;
+      return retileFloor({
+        ...current,
+        cells: current.cells.map((entry) => {
+          if (entry.id !== cellId) return entry;
+          const {
+            packId: _pack,
+            spinnerId: _spinner,
+            stairId: _stair,
+            start: _start,
+            end: _end,
+            audio: _audio,
+            image: _image,
+            video: _video,
+            ...rest
+          } = entry;
+          return { ...rest, kind: 'corridor' as const };
+        }),
+      });
+    }),
+    stairs,
+  );
 }
 
 export function setCellPack(
