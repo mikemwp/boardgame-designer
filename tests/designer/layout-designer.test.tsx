@@ -26,7 +26,7 @@ describe('LayoutDesigner', () => {
         onToolChange={() => {}}
       />,
     );
-    expect(screen.getByLabelText('Board shape')).toBeDefined();
+    expect(screen.getByLabelText('Shape')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Tile' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Select' })).toBeDefined();
   });
@@ -48,7 +48,7 @@ describe('LayoutDesigner', () => {
       />,
     );
     const toolbar = screen.getByTestId('designer-toolbar');
-    expect(toolbar.contains(screen.getByLabelText('Board shape'))).toBe(true);
+    expect(toolbar.contains(screen.getByLabelText('Shape'))).toBe(true);
     expect(toolbar.contains(screen.getByLabelText('Tiles'))).toBe(true);
     expect(toolbar.className).toMatch(/justify-center/);
     expect(toolbar.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(false);
@@ -151,6 +151,7 @@ describe('LayoutDesigner', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete Level 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete level' }));
     const afterFirstDelete = onBoardChange.mock.calls.at(-1)[0];
     expect(afterFirstDelete.floors.map((f: { id: string; label: string }) => f.label)).toEqual([
       'Level 1',
@@ -172,6 +173,7 @@ describe('LayoutDesigner', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete Level 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete level' }));
     const afterSecondDelete = onBoardChange.mock.calls.at(-1)[0];
     expect(afterSecondDelete.floors.map((f: { label: string }) => f.label)).toEqual(['Level 1']);
     expect(afterSecondDelete.floors[0].id).toBe('ground');
@@ -449,6 +451,60 @@ describe('LayoutDesigner', () => {
     expect(onGameStartChange).toHaveBeenCalled();
     const next = onGameStartChange.mock.calls.at(-1)![0];
     expect(next.splashes).toHaveLength(1);
+  });
+
+  it('disables Shape after Start and Reset restores it', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const props = {
+      cards: [] as { pack: string }[],
+      selectedFloorId: 'ground',
+      selectedCellId: 'ground-c0',
+      tool: 'select' as const,
+      issues: [],
+      onBoardChange,
+      onSelectFloor: () => {},
+      onSelectCell: () => {},
+      onToolChange: () => {},
+    };
+    const { rerender } = render(<LayoutDesigner board={board} {...props} />);
+    expect(screen.getByLabelText('Shape')).toHaveProperty('disabled', false);
+    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
+    const started = onBoardChange.mock.calls.at(-1)![0] as Board;
+    rerender(<LayoutDesigner board={started} {...props} />);
+    expect(screen.getByLabelText('Shape')).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Reset level' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Reset level' }).at(-1)!);
+    const reset = onBoardChange.mock.calls.at(-1)![0] as Board;
+    expect(reset.floors[0]!.cells.some((c) => c.start)).toBe(false);
+    rerender(<LayoutDesigner board={reset} {...props} />);
+    expect(screen.getByLabelText('Shape')).toHaveProperty('disabled', false);
+  });
+
+  it('asks before Delete level', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard(
+      [createLoopedFloor('ground', 'Level 1', 0), createLoopedFloor('floor-1', 'Level 2', 1)],
+      [],
+    );
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="floor-1"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Level 2' }));
+    expect(screen.getByText('Delete Level 2?')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onBoardChange).not.toHaveBeenCalled();
   });
 });
 

@@ -23,9 +23,11 @@ const selectClass = 'h-8 rounded-md border border-slate-700 bg-slate-900 px-2 te
 export function BoardShapeFields({
   shape,
   onChange,
+  disabled = false,
 }: {
   shape: BoardShape;
   onChange: (shape: BoardShape) => void;
+  disabled?: boolean;
 }) {
   const normalized = normalizeShape(shape);
 
@@ -35,10 +37,11 @@ export function BoardShapeFields({
       data-testid="board-shape-fields"
     >
       <div className="flex min-w-[8rem] flex-col gap-1">
-        <Label>Board shape</Label>
+        <Label>Shape</Label>
         <select
-          aria-label="Board shape"
+          aria-label="Shape"
           className={selectClass}
+          disabled={disabled}
           value={normalized.kind}
           onChange={(e) => onChange(normalizeShape({ kind: e.target.value as ShapeKind }))}
         >
@@ -54,6 +57,7 @@ export function BoardShapeFields({
           <select
             aria-label="Tiles"
             className={selectClass}
+            disabled={disabled}
             value={normalized.tilesPerSide}
             onChange={(e) =>
               onChange(normalizeShape({ ...normalized, tilesPerSide: Number(e.target.value) }))
@@ -75,6 +79,7 @@ export function BoardShapeFields({
             <select
               aria-label="Length"
               className={selectClass}
+              disabled={disabled}
               value={normalized.length}
               onChange={(e) =>
                 onChange(normalizeShape({ ...normalized, length: Number(e.target.value) }))
@@ -92,6 +97,7 @@ export function BoardShapeFields({
             <select
               aria-label="Width"
               className={selectClass}
+              disabled={disabled}
               value={normalized.width}
               onChange={(e) =>
                 onChange(normalizeShape({ ...normalized, width: Number(e.target.value) }))
@@ -113,6 +119,7 @@ export function BoardShapeFields({
           <select
             aria-label="Tiles"
             className={selectClass}
+            disabled={disabled}
             value={normalized.tiles}
             onChange={(e) =>
               onChange(normalizeShape({ ...normalized, tiles: Number(e.target.value) }))
@@ -134,6 +141,7 @@ export function BoardShapeFields({
             <select
               aria-label="Hub tiles"
               className={selectClass}
+              disabled={disabled}
               value={normalized.hubTiles}
               onChange={(e) =>
                 onChange(normalizeShape({ ...normalized, hubTiles: Number(e.target.value) }))
@@ -151,6 +159,7 @@ export function BoardShapeFields({
             <select
               aria-label="Spokes"
               className={selectClass}
+              disabled={disabled}
               value={normalized.spokeCount}
               onChange={(e) =>
                 onChange(normalizeShape({ ...normalized, spokeCount: Number(e.target.value) }))
@@ -168,6 +177,7 @@ export function BoardShapeFields({
             <select
               aria-label="Spoke tiles"
               className={selectClass}
+              disabled={disabled}
               value={normalized.spokeTiles}
               onChange={(e) =>
                 onChange(normalizeShape({ ...normalized, spokeTiles: Number(e.target.value) }))
@@ -187,9 +197,10 @@ export function BoardShapeFields({
         <div className={fieldClass}>
           <Label>Wheel tiles</Label>
           <select
-            aria-label="Wheel tiles"
-            className={selectClass}
-            value={normalized.wheelTiles}
+              aria-label="Wheel tiles"
+              className={selectClass}
+              disabled={disabled}
+              value={normalized.wheelTiles}
             onChange={(e) =>
               onChange(normalizeShape({ ...normalized, wheelTiles: Number(e.target.value) }))
             }

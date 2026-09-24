@@ -8,7 +8,7 @@ describe('BoardShapeFields', () => {
     render(
       <BoardShapeFields shape={normalizeShape({ kind: 'square', tilesPerSide: 8 })} onChange={() => {}} />,
     );
-    const select = screen.getByLabelText('Board shape') as HTMLSelectElement;
+    const select = screen.getByLabelText('Shape') as HTMLSelectElement;
     const labels = Array.from(select.options).map((opt) => opt.textContent);
     expect(labels).toEqual(['Square', 'Rectangle']);
   });
@@ -43,10 +43,22 @@ describe('BoardShapeFields', () => {
     const row = screen.getByTestId('board-shape-fields');
     expect(row.className).toMatch(/flex-nowrap/);
     expect(row.className.split(/\s+/).includes('flex-wrap')).toBe(false);
-    expect(row.contains(screen.getByLabelText('Board shape'))).toBe(true);
+    expect(row.contains(screen.getByLabelText('Shape'))).toBe(true);
     for (const label of ['Hub tiles', 'Spokes', 'Spoke tiles', 'Wheel tiles']) {
       expect(row.textContent).toContain(label);
     }
     expect(container.querySelectorAll('[data-testid="board-shape-fields"] > *').length).toBeGreaterThan(1);
+  });
+
+  it('disables Shape and Tiles when locked', () => {
+    render(
+      <BoardShapeFields
+        shape={normalizeShape({ kind: 'square', tilesPerSide: 8 })}
+        disabled
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByLabelText('Shape')).toHaveProperty('disabled', true);
+    expect(screen.getByLabelText('Tiles')).toHaveProperty('disabled', true);
   });
 });

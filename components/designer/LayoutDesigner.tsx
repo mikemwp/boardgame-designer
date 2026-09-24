@@ -7,6 +7,8 @@ import { CellInspector } from '@/components/designer/CellInspector';
 import { DesignerPalette, type DesignerTool } from '@/components/designer/DesignerPalette';
 import { FloorTabs } from '@/components/designer/FloorTabs';
 import { HoldEditor } from '@/components/designer/HoldEditor';
+import { LevelConfirmDialog } from '@/components/designer/LevelConfirmDialog';
+import { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { PackEditor } from '@/components/designer/PackEditor';
 import { StartEditor } from '@/components/designer/StartEditor';
@@ -123,10 +125,12 @@ export function LayoutDesigner({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [levelConfirm, setLevelConfirm] = useState<'delete' | 'reset' | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
   const draftCards = cards;
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
   if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
+  const vanilla = isVanillaFloor(floor);
 
   const shapeKind = inferShape(floor).kind;
   const isPolar = shapeKind === 'circle' || shapeKind === 'hub-spoke' || shapeKind === 'hub-spoke-wheel';
@@ -247,6 +251,7 @@ export function LayoutDesigner({
         >
           <BoardShapeFields
             shape={normalizeShape(floor.shape)}
+            disabled={!vanilla}
             onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
           />
         </div>
@@ -287,14 +292,9 @@ export function LayoutDesigner({
                 onSelectFloor(id);
                 onSelectCell(null);
               }}
-              onDelete={(id) => {
-                const idx = board.floors.findIndex((f) => f.id === id);
-                const next = deleteFloor(board, id);
-                const pick = next.floors[Math.min(idx, next.floors.length - 1)] ?? next.floors[0];
-                onBoardChange(next);
-                onSelectFloor(pick?.id ?? id);
-                onSelectCell(null);
-              }}
+              onRequestDelete={() => setLevelConfirm('delete')}
+              onRequestReset={() => setLevelConfirm('reset')}
+              resetDisabled={vanilla}
               onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
             />
             <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto shrink-0 justify-end" />
@@ -486,6 +486,38 @@ export function LayoutDesigner({
           )}
         </div>
       </aside>
+      <LevelConfirmDialog
+        open={levelConfirm === 'delete'}
+        title={`Delete ${floor.label}?`}
+        description="This removes the level. It cannot be undone."
+        confirmLabel="Delete level"
+        onOpenChange={(open) => {
+          if (!open) setLevelConfirm(null);
+        }}
+        onConfirm={() => {
+          const idx = board.floors.findIndex((f) => f.id === floor.id);
+          const next = deleteFloor(board, floor.id);
+          const pick = next.floors[Math.min(idx, next.floors.length - 1)] ?? next.floors[0];
+          onBoardChange(next);
+          onSelectFloor(pick?.id ?? floor.id);
+          onSelectCell(null);
+          setLevelConfirm(null);
+        }}
+      />
+      <LevelConfirmDialog
+        open={levelConfirm === 'reset'}
+        title={`Reset ${floor.label}?`}
+        description="This clears Start, stairs, rooms, and tile settings on this level. Shape and size stay. It cannot be undone."
+        confirmLabel="Reset level"
+        onOpenChange={(open) => {
+          if (!open) setLevelConfirm(null);
+        }}
+        onConfirm={() => {
+          onBoardChange(resetFloor(board, floor.id));
+          onSelectCell(null);
+          setLevelConfirm(null);
+        }}
+      />
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent
           className="flex h-[min(80vh,40rem)] w-full max-w-4xl flex-col sm:max-w-4xl"

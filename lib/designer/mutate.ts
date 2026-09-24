@@ -11,6 +11,9 @@ import {
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import type { AudioRef, BoardShape, Cell, Floor, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
+import { isVanillaFloor } from '@/lib/designer/level-size';
+
+export { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 
@@ -73,6 +76,7 @@ export function nextFloorId(board: Board): string {
 export function applyFloorShape(board: Board, floorId: string, shapeInput: BoardShape): Board {
   const floor = board.floors.find((f) => f.id === floorId);
   if (!floor) return board;
+  if (!isVanillaFloor(floor)) return board;
   const template = createLoopedFloor(floor.id, floor.label, floor.index, shapeInput);
   const newPolar = isPolarKind(template.shape?.kind);
   const oldPolar = isPolarKind(floor.shape?.kind);

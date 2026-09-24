@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { Floor } from '@/lib/engine/types';
 
 export function FloorTabs({
@@ -12,15 +11,21 @@ export function FloorTabs({
   onAdd,
   onDelete,
   onRename,
+  onRequestDelete,
+  onRequestReset,
+  resetDisabled = false,
 }: {
   floors: Floor[];
   selectedFloorId: string;
   onSelect: (id: string) => void;
   onAdd: () => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
   onRename?: (label: string) => void;
+  onRequestDelete?: () => void;
+  onRequestReset?: () => void;
+  resetDisabled?: boolean;
 }) {
-  const selected = floors.find((f) => f.id === selectedFloorId);
+  const selected = floors.find((floor) => floor.id === selectedFloorId);
   const selectedLabel = selected?.label ?? 'level';
 
   return (
@@ -44,22 +49,24 @@ export function FloorTabs({
         variant="ghost"
         disabled={floors.length <= 1}
         aria-label={`Delete ${selectedLabel}`}
-        onClick={() => onDelete(selectedFloorId)}
+        onClick={() => (onRequestDelete ?? (() => onDelete?.(selectedFloorId)))()}
       >
         Delete level
       </Button>
+      {onRequestReset ? (
+        <Button type="button" variant="outline" disabled={resetDisabled} onClick={onRequestReset}>
+          Reset level
+        </Button>
+      ) : null}
       {onRename && selected ? (
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="level-name">Level name</Label>
-          <Input
-            id="level-name"
-            key={selected.id}
-            aria-label="Level name"
-            defaultValue={selected.label}
-            className="h-8 w-28"
-            onBlur={(e) => onRename(e.target.value)}
-          />
-        </div>
+        <Input
+          id="level-name"
+          key={selected.id}
+          aria-label="Level name"
+          defaultValue={selected.label}
+          className="h-8 w-28"
+          onBlur={(e) => onRename(e.target.value)}
+        />
       ) : null}
     </div>
   );

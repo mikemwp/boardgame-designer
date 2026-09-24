@@ -222,20 +222,12 @@ describe('stairs', () => {
 });
 
 describe('applyFloorShape', () => {
-  it('rebuilds a square 8 floor into a 12-wedge circle and keeps the start pack', () => {
+  it('refuses to reshape a floor that already has start and a pack', () => {
     let board = setCellPack(groundBoard(), 'ground', 'ground-c0', 'notes');
     board = setStartCell(board, 'ground', 'ground-c0');
     const next = applyFloorShape(board, 'ground', { kind: 'circle', tiles: 12 });
-    const floor = next.floors[0]!;
-    expect(floor.shape).toEqual({ kind: 'circle', tiles: 12 });
-    expect(floor.cells).toHaveLength(12);
-    expect(floor.cells[0]).toMatchObject({
-      id: 'ground-c0',
-      packId: 'notes',
-      start: true,
-      region: 'ring',
-    });
-    expect(floor.cells.every((c) => c.col === undefined || Number.isFinite(c.col))).toBe(true);
+    expect(next).toBe(board);
+    expect(next.floors[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
   });
 
   it('does not allow rectangle sides to stay equal', () => {
@@ -257,14 +249,12 @@ describe('applyFloorShape', () => {
     assertCartesianGeometry(next.floors[0]!, 10);
   });
 
-  it('keeps unique cell ids after shrink then grow on a second level', () => {
+  it('does not reshape a second level after an extra tile is painted', () => {
     let board = addFloor(groundBoard(), 'floor-1', 'Level 2');
-    board = placeCorridor(board, 'floor-1', 1, 1, 'floor-1-c21');
-    board = applyFloorShape(board, 'floor-1', { kind: 'square', tilesPerSide: 6 });
-    board = applyFloorShape(board, 'floor-1', { kind: 'square', tilesPerSide: 10 });
-    const ids = board.floors[1]!.cells.map((c) => c.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).not.toContain(undefined);
+    board = placeCorridor(board, 'floor-1', 1, 1, nextCellId(board.floors[1]!));
+    const locked = applyFloorShape(board, 'floor-1', { kind: 'square', tilesPerSide: 6 });
+    expect(locked).toBe(board);
+    expect(locked.floors[1]?.shape).toEqual({ kind: 'square', tilesPerSide: 8 });
   });
 
   it('never emits duplicate ids such as floor-1-c24 across every square resize', () => {
@@ -299,13 +289,13 @@ describe('applyFloorShape', () => {
     }
   });
 
-  it('keeps hudWidget when the square is reshaped', () => {
+  it('does not reshape after a HUD widget is set', () => {
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
     const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
     const marked = setHudWidget(board, 'ground', hud.id, 'player-bar');
     const resized = applyFloorShape(marked, 'ground', { kind: 'square', tilesPerSide: 10 });
-    const kept = resized.floors[0]!.cells.find((c) => c.col === hud.col && c.row === hud.row && c.kind === 'hud');
-    expect(kept?.hudWidget).toBe('player-bar');
+    expect(resized).toBe(marked);
+    expect(resized.floors[0]!.cells.find((c) => c.id === hud.id)?.hudWidget).toBe('player-bar');
   });
 });
 

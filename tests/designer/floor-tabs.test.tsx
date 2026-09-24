@@ -22,6 +22,23 @@ describe('FloorTabs', () => {
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Delete Level 1' })).toHaveProperty('disabled', true);
     expect(screen.getByLabelText('Level name')).toBeDefined();
+    expect(screen.queryByText('Level name')).toBeNull();
+  });
+
+  it('requests reset when enabled', () => {
+    const onRequestReset = vi.fn();
+    render(
+      <FloorTabs
+        floors={[createLoopedFloor('ground', 'Level 1', 0)]}
+        selectedFloorId="ground"
+        onSelect={() => {}}
+        onAdd={() => {}}
+        onRequestReset={onRequestReset}
+        resetDisabled={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reset level' }));
+    expect(onRequestReset).toHaveBeenCalled();
   });
 
   it('commits the selected level name on blur', () => {

@@ -151,11 +151,15 @@ describe('StudioShell', () => {
 
   it('Save persists board shape on the library draft', () => {
     const storage = memoryStorage();
-    renderStudio(storage, 'seed-1', '2026-09-22T15:00:00.000Z');
-    fireEvent.change(screen.getByLabelText('Board shape'), { target: { value: 'rectangle' } });
+    renderStudio(storage, 'seed-1', '2026-09-22T15:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.change(screen.getByLabelText('Shape'), { target: { value: 'rectangle' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
-    expect(reloaded.drafts[0]?.bootstrap.board.floors[0]?.shape?.kind).toBe('rectangle');
+    expect(getActive(reloaded)?.bootstrap.board.floors[0]?.shape?.kind).toBe('rectangle');
   });
 
   it('reloads the last active game from storage instead of the Climb sample', () => {
