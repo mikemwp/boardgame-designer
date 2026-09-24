@@ -28,6 +28,8 @@ function isConfiguredCell(cell: Cell): boolean {
   );
 }
 
+export { isVanillaRoom, resetRoom } from '@/lib/designer/rooms';
+
 export function isVanillaFloor(floor: Floor): boolean {
   if (floor.holdEnabled) return false;
   const template = createLoopedFloor(floor.id, floor.label, floor.index, floor.shape ?? inferShape(floor));

@@ -10,8 +10,9 @@ import { HoldEditor } from '@/components/designer/HoldEditor';
 import { LevelConfirmDialog } from '@/components/designer/LevelConfirmDialog';
 import { PlayerEditor } from '@/components/designer/PlayerEditor';
 import { SpinnerEditor } from '@/components/designer/SpinnerEditor';
-import { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
+import { isVanillaFloor, isVanillaRoom, resetFloor } from '@/lib/designer/level-size';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
+import { RoomTabs } from '@/components/designer/RoomTabs';
 import { PackEditor } from '@/components/designer/PackEditor';
 import { StartEditor } from '@/components/designer/StartEditor';
 import { ValidationList } from '@/components/designer/ValidationList';
@@ -25,9 +26,12 @@ import {
 import {
   addFloor,
   applyFloorShape,
+  applyRoomShape,
+  attachRoom,
   attachStair,
   clearStair,
   deleteFloor,
+  deleteRoom,
   eraseCell,
   linkStair,
   moveCell,
@@ -37,12 +41,11 @@ import {
   nextLevelLabel,
   placeCorridor,
   placeCorridorOnSlot,
-  placeDoor,
   placeHud,
-  placeRoom,
   clearCell,
-  clearDoor,
   renameFloor,
+  renameRoom,
+  resetRoom,
   setCellAudio,
   setCellImage,
   setCellVideo,
@@ -51,8 +54,10 @@ import {
   setEndCell,
   setFloorHold,
   setHudWidget,
+  setRoomMode,
   setStartCell,
 } from '@/lib/designer/mutate';
+import { roomAsFloor, replaceRoomFloor, roomById } from '@/lib/designer/rooms';
 import {
   addCard,
   createPack,
@@ -79,7 +84,7 @@ import {
 } from '@/lib/designer/spinners';
 import { createItem, deleteItem, nextItemId, updateItem } from '@/lib/designer/items';
 import type { LayoutIssue } from '@/lib/designer/validate';
-import type { Board } from '@/lib/engine/board';
+import { createBoard, type Board } from '@/lib/engine/board';
 import { cellAt, listPackIds } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
@@ -161,6 +166,8 @@ export function LayoutDesigner({
   const [selectedSpinnerId, setSelectedSpinnerId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [levelConfirm, setLevelConfirm] = useState<'delete' | 'reset' | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [roomConfirm, setRoomConfirm] = useState<'delete' | 'reset' | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
   const spinnerList = spinners ?? [];
   const itemList = items ?? [];
@@ -168,16 +175,28 @@ export function LayoutDesigner({
   const draftCards = cards;
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
   if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
-  const vanilla = isVanillaFloor(floor);
+  const selectedRoom = roomById(board, selectedRoomId ?? undefined);
+  const viewingRoom = Boolean(selectedRoom && selectedRoom.mode === 'multi');
+  const canvasFloor = viewingRoom && selectedRoom ? roomAsFloor(selectedRoom) : floor;
+  const canvasBoard = viewingRoom ? createBoard([canvasFloor], [], board.rooms) : board;
+  const vanilla = viewingRoom && selectedRoom ? isVanillaRoom(selectedRoom) : isVanillaFloor(floor);
+  const commitCanvas = (next: Board) => {
+    if (!viewingRoom || !selectedRoom) {
+      onBoardChange(next);
+      return;
+    }
+    const nextFloor = next.floors[0];
+    if (nextFloor) onBoardChange(replaceRoomFloor(board, selectedRoom.id, nextFloor));
+  };
 
-  const shapeKind = inferShape(floor).kind;
+  const shapeKind = inferShape(canvasFloor).kind;
   const isPolar = shapeKind === 'circle' || shapeKind === 'hub-spoke' || shapeKind === 'hub-spoke-wheel';
 
   const activateCartesian = (col: number, row: number) => {
-    const existing = cellAt(floor, col, row);
+    const existing = cellAt(canvasFloor, col, row);
     if (tool === 'erase') {
       if (existing) {
-        onBoardChange(eraseCell(board, floor.id, existing.id));
+        commitCanvas(eraseCell(canvasBoard, canvasFloor.id, existing.id));
         onSelectCell(null);
       }
       return;
@@ -187,8 +206,8 @@ export function LayoutDesigner({
         onSelectCell(existing.id);
         return;
       }
-      const id = nextCellId(floor);
-      onBoardChange(placeCorridor(board, floor.id, col, row, id));
+      const id = nextCellId(canvasFloor);
+      commitCanvas(placeCorridor(canvasBoard, canvasFloor.id, col, row, id));
       onSelectCell(id);
       return;
     }
@@ -197,33 +216,24 @@ export function LayoutDesigner({
         onSelectCell(existing.id);
         return;
       }
-      const id = nextCellId(floor);
-      onBoardChange(placeHud(board, floor.id, col, row, id));
+      const id = nextCellId(canvasFloor);
+      commitCanvas(placeHud(canvasBoard, canvasFloor.id, col, row, id));
       onSelectCell(id);
       return;
     }
     if (tool === 'room') {
-      if (existing) {
-        onSelectCell(existing.id);
-        return;
-      }
-      const id = nextCellId(floor);
-      onBoardChange(placeRoom(board, floor.id, col, row, id));
-      onSelectCell(id);
-      return;
-    }
-    if (tool === 'door') {
+      if (viewingRoom) return;
       if (!existing) return;
-      if (existing.kind === 'door') {
+      if (existing.kind === 'room') {
         onSelectCell(existing.id);
         return;
       }
-      onBoardChange(placeDoor(board, floor.id, existing.id));
+      onBoardChange(attachRoom(board, floor.id, existing.id));
       onSelectCell(existing.id);
       return;
     }
     if (tool === 'stair') {
-      if (!existing) return;
+      if (viewingRoom || !existing) return;
       if (existing.kind === 'stair') {
         onSelectCell(existing.id);
         return;
@@ -288,17 +298,27 @@ export function LayoutDesigner({
           data-testid="designer-toolbar"
         >
           <BoardShapeFields
-            shape={normalizeShape(floor.shape)}
+            shape={viewingRoom ? canvasFloor.shape ?? { kind: 'square', tilesPerSide: 3 } : normalizeShape(floor.shape)}
             disabled={!vanilla}
-            onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
+            maxSquare={viewingRoom ? 4 : undefined}
+            maxRect={viewingRoom ? { length: 5, width: 4 } : undefined}
+            onChange={(shape) => {
+              if (viewingRoom && selectedRoom) {
+                onBoardChange(applyRoomShape(board, selectedRoom.id, shape));
+                return;
+              }
+              onBoardChange(applyFloorShape(board, floor.id, shape));
+            }}
           />
         </div>
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <LayoutGrid
-            floor={floor}
+            floor={canvasFloor}
             selectedCellId={selectedCellId ?? undefined}
             onSlotActivate={activateCartesian}
-            onMoveCell={(cellId, col, row) => onBoardChange(moveCell(board, floor.id, cellId, col, row))}
+            onMoveCell={(cellId, col, row) =>
+              commitCanvas(moveCell(canvasBoard, canvasFloor.id, cellId, col, row))
+            }
             onSlotActivateId={isPolar ? activatePolar : undefined}
             onMoveCellToSlot={
               isPolar
@@ -320,6 +340,7 @@ export function LayoutDesigner({
               floors={board.floors}
               selectedFloorId={floor.id}
               onSelect={(id) => {
+                setSelectedRoomId(null);
                 onSelectFloor(id);
                 onSelectCell(null);
               }}
@@ -338,10 +359,26 @@ export function LayoutDesigner({
             <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto shrink-0 justify-end" />
           </div>
           <div
-            className="min-h-10 border-b border-slate-800"
+            className="min-h-10 border-b border-slate-800 py-2"
             data-testid="designer-bottom-row-blank"
-            aria-hidden
-          />
+          >
+            <RoomTabs
+              rooms={board.rooms ?? []}
+              selectedRoomId={selectedRoomId}
+              onSelect={(id) => {
+                setSelectedRoomId(id);
+                onSelectCell(null);
+              }}
+              onRename={(name) => {
+                const target = selectedRoom ?? (board.rooms ?? []).find((room) => room.mode === 'multi');
+                if (!target) return;
+                onBoardChange(renameRoom(board, target.id, name));
+              }}
+              onRequestReset={() => setRoomConfirm('reset')}
+              onRequestDelete={() => setRoomConfirm('delete')}
+              resetDisabled={!selectedRoom || isVanillaRoom(selectedRoom)}
+            />
+          </div>
           <div
             className="flex flex-wrap items-center justify-between gap-2 py-2"
             data-testid="designer-bottom-row-meta"
@@ -575,24 +612,24 @@ export function LayoutDesigner({
             />
           ) : sideTab === 'tiles' ? (
             <CellInspector
-              board={board}
-              floorId={floor.id}
+              board={viewingRoom ? canvasBoard : board}
+              floorId={canvasFloor.id}
               cellId={selectedCellId}
               packIds={listPackIds(cards, catalog)}
               onSetPack={(packId) => {
                 if (!selectedCellId) return;
-                onBoardChange(setCellPack(board, floor.id, selectedCellId, packId));
+                commitCanvas(setCellPack(canvasBoard, canvasFloor.id, selectedCellId, packId));
               }}
               onSetStart={() => {
                 if (!selectedCellId) return;
-                onBoardChange(setStartCell(board, floor.id, selectedCellId));
+                commitCanvas(setStartCell(canvasBoard, canvasFloor.id, selectedCellId));
               }}
               onSetEnd={() => {
                 if (!selectedCellId) return;
-                onBoardChange(setEndCell(board, floor.id, selectedCellId));
+                commitCanvas(setEndCell(canvasBoard, canvasFloor.id, selectedCellId));
               }}
               onAttachStair={() => {
-                if (!selectedCellId) return;
+                if (!selectedCellId || viewingRoom) return;
                 onBoardChange(attachStair(board, floor.id, selectedCellId));
               }}
               onLinkStair={(toFloorId, toCellId) => {
@@ -601,39 +638,41 @@ export function LayoutDesigner({
                 onBoardChange(linkStair(board, cell.stairId, toFloorId, toCellId));
               }}
               onClearStair={() => {
-                if (!selectedCellId) return;
+                if (!selectedCellId || viewingRoom) return;
                 onBoardChange(clearStair(board, floor.id, selectedCellId));
-              }}
-              onClearDoor={() => {
-                if (!selectedCellId) return;
-                onBoardChange(clearDoor(board, floor.id, selectedCellId));
               }}
               onClear={() => {
                 if (!selectedCellId) return;
-                onBoardChange(clearCell(board, floor.id, selectedCellId));
+                commitCanvas(clearCell(canvasBoard, canvasFloor.id, selectedCellId));
+              }}
+              onSetRoomMode={(mode) => {
+                if (!selectedCellId) return;
+                const host = floor.cells.find((cell) => cell.id === selectedCellId);
+                if (!host?.roomId) return;
+                onBoardChange(setRoomMode(board, host.roomId, mode));
               }}
               spinners={spinnerList}
               onSetSpinner={(spinnerId) => {
                 if (!selectedCellId) return;
-                onBoardChange(setCellSpinner(board, floor.id, selectedCellId, spinnerId));
+                commitCanvas(setCellSpinner(canvasBoard, canvasFloor.id, selectedCellId, spinnerId));
               }}
               onSetHudWidget={(widget) => {
                 if (!selectedCellId) return;
-                onBoardChange(setHudWidget(board, floor.id, selectedCellId, widget));
+                commitCanvas(setHudWidget(canvasBoard, canvasFloor.id, selectedCellId, widget));
               }}
               gameId={gameId}
               media={mediaStore}
               onSetAudio={(audio) => {
                 if (!selectedCellId) return;
-                onBoardChange(setCellAudio(board, floor.id, selectedCellId, audio));
+                commitCanvas(setCellAudio(canvasBoard, canvasFloor.id, selectedCellId, audio));
               }}
               onSetImage={(image: ImageRef | undefined) => {
                 if (!selectedCellId) return;
-                onBoardChange(setCellImage(board, floor.id, selectedCellId, image));
+                commitCanvas(setCellImage(canvasBoard, canvasFloor.id, selectedCellId, image));
               }}
               onSetVideo={(video: VideoRef | undefined) => {
                 if (!selectedCellId) return;
-                onBoardChange(setCellVideo(board, floor.id, selectedCellId, video));
+                commitCanvas(setCellVideo(canvasBoard, canvasFloor.id, selectedCellId, video));
               }}
             />
           ) : (
@@ -748,7 +787,45 @@ export function LayoutDesigner({
         onConfirm={() => {
           onBoardChange(resetFloor(board, floor.id));
           onSelectCell(null);
+          setSelectedRoomId(null);
           setLevelConfirm(null);
+        }}
+      />
+      <LevelConfirmDialog
+        open={roomConfirm === 'delete'}
+        title={`Delete ${selectedRoom?.name ?? 'room'}?`}
+        description="This removes the room and converts the host tile back to a standard tile. It cannot be undone."
+        confirmLabel="Delete room"
+        onOpenChange={(open) => {
+          if (!open) setRoomConfirm(null);
+        }}
+        onConfirm={() => {
+          if (!selectedRoom) {
+            setRoomConfirm(null);
+            return;
+          }
+          onBoardChange(deleteRoom(board, selectedRoom.id));
+          onSelectCell(null);
+          setSelectedRoomId(null);
+          setRoomConfirm(null);
+        }}
+      />
+      <LevelConfirmDialog
+        open={roomConfirm === 'reset'}
+        title={`Reset ${selectedRoom?.name ?? 'room'}?`}
+        description="This clears the room interior back to a vanilla loop at the current shape and size. The room name stays. It cannot be undone."
+        confirmLabel="Reset room"
+        onOpenChange={(open) => {
+          if (!open) setRoomConfirm(null);
+        }}
+        onConfirm={() => {
+          if (!selectedRoom) {
+            setRoomConfirm(null);
+            return;
+          }
+          onBoardChange(resetRoom(board, selectedRoom.id));
+          onSelectCell(null);
+          setRoomConfirm(null);
         }}
       />
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

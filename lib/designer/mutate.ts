@@ -14,7 +14,14 @@ import { isVanillaFloor } from '@/lib/designer/level-size';
 import { dropRoomsOnFloor } from '@/lib/designer/rooms';
 
 export { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
-export { attachRoom, deleteRoom, resetRoom, setRoomMode } from '@/lib/designer/rooms';
+export {
+  applyRoomShape,
+  attachRoom,
+  deleteRoom,
+  renameRoom,
+  resetRoom,
+  setRoomMode,
+} from '@/lib/designer/rooms';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
 

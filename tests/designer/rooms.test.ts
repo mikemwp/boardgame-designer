@@ -9,9 +9,14 @@ import {
   setCellPack,
 } from '@/lib/designer/mutate';
 import {
+  applyRoomShape,
+  deleteRoom,
+  isVanillaRoom,
   nextRoomName,
   normalizeBoardRooms,
   normalizeRoomShape,
+  resetRoom,
+  setRoomMode,
 } from '@/lib/designer/rooms';
 
 function groundBoard() {
@@ -120,5 +125,51 @@ describe('nextRoomName', () => {
   it('names rooms Room 1, Room 2, …', () => {
     expect(nextRoomName([])).toBe('Room 1');
     expect(nextRoomName([{ id: 'room-1', name: 'Room 1', mode: 'single' }])).toBe('Room 2');
+  });
+});
+
+describe('multi-tile rooms', () => {
+  it('creates a vanilla 3×3 interior and locks after a pack is set', () => {
+    let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
+    const roomId = board.rooms![0]!.id;
+    board = setRoomMode(board, roomId, 'multi');
+    const room = board.rooms![0]!;
+    expect(room.mode).toBe('multi');
+    expect(room.shape).toEqual({ kind: 'square', tilesPerSide: 3 });
+    expect(isVanillaRoom(room)).toBe(true);
+    expect(applyRoomShape(board, roomId, { kind: 'square', tilesPerSide: 4 }).rooms?.[0]?.shape).toEqual({
+      kind: 'square',
+      tilesPerSide: 4,
+    });
+
+    const painted = {
+      ...board,
+      rooms: board.rooms!.map((entry) => ({
+        ...entry,
+        cells: entry.cells!.map((cell, index) => (index === 0 ? { ...cell, packId: 'notes' } : cell)),
+      })),
+    };
+    expect(isVanillaRoom(painted.rooms![0]!)).toBe(false);
+    expect(applyRoomShape(painted, roomId, { kind: 'square', tilesPerSide: 3 })).toBe(painted);
+  });
+
+  it('resets a painted interior and deletes the only room back to corridor', () => {
+    let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
+    const roomId = board.rooms![0]!.id;
+    board = setRoomMode(board, roomId, 'multi');
+    board = {
+      ...board,
+      rooms: board.rooms!.map((entry) => ({
+        ...entry,
+        cells: entry.cells!.map((cell, index) => (index === 0 ? { ...cell, packId: 'notes' } : cell)),
+      })),
+    };
+    const reset = resetRoom(board, roomId);
+    expect(isVanillaRoom(reset.rooms![0]!)).toBe(true);
+    expect(reset.rooms![0]?.name).toBe('Room 1');
+
+    const deleted = deleteRoom(reset, roomId);
+    expect(deleted.rooms ?? []).toEqual([]);
+    expect(deleted.floors[0]?.cells.find((c) => c.id === 'ground-c3')?.kind).toBe('corridor');
   });
 });

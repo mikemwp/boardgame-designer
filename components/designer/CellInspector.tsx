@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { HUD_WIDGETS, hudWidgetOf } from '@/lib/designer/hud';
 import { tileActionKind } from '@/lib/designer/tile-chrome';
+import { roomById } from '@/lib/designer/rooms';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { AudioRef, Cell, HudWidget, ImageRef, SpinnerDef, VideoRef } from '@/lib/engine/types';
+import type { AudioRef, Cell, HudWidget, ImageRef, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
@@ -51,6 +52,7 @@ export function CellInspector({
   onSetAudio,
   onSetImage,
   onSetVideo,
+  onSetRoomMode,
 }: {
   board: Board;
   floorId: string;
@@ -72,6 +74,7 @@ export function CellInspector({
   onSetAudio?: (audio: AudioRef | undefined) => void;
   onSetImage?: (image: ImageRef | undefined) => void;
   onSetVideo?: (video: VideoRef | undefined) => void;
+  onSetRoomMode?: (mode: RoomMode) => void;
 }) {
   const [clearOpen, setClearOpen] = useState(false);
   const floor = board.floors.find((f) => f.id === floorId);
@@ -170,13 +173,26 @@ export function CellInspector({
                   ))}
               </select>
             </>
-          ) : cell.kind === 'door' ? (
-            <>
-              <p className="text-sm text-slate-400">Landing here deals the adjacent room&apos;s pack.</p>
-              <p className="text-sm text-slate-400">Room audio plays on this door.</p>
-            </>
           ) : (
             <>
+              {cell.kind === 'room' && onSetRoomMode ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={(roomById(board, cell.roomId)?.mode ?? 'single') === 'single' ? 'secondary' : 'outline'}
+                    onClick={() => onSetRoomMode('single')}
+                  >
+                    single-tile
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={roomById(board, cell.roomId)?.mode === 'multi' ? 'secondary' : 'outline'}
+                    onClick={() => onSetRoomMode('multi')}
+                  >
+                    multi-tile
+                  </Button>
+                </div>
+              ) : null}
               {packIds.length === 0 ? (
                 <p className="text-sm text-slate-400">
                   No packs in this draft. Create a pack in Packs, or import a CSV in Test.

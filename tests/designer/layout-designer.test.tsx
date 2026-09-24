@@ -265,9 +265,10 @@ describe('LayoutDesigner', () => {
     ).toBe(true);
   });
 
-  it('places a room then a door from the palette tools', () => {
+  it('converts a corridor with Room and swaps the canvas for a multi-tile room', () => {
     const onBoardChange = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const host = board.floors[0]!.cells.find((c) => c.col === 0 && c.row === 0)!;
     const { rerender } = render(
       <LayoutDesigner
         board={board}
@@ -282,19 +283,18 @@ describe('LayoutDesigner', () => {
         onToolChange={() => {}}
       />,
     );
-    fireEvent.click(screen.getByTestId('slot-1-1'));
-    expect(onBoardChange).toHaveBeenCalled();
-    const afterRoom = onBoardChange.mock.calls[0][0] as Board;
-    expect(afterRoom.floors[0]?.cells.some((c) => c.kind === 'room' && c.col === 1 && c.row === 1)).toBe(true);
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    const afterRoom = onBoardChange.mock.calls.at(-1)![0] as Board;
+    expect(afterRoom.floors[0]?.cells.find((c) => c.id === host.id)).toMatchObject({ kind: 'room' });
+    expect(afterRoom.rooms?.[0]?.mode).toBe('single');
 
-    const neighbor = afterRoom.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
     rerender(
       <LayoutDesigner
         board={afterRoom}
         cards={[]}
         selectedFloorId="ground"
-        selectedCellId={neighbor.id}
-        tool="door"
+        selectedCellId={host.id}
+        tool="select"
         issues={[]}
         onBoardChange={onBoardChange}
         onSelectFloor={() => {}}
@@ -302,9 +302,34 @@ describe('LayoutDesigner', () => {
         onToolChange={() => {}}
       />,
     );
-    fireEvent.click(screen.getByTestId(`slot-${neighbor.col}-${neighbor.row}`));
-    const afterDoor = onBoardChange.mock.calls.at(-1)![0] as Board;
-    expect(afterDoor.floors[0]?.cells.find((c) => c.id === neighbor.id)?.kind).toBe('door');
+    fireEvent.click(screen.getByRole('button', { name: 'multi-tile' }));
+    const multi = onBoardChange.mock.calls.at(-1)![0] as Board;
+    expect(multi.rooms?.[0]?.mode).toBe('multi');
+    expect(multi.rooms?.[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 3 });
+
+    rerender(
+      <LayoutDesigner
+        board={multi}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={host.id}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Room 1' }));
+    const tiles = screen.getByLabelText('Tiles') as HTMLSelectElement;
+    expect(Array.from(tiles.options).map((opt) => opt.textContent)).toEqual(['3×3', '4×4']);
+    expect(screen.getByTestId('slot-2-2')).toBeDefined();
+    expect(screen.queryByTestId('slot-7-7')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Level 1' }));
+    expect(screen.getByTestId('slot-7-7')).toBeDefined();
+    expect(screen.getByLabelText('Tiles')).toHaveProperty('disabled', true);
   });
 
   it('creates a pack from the Packs tab so Tile Actions can assign it', () => {

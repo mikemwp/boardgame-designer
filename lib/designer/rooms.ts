@@ -1,7 +1,7 @@
 import { createBoard, type Board } from '@/lib/engine/board';
 import { createLoopedFloor, loopCells, retileFloor } from '@/lib/engine/layout';
 import { inferShape } from '@/lib/engine/shape';
-import type { BoardShape, Cell, RoomDef, RoomMode, ShapeKind } from '@/lib/engine/types';
+import type { BoardShape, Cell, Floor, RoomDef, RoomMode, ShapeKind } from '@/lib/engine/types';
 
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
@@ -255,6 +255,30 @@ export function dropRoomsOnFloor(board: Board, floorId: string): RoomDef[] | und
   );
   const rooms = (board.rooms ?? []).filter((room) => !hosts.has(room.id));
   return rooms.length > 0 ? rooms : undefined;
+}
+
+export function roomAsFloor(room: RoomDef): Floor {
+  const shape = normalizeRoomShape(room.shape ?? { kind: 'square', tilesPerSide: 3 });
+  const template = createLoopedFloor(room.id, room.name, 0, shape);
+  return {
+    ...template,
+    label: room.name,
+    cells: room.cells && room.cells.length > 0 ? room.cells : template.cells,
+  };
+}
+
+export function replaceRoomFloor(board: Board, roomId: string, floor: Floor): Board {
+  const rooms = board.rooms ?? [];
+  if (!rooms.some((room) => room.id === roomId)) return board;
+  return createBoard(
+    board.floors,
+    board.stairs,
+    rooms.map((room) =>
+      room.id === roomId
+        ? { ...room, name: floor.label || room.name, shape: floor.shape ?? room.shape, cells: floor.cells }
+        : room,
+    ),
+  );
 }
 
 export function roomHasWalkableInterior(room: RoomDef): boolean {

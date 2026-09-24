@@ -15,8 +15,6 @@ const VISIBLE_SHAPE_OPTIONS = ALL_SHAPE_OPTIONS.filter(
   (opt) => opt.value === 'square' || opt.value === 'rectangle',
 );
 
-const SIZE_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 3);
-
 const fieldClass = 'flex min-w-[5.5rem] flex-col gap-1';
 const selectClass = 'h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm';
 
@@ -24,12 +22,25 @@ export function BoardShapeFields({
   shape,
   onChange,
   disabled = false,
+  maxSquare = 12,
+  maxRect,
 }: {
   shape: BoardShape;
   onChange: (shape: BoardShape) => void;
   disabled?: boolean;
+  maxSquare?: number;
+  maxRect?: { length: number; width: number };
 }) {
   const normalized = normalizeShape(shape);
+  const squareSizes = Array.from({ length: Math.max(1, maxSquare - 2) }, (_, i) => i + 3);
+  const lengthSizes = Array.from(
+    { length: Math.max(1, (maxRect?.length ?? 12) - 2) },
+    (_, i) => i + 3,
+  );
+  const widthSizes = Array.from(
+    { length: Math.max(1, (maxRect?.width ?? 12) - 2) },
+    (_, i) => i + 3,
+  );
 
   return (
     <div
@@ -63,7 +74,7 @@ export function BoardShapeFields({
               onChange(normalizeShape({ ...normalized, tilesPerSide: Number(e.target.value) }))
             }
           >
-            {SIZE_OPTIONS.map((n) => (
+            {squareSizes.map((n) => (
               <option key={n} value={n}>
                 {n}×{n}
               </option>
@@ -85,7 +96,7 @@ export function BoardShapeFields({
                 onChange(normalizeShape({ ...normalized, length: Number(e.target.value) }))
               }
             >
-              {SIZE_OPTIONS.map((n) => (
+              {lengthSizes.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
@@ -103,7 +114,7 @@ export function BoardShapeFields({
                 onChange(normalizeShape({ ...normalized, width: Number(e.target.value) }))
               }
             >
-              {SIZE_OPTIONS.map((n) => (
+              {widthSizes.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>

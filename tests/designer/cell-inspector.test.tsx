@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { CellInspector } from '@/components/designer/CellInspector';
 import { createBoard } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
-import { addFloor, attachStair, placeDoor, placeRoom, setStartCell } from '@/lib/designer/mutate';
+import { addFloor, attachRoom, attachStair, setStartCell } from '@/lib/designer/mutate';
 
 describe('CellInspector', () => {
   it('labels the pane Tile Actions and sets pack and start on a corridor', () => {
@@ -98,17 +98,16 @@ describe('CellInspector', () => {
     expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
   });
 
-  it('assigns a pack on a room and explains door landings', () => {
+  it('assigns a pack on a room and switches single vs multi', () => {
     const onSetPack = vi.fn();
+    const onSetRoomMode = vi.fn();
     const onClear = vi.fn();
-    let board = placeRoom(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 1, 1, 'ground-room');
-    const neighbor = board.floors[0]!.cells.find((c) => c.col === 1 && c.row === 0)!;
-    board = placeDoor(board, 'ground', neighbor.id);
-    const { rerender } = render(
+    const board = attachRoom(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 'ground-c3');
+    render(
       <CellInspector
         board={board}
         floorId="ground"
-        cellId="ground-room"
+        cellId="ground-c3"
         packIds={['notes']}
         onSetPack={onSetPack}
         onSetStart={() => {}}
@@ -117,35 +116,17 @@ describe('CellInspector', () => {
         onLinkStair={() => {}}
         onClearStair={() => {}}
         onClear={onClear}
+        onSetRoomMode={onSetRoomMode}
       />,
     );
     expect(screen.getByText('Room')).toBeDefined();
     expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
-    expect(screen.queryByRole('button', { name: 'Make stair' })).toBeNull();
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'notes' } });
     expect(onSetPack).toHaveBeenCalledWith('notes');
-
-    rerender(
-      <CellInspector
-        board={board}
-        floorId="ground"
-        cellId={neighbor.id}
-        packIds={['notes']}
-        onSetPack={onSetPack}
-        onSetStart={() => {}}
-        onSetEnd={() => {}}
-        onAttachStair={() => {}}
-        onLinkStair={() => {}}
-        onClearStair={() => {}}
-        onClear={onClear}
-      />,
-    );
-    expect(screen.getByText('Door')).toBeDefined();
-    expect(screen.getByText("Landing here deals the adjacent room's pack.")).toBeDefined();
-    expect(screen.getByText('Room audio plays on this door.')).toBeDefined();
-    expect(screen.queryByLabelText('Pack')).toBeNull();
-    expect(screen.queryByText('Audio')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Convert to tile' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'multi-tile' }));
+    expect(onSetRoomMode).toHaveBeenCalledWith('multi');
+    fireEvent.click(screen.getByRole('button', { name: 'single-tile' }));
+    expect(onSetRoomMode).toHaveBeenCalledWith('single');
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Clear' }).at(-1)!);
     expect(onClear).toHaveBeenCalled();

@@ -50,6 +50,21 @@ describe('BoardShapeFields', () => {
     expect(container.querySelectorAll('[data-testid="board-shape-fields"] > *').length).toBeGreaterThan(1);
   });
 
+  it('caps room Shape/Tiles at square 4 and rectangle 5×4', () => {
+    render(
+      <BoardShapeFields
+        shape={normalizeShape({ kind: 'square', tilesPerSide: 3 })}
+        maxSquare={4}
+        maxRect={{ length: 5, width: 4 }}
+        onChange={() => {}}
+      />,
+    );
+    expect(Array.from((screen.getByLabelText('Tiles') as HTMLSelectElement).options).map((opt) => opt.textContent)).toEqual([
+      '3×3',
+      '4×4',
+    ]);
+  });
+
   it('disables Shape and Tiles when locked', () => {
     render(
       <BoardShapeFields
