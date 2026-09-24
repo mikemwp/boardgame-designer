@@ -9,6 +9,7 @@ import {
 } from '@/lib/view/board-layout';
 import {
   orbitCameraPose,
+  PLAY_ORBIT_PITCH,
   PREVIEW_ORBIT_PITCH,
   PREVIEW_ORBIT_PITCH_RANGE,
 } from '@/lib/view/orbit-camera';
@@ -73,6 +74,16 @@ describe('orbitCameraLimits', () => {
     expect(bounds.maxZ - bounds.minZ).toBeGreaterThan(4);
     expect(Math.abs(bounds.minX + bounds.maxX)).toBeLessThan(0.01);
     expect(Math.abs(bounds.minZ + bounds.maxZ)).toBeLessThan(0.01);
+  });
+});
+
+describe('play orbit camera', () => {
+  it('uses the same look-down pitch as Design preview', () => {
+    expect(PLAY_ORBIT_PITCH).toBe(PREVIEW_ORBIT_PITCH);
+    expect(PLAY_ORBIT_PITCH).toBe(-85);
+    const pose = orbitCameraPose({ x: 0, y: 0, z: 0 }, 10, PLAY_ORBIT_PITCH);
+    expect(pose.position[1]).toBeGreaterThan(0);
+    expect(pose.rotation[0]).toBe(PREVIEW_ORBIT_PITCH);
   });
 });
 

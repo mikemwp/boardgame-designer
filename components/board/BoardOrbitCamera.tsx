@@ -32,10 +32,7 @@ export function BoardOrbitCamera({
     const limits = orbitCameraLimits(boardWorldBounds(board));
     const pivot = new Vec3(limits.pivot.x, limits.pivot.y, limits.pivot.z);
     const pitch = view === 'top-down' ? PREVIEW_ORBIT_PITCH : PLAY_ORBIT_PITCH;
-    const pitchRange =
-      view === 'top-down'
-        ? new Vec2(PREVIEW_ORBIT_PITCH_RANGE.min, PREVIEW_ORBIT_PITCH_RANGE.max)
-        : new Vec2(12, 88);
+    const pitchRange = new Vec2(PREVIEW_ORBIT_PITCH_RANGE.min, PREVIEW_ORBIT_PITCH_RANGE.max);
     return {
       pivot,
       pose: orbitCameraPose(pivot, limits.defaultDistance, pitch),

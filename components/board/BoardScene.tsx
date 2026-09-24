@@ -25,11 +25,11 @@ export function BoardScene({
 
   return (
     <div
-      className="h-full min-h-0 w-full max-w-md overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
+      className="h-full min-h-0 w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-900"
       data-testid="board-frame"
     >
       <PlayCanvasViewport usePhysics={physicsEnabled} slotId="test-board-scene">
-        <BoardOrbitCamera board={game.board} />
+        <BoardOrbitCamera board={game.board} view="top-down" />
         <Entity name="sun" rotation={[-55, 40, 0]}>
           <Light type="directional" intensity={1.5} />
         </Entity>

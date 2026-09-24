@@ -37,6 +37,22 @@ describe('GameHud', () => {
     expect(container.querySelector('.h-\\[480px\\]')).toBeNull();
   });
 
+  it('gives the canvas the remaining width and sizes the HUD pane to its controls', () => {
+    render(<GameHud bootstrap={climbSample} />);
+    const hud = screen.getByTestId('test-hud');
+    expect(hud.className).toMatch(/flex-1/);
+    expect(hud.className).toMatch(/minmax\(0,1fr\)_max-content/);
+    expect(hud.className).not.toMatch(/2fr_1fr/);
+    expect(hud.className).not.toMatch(/16rem/);
+    expect(hud.className).not.toMatch(/max-content\)_minmax/);
+    const pane = screen.getByTestId('test-hud-pane');
+    expect(pane.tagName).toBe('ASIDE');
+    expect(pane.contains(screen.getByRole('button', { name: 'Roll dice' }))).toBe(true);
+    expect(pane.contains(screen.getByText('No card drawn'))).toBe(true);
+    expect(pane.contains(screen.getByRole('switch', { name: 'HUD spinner' }))).toBe(true);
+    expect(screen.getByTestId('board').closest('[data-testid="test-hud-pane"]')).toBeNull();
+  });
+
   it('has Roll dice and no Climb stair debug control', () => {
     render(<GameHud bootstrap={climbSample} />);
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();

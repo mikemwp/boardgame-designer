@@ -78,6 +78,18 @@ describe('StudioShell', () => {
     expect(screen.queryByTestId('floor-preview')).toBeNull();
   });
 
+  it('does not wrap Test in the designer 2/3 split', async () => {
+    renderStudio();
+    expect(document.querySelector('[class*="2fr_1fr"]')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    await flushTestViewport();
+    const hud = screen.getByTestId('test-hud');
+    expect(hud.className).toMatch(/minmax\(0,1fr\)_max-content/);
+    expect(hud.className).not.toMatch(/2fr_1fr/);
+    expect(hud.closest('[class*="2fr_1fr"]')).toBeNull();
+    expect(screen.queryByTestId('designer-toolbar')).toBeNull();
+  });
+
   it('blocks Test on a dangling stair and still allows Save', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-21T13:00:00.000Z');

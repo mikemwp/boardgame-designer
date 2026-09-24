@@ -278,16 +278,21 @@ export function GameHud({
       onToggleMute={toggleMute}
     >
     <div
-      className="grid h-full min-h-0 min-w-0 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,max-content)_minmax(0,16rem)]"
+      className="grid h-full min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_max-content]"
       data-testid="test-hud"
     >
-      <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden">
+      <div className="min-h-0 min-w-0">
         <BoardScene
           game={game}
           allowSlide={shouldAllowTokenSlide(phase)}
           onTokenSlideStart={onTokenSlideStart}
           onTokenSlideComplete={onTokenSlideComplete}
         />
+      </div>
+      <aside
+        className="flex min-h-0 w-max max-w-full flex-col gap-2 overflow-y-auto"
+        data-testid="test-hud-pane"
+      >
         {showPlayerBar ? (
           <PlayerBar
             players={game.players.players}
@@ -323,8 +328,6 @@ export function GameHud({
             {muted ? 'Unmute' : 'Mute'}
           </Button>
         </div>
-      </div>
-      <aside className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto">
         <FeatureToggles config={game.config} onChange={updateConfig} />
         <CardPanel
           actionMode={game.config.actionMode}

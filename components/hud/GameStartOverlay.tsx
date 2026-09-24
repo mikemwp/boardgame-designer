@@ -50,7 +50,7 @@ export function GameStartOverlay({
       : [{ id: 'implicit-play', label: 'Play', action: 'play' as const }];
 
   return (
-    <div className="relative h-full min-h-0">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {children}
       {overlayHidden ? null : (
       <div
