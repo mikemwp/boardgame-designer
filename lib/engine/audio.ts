@@ -37,7 +37,9 @@ export function cuesForLanding(board: Board, floorId: string, cellId: string): A
     if (room?.audio) return [{ target: 'room', ownerId: room.id, audio: room.audio }];
     return [];
   }
-  if (cell.kind === 'room') return [];
+  if (cell.kind === 'room') {
+    return cell.audio ? [{ target: 'room', ownerId: cell.id, audio: cell.audio }] : [];
+  }
   if (cell.audio) return [{ target: 'tile', ownerId: cell.id, audio: cell.audio }];
   return [];
 }

@@ -326,5 +326,56 @@ describe('GameHud', () => {
     expect(screen.queryByText(/Climber/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
   });
+
+  it('locks Roll for Enter/Pass on a room and Leave inside a multi room', () => {
+    const interior = [
+      { id: 'room-1-c0', index: 0, kind: 'corridor' as const, start: true, col: 0, row: 0 },
+      { id: 'room-1-c1', index: 1, kind: 'corridor' as const, col: 1, row: 0 },
+      { id: 'room-1-c2', index: 2, kind: 'corridor' as const, col: 2, row: 0 },
+      { id: 'room-1-c3', index: 3, kind: 'corridor' as const, col: 0, row: 1 },
+    ];
+    const bootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor' as const, col: 0, row: 0 },
+              { id: 'l1', index: 1, kind: 'room' as const, roomId: 'room-1', col: 1, row: 0 },
+              { id: 'l2', index: 2, kind: 'corridor' as const, col: 2, row: 0 },
+            ],
+          },
+        ],
+        [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'multi' as const, shape: { kind: 'square' as const, tilesPerSide: 3 }, cells: interior }],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([]),
+      config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' as const },
+      rng: () => 0,
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    fireEvent.click(roll);
+    act(() => {
+      vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    expect(screen.getByRole('button', { name: 'Enter' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Pass' })).toBeDefined();
+    expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Enter' }));
+    expect(screen.getByRole('button', { name: 'Leave' })).toBeDefined();
+    expect(roll).toHaveProperty('disabled', false);
+    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
+    expect(screen.queryByRole('button', { name: 'Leave' })).toBeNull();
+    expect(roll).toHaveProperty('disabled', false);
+  });
 });
 

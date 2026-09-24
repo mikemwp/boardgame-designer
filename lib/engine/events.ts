@@ -3,7 +3,10 @@ export type GameCommand =
   | { type: 'REVEAL_CARD'; packId: string }
   | { type: 'PASS_CARD'; packId: string }
   | { type: 'SPIN_OUTCOME'; spinnerId: string }
-  | { type: 'SET_INVENTORY'; itemIds: string[] };
+  | { type: 'SET_INVENTORY'; itemIds: string[] }
+  | { type: 'ENTER_ROOM' }
+  | { type: 'PASS_ROOM' }
+  | { type: 'LEAVE_ROOM' };
 
 export type GameEvent =
   | { type: 'DICE_ROLLED'; value: number; sides: number }

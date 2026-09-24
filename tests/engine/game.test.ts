@@ -74,7 +74,7 @@ describe('ROLL_DICE', () => {
     expect(next.lastRoll?.id).toBe(1);
   });
 
-  it('deals the room pack when landing on the door and stays on the door', () => {
+  it('awaits Enter or Pass on a room host and Pass stays on the corridor', () => {
     const bootstrap: GameBootstrap = {
       board: createBoard(
         [
@@ -84,13 +84,13 @@ describe('ROLL_DICE', () => {
             label: 'Lobby',
             cells: [
               { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
-              { id: 'l1', index: 1, kind: 'door', col: 1, row: 0 },
+              { id: 'l1', index: 1, kind: 'room', roomId: 'room-1', col: 1, row: 0, audio: { id: 'a1', name: 'room.mp3', source: 'url', src: 'https://ex/room.mp3' } },
               { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
-              { id: 'room', index: 3, kind: 'room', col: 1, row: 1, packId: 'notes' },
             ],
           },
         ],
         [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'single' }],
       ),
       players: addPlayer(createPlayerState(), {
         id: 'p1',
@@ -100,11 +100,107 @@ describe('ROLL_DICE', () => {
       cards: createCardState([{ id: 'n1', pack: 'notes', title: 'Clue' }]),
       config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' },
     };
-    const next = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
-    expect(next.lastRoll?.value).toBe(1);
-    expect(next.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
-    expect(next.cards.currentCard?.id).toBe('n1');
-    expect(next.lastEvent?.type).toBe('CARD_DEALT');
+    const landed = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    expect(landed.lastRoll?.value).toBe(1);
+    expect(landed.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
+    expect(landed.awaitingRoom).toEqual({ roomId: 'room-1', cellId: 'l1' });
+    expect(landed.cards.currentCard).toBeNull();
+    expect(dispatch(landed, { type: 'ROLL_DICE' })).toBe(landed);
+
+    const passed = dispatch(landed, { type: 'PASS_ROOM' });
+    expect(passed.awaitingRoom).toBeNull();
+    expect(passed.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
+    const continued = dispatch(passed, { type: 'ROLL_DICE' });
+    expect(continued.players.players[0]?.token.cellId).toBe('l2');
+  });
+
+  it('plays host media on Enter for a single-tile room', () => {
+    const bootstrap: GameBootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
+              {
+                id: 'l1',
+                index: 1,
+                kind: 'room',
+                roomId: 'room-1',
+                col: 1,
+                row: 0,
+                packId: 'notes',
+                audio: { id: 'a1', name: 'room.mp3', source: 'url', src: 'https://ex/room.mp3' },
+              },
+              { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
+            ],
+          },
+        ],
+        [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'single' }],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([{ id: 'n1', pack: 'notes', title: 'Clue' }]),
+      config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' },
+    };
+    const landed = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    const entered = dispatch(landed, { type: 'ENTER_ROOM' });
+    expect(entered.awaitingRoom).toBeNull();
+    expect(entered.players.players[0]?.token.cellId).toBe('l1');
+    expect(entered.lastAudioCues.map((c) => c.target)).toEqual(['room']);
+    expect(entered.cards.currentCard?.id).toBe('n1');
+  });
+
+  it('walks a multi-tile room until Leave on the entrance', () => {
+    const interior = [
+      { id: 'room-1-c0', index: 0, kind: 'corridor' as const, start: true, col: 0, row: 0 },
+      { id: 'room-1-c1', index: 1, kind: 'corridor' as const, packId: 'notes', col: 1, row: 0 },
+      { id: 'room-1-c2', index: 2, kind: 'corridor' as const, col: 2, row: 0 },
+      { id: 'room-1-c3', index: 3, kind: 'corridor' as const, col: 0, row: 1 },
+    ];
+    const bootstrap: GameBootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
+              { id: 'l1', index: 1, kind: 'room', roomId: 'room-1', col: 1, row: 0 },
+              { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
+            ],
+          },
+        ],
+        [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'multi', shape: { kind: 'square', tilesPerSide: 3 }, cells: interior }],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([{ id: 'n1', pack: 'notes', title: 'Clue' }]),
+      config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' },
+    };
+    const landed = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    const entered = dispatch(landed, { type: 'ENTER_ROOM' });
+    expect(entered.insideRoom).toEqual({ roomId: 'room-1', cellId: 'room-1-c0' });
+    expect(entered.awaitingRoom).toBeNull();
+
+    const walked = dispatch(entered, { type: 'ROLL_DICE' });
+    expect(walked.insideRoom?.cellId).toBe('room-1-c1');
+    expect(walked.cards.currentCard?.id).toBe('n1');
+
+    const left = dispatch(entered, { type: 'LEAVE_ROOM' });
+    expect(left.insideRoom).toBeNull();
+    expect(left.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
   });
 
   it('moves along the loop and deals on a content landing', () => {
@@ -365,7 +461,7 @@ describe('lastAudioCues', () => {
     expect(next.audioCueId).toBe(game.audioCueId + 1);
   });
 
-  it('records room cue on door land', () => {
+  it('records room cue on Enter, not on the host landing', () => {
     const bootstrap: GameBootstrap = {
       board: createBoard(
         [
@@ -375,25 +471,27 @@ describe('lastAudioCues', () => {
             label: 'Lobby',
             cells: [
               { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
-              { id: 'l1', index: 1, kind: 'door', col: 1, row: 0 },
+              { id: 'l1', index: 1, kind: 'room', roomId: 'room-1', col: 1, row: 0, audio: clip('room') },
               { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
-              { id: 'room', index: 3, kind: 'room', col: 1, row: 1, packId: 'notes', audio: clip('room') },
             ],
           },
         ],
         [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'single' }],
       ),
       players: addPlayer(createPlayerState(), {
         id: 'p1',
         name: 'A',
         token: { floorId: 'lobby', cellId: 'l0' },
       }),
-      cards: createCardState([{ id: 'n1', pack: 'notes', title: 'Clue' }]),
+      cards: createCardState([]),
       config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' },
     };
-    const next = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
-    expect(next.lastAudioCues.map((c) => c.target)).toEqual(['room']);
-    expect(next.lastAudioCues[0]?.ownerId).toBe('room');
+    const landed = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    expect(landed.lastAudioCues).toEqual([]);
+    const entered = dispatch(landed, { type: 'ENTER_ROOM' });
+    expect(entered.lastAudioCues.map((c) => c.target)).toEqual(['room']);
+    expect(entered.lastAudioCues[0]?.ownerId).toBe('l1');
   });
 
   it('records stair then destination cues after a legal teleport', () => {

@@ -35,19 +35,16 @@ describe('cuesForLanding', () => {
     expect(cues).toEqual([{ target: 'stair', ownerId: 'c0', audio: clip('up') }]);
   });
 
-  it('plays room audio on door land, not on the door cell', () => {
+  it('plays room audio on the room host', () => {
     const board = createBoard(
       [
         floor([
-          { id: 'd0', index: 0, kind: 'door', col: 0, row: 0 },
-          { id: 'r0', index: 1, kind: 'room', col: 0, row: 1, audio: clip('room') },
+          { id: 'r0', index: 0, kind: 'room', roomId: 'room-1', col: 0, row: 0, audio: clip('room') },
         ]),
       ],
       [],
     );
-    const cues = cuesForLanding(board, 'f1', 'd0');
-    expect(cues).toEqual([{ target: 'room', ownerId: 'r0', audio: clip('room') }]);
-    expect(cuesForLanding(board, 'f1', 'r0')).toEqual([]);
+    expect(cuesForLanding(board, 'f1', 'r0')).toEqual([{ target: 'room', ownerId: 'r0', audio: clip('room') }]);
   });
 
   it('skips audio when walking past has no landing on that cell', () => {

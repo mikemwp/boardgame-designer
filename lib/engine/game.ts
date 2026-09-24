@@ -2,12 +2,15 @@ import {
   defaultGameConfig,
   type GameConfig,
   type GameStart,
+  type Cell,
+  type Floor,
   type InventoryItem,
   type ItemAssign,
+  type RoomDef,
   type SpinnerDef,
   type TokenPos,
 } from './types';
-import { getFloor, type Board } from './board';
+import { createBoard, getFloor, type Board } from './board';
 import { initPlayerPasses, moveToken, setPlayerPassesLeft, type PlayerState } from './players';
 import { assignStartingItems } from './inventory';
 import { sampleSegment } from './spinner';
@@ -34,6 +37,16 @@ export interface LastSpin {
   id: number;
 }
 
+export interface AwaitingRoom {
+  roomId: string;
+  cellId: string;
+}
+
+export interface InsideRoom {
+  roomId: string;
+  cellId: string;
+}
+
 export interface GameState {
   config: GameConfig;
   board: Board;
@@ -49,6 +62,8 @@ export interface GameState {
   spinners: SpinnerDef[];
   items: InventoryItem[];
   itemAssign: ItemAssign;
+  awaitingRoom: AwaitingRoom | null;
+  insideRoom: InsideRoom | null;
 }
 
 export interface GameBootstrap {
@@ -87,7 +102,35 @@ export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameCon
     spinners: bootstrap.spinners ?? [],
     items,
     itemAssign,
+    awaitingRoom: null,
+    insideRoom: null,
   };
+}
+
+function roomOf(board: Board, roomId: string | undefined): RoomDef | undefined {
+  if (!roomId) return undefined;
+  return (board.rooms ?? []).find((room) => room.id === roomId);
+}
+
+export function roomEntrance(room: RoomDef): Cell | undefined {
+  return room.cells?.find((cell) => cell.start) ?? room.cells?.[0];
+}
+
+export function roomPlayFloor(room: RoomDef): Floor {
+  return {
+    id: room.id,
+    index: 0,
+    label: room.name,
+    cells: room.cells ?? [],
+    shape: room.shape,
+  };
+}
+
+export function isOnRoomEntrance(state: Pick<GameState, 'insideRoom' | 'board'>): boolean {
+  if (!state.insideRoom) return false;
+  const room = roomOf(state.board, state.insideRoom.roomId);
+  if (!room) return false;
+  return roomEntrance(room)?.id === state.insideRoom.cellId;
 }
 
 export function tryExitHold(state: GameState): GameState {
@@ -182,6 +225,15 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
     return withCues(spun, cues);
   }
 
+  if (cell.kind === 'room' && cell.roomId) {
+    return {
+      ...state,
+      awaitingRoom: { roomId: cell.roomId, cellId: cell.id },
+      lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: landing.floorId, cellId: landing.cellId },
+      lastAudioCues: [],
+    };
+  }
+
   const packId = landingPackId(floor, cell);
   if (packId) {
     return dealOnLand(state, packId, landCues);
@@ -196,17 +248,37 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
   );
 }
 
+function afterMoveInside(state: GameState, playerId: string, floor: Floor, cell: Cell): GameState {
+  state = applyOutcomeSpin(state, cell.spinnerId);
+  const landCues = cuesForLanding(createBoard([floor], state.board.stairs, state.board.rooms), floor.id, cell.id);
+  const packId = landingPackId(floor, cell);
+  const moved: GameState = {
+    ...state,
+    lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: floor.id, cellId: cell.id },
+  };
+  if (packId) return dealOnLand(moved, packId, landCues);
+  return withCues(moved, landCues);
+}
+
 export function dispatch(state: GameState, cmd: GameCommand): GameState {
   switch (cmd.type) {
     case 'ROLL_DICE': {
+      if (state.awaitingRoom) return state;
       const active = state.players.activePlayerId;
       if (!active) return state;
       const player = state.players.players.find((p) => p.id === active);
       if (!player) return state;
       const { min, max } = movementRange(state.config.movementViz, state.config.diceCount);
+      const inside = state.insideRoom ? roomOf(state.board, state.insideRoom.roomId) : undefined;
+      const moveBoard = inside
+        ? createBoard([roomPlayFloor(inside)], [], state.board.rooms)
+        : state.board;
+      const from = inside && state.insideRoom
+        ? { floorId: inside.id, cellId: state.insideRoom.cellId }
+        : player.token;
       const allowed = allowedMoveValues(
-        state.board,
-        player.token,
+        moveBoard,
+        from,
         max,
         state.hold,
         state.config.holdEnabled,
@@ -230,6 +302,18 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
         lastEvent: { type: 'DICE_ROLLED', value, sides },
       };
       if (value === 0) return rolled;
+      if (state.insideRoom) {
+        const room = roomOf(state.board, state.insideRoom.roomId);
+        if (!room) return rolled;
+        const floor = roomPlayFloor(room);
+        const landingCell = walkSteps(floor, state.insideRoom.cellId, value);
+        if (!landingCell) return rolled;
+        const next: GameState = {
+          ...rolled,
+          insideRoom: { ...state.insideRoom, cellId: landingCell.id },
+        };
+        return afterMoveInside(next, active, floor, landingCell);
+      }
       const floor = getFloor(state.board, player.token.floorId);
       if (!floor) return rolled;
       const landingCell = walkSteps(floor, player.token.cellId, value);
@@ -237,6 +321,35 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       const landing: TokenPos = { floorId: player.token.floorId, cellId: landingCell.id };
       const players = moveToken(rolled.players, active, landing);
       return afterMove({ ...rolled, players }, active, landing);
+    }
+    case 'PASS_ROOM': {
+      if (!state.awaitingRoom) return state;
+      return { ...state, awaitingRoom: null };
+    }
+    case 'ENTER_ROOM': {
+      if (!state.awaitingRoom) return state;
+      const room = roomOf(state.board, state.awaitingRoom.roomId);
+      const hostFloor = getFloor(state.board, state.players.players.find((p) => p.id === state.players.activePlayerId)?.token.floorId ?? '');
+      const host = hostFloor?.cells.find((cell) => cell.id === state.awaitingRoom?.cellId);
+      if (!room || !host) return { ...state, awaitingRoom: null };
+      if (room.mode !== 'multi') {
+        const landCues = cuesForLanding(state.board, hostFloor!.id, host.id);
+        const cleared: GameState = { ...state, awaitingRoom: null };
+        const packId = landingPackId(hostFloor!, host);
+        if (packId) return dealOnLand(cleared, packId, landCues);
+        return withCues(cleared, landCues);
+      }
+      const entrance = roomEntrance(room);
+      if (!entrance) return { ...state, awaitingRoom: null };
+      return {
+        ...state,
+        awaitingRoom: null,
+        insideRoom: { roomId: room.id, cellId: entrance.id },
+      };
+    }
+    case 'LEAVE_ROOM': {
+      if (!state.insideRoom || !isOnRoomEntrance(state)) return state;
+      return { ...state, insideRoom: null };
     }
     case 'PASS_CARD': {
       const active = state.players.activePlayerId;

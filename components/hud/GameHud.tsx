@@ -14,12 +14,14 @@ import { ItemSetup } from '@/components/hud/ItemSetup';
 import { LastRoll } from '@/components/hud/LastRoll';
 import { LastSpin } from '@/components/hud/LastSpin';
 import { MovementStage } from '@/components/hud/MovementStage';
+import { RoomPrompt } from '@/components/hud/RoomPrompt';
 import { PlayerBar } from '@/components/hud/PlayerBar';
 import { useGameStore } from '@/hooks/use-game-store';
 import { listHudWidgets } from '@/lib/designer/hud';
 import { startingItems } from '@/lib/engine/inventory';
 import type { AudioCue } from '@/lib/engine/audio';
-import type { GameBootstrap, GameState } from '@/lib/engine/game';
+import { isOnRoomEntrance, roomPlayFloor, type GameBootstrap, type GameState } from '@/lib/engine/game';
+import { createBoard } from '@/lib/engine/board';
 import type { GameStart } from '@/lib/engine/types';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
 import {
@@ -123,12 +125,30 @@ export function GameHud({
   const rollLocked =
     overlayLocksRoll ||
     showItemSetup ||
+    Boolean(game.awaitingRoom) ||
     isRollLocked({
       tokenSliding,
       awaitingAction: game.cards.awaitingAction,
       movementVizActive,
       cardHoldActive,
     });
+  const inside = game.insideRoom
+    ? (game.board.rooms ?? []).find((room) => room.id === game.insideRoom?.roomId)
+    : undefined;
+  const playGame: GameState = inside && game.insideRoom
+    ? {
+        ...game,
+        board: createBoard([roomPlayFloor(inside)], [], game.board.rooms),
+        players: {
+          ...game.players,
+          players: game.players.players.map((player) =>
+            player.id === game.players.activePlayerId
+              ? { ...player, token: { floorId: inside.id, cellId: game.insideRoom!.cellId } }
+              : player,
+          ),
+        },
+      }
+    : game;
 
   const playCue = useCallback(
     async (cue: AudioCue) => {
@@ -291,7 +311,7 @@ export function GameHud({
     >
       <div className="min-h-0 min-w-0">
         <BoardScene
-          game={game}
+          game={playGame}
           allowSlide={shouldAllowTokenSlide(phase)}
           onTokenSlideStart={onTokenSlideStart}
           onTokenSlideComplete={onTokenSlideComplete}
@@ -332,6 +352,13 @@ export function GameHud({
         <PassStatus
           passesEnabled={game.config.passesEnabled}
           passesLeftByPack={activePlayer?.passesLeftByPack ?? {}}
+        />
+        <RoomPrompt
+          awaitingRoom={Boolean(game.awaitingRoom)}
+          canLeave={isOnRoomEntrance(game)}
+          onEnter={() => dispatch({ type: 'ENTER_ROOM' })}
+          onPass={() => dispatch({ type: 'PASS_ROOM' })}
+          onLeave={() => dispatch({ type: 'LEAVE_ROOM' })}
         />
         <div className="flex flex-wrap gap-2">
           <Button
