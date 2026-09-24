@@ -20,7 +20,7 @@ import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
 import { emptyGameStart } from '@/lib/engine/audio';
-import type { Card, GameStart } from '@/lib/engine/types';
+import type { Card, GameStart, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
 import { cloneJson, fromStoredBootstrap, storedPackIds } from '@/lib/library/bootstrap';
 import { browserMediaStore } from '@/lib/library/media-store';
 import type { NewGameInput } from '@/lib/library/types';
@@ -32,8 +32,11 @@ function snapshotKey(
   cards: Card[] = [],
   packs: string[] = [],
   gameStart: GameStart = emptyGameStart(),
+  spinners: SpinnerDef[] = [],
+  items: InventoryItem[] = [],
+  itemAssign: ItemAssign = 'random',
 ): string {
-  return JSON.stringify({ board, players, cards, packs, gameStart });
+  return JSON.stringify({ board, players, cards, packs, gameStart, spinners, items, itemAssign });
 }
 
 export function StudioShell(options: UseLibraryOptions = {}) {
@@ -61,6 +64,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [workingCards, setWorkingCards] = useState<Card[]>([]);
   const [workingPacks, setWorkingPacks] = useState<string[]>([]);
   const [workingGameStart, setWorkingGameStart] = useState<GameStart>(emptyGameStart());
+  const [workingSpinners, setWorkingSpinners] = useState<SpinnerDef[]>([]);
+  const [workingItems, setWorkingItems] = useState<InventoryItem[]>([]);
+  const [workingItemAssign, setWorkingItemAssign] = useState<ItemAssign>('random');
   const [selectedFloorId, setSelectedFloorId] = useState<string>('');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [tool, setTool] = useState<DesignerTool>('select');
@@ -77,6 +83,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setWorkingCards([]);
       setWorkingPacks([]);
       setWorkingGameStart(emptyGameStart());
+      setWorkingSpinners([]);
+      setWorkingItems([]);
+      setWorkingItemAssign('random');
       setDirty(false);
       savedKeyRef.current = '';
       return;
@@ -86,18 +95,24 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     const cards = cloneJson(active.bootstrap.cards);
     const packs = storedPackIds(active.bootstrap);
     const gameStart = cloneJson(active.bootstrap.gameStart ?? emptyGameStart());
+    const spinners = cloneJson(active.bootstrap.spinners ?? []);
+    const items = cloneJson(active.bootstrap.items ?? []);
+    const itemAssign = active.bootstrap.itemAssign ?? 'random';
     setWorkingBoard(board);
     setWorkingPlayers(players);
     setWorkingCards(cards);
     setWorkingPacks(packs);
     setWorkingGameStart(gameStart);
+    setWorkingSpinners(spinners);
+    setWorkingItems(items);
+    setWorkingItemAssign(itemAssign);
     setSelectedFloorId(board.floors[0]?.id ?? '');
     setSelectedCellId(null);
     setIssues([]);
     setMode('design');
     setSnapshot(null);
     setDirty(false);
-    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart);
+    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign);
   }, [active?.id]);
 
   const persistWorking = useCallback(
@@ -113,15 +128,39 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           packs,
           config: snapshot?.config ?? active.bootstrap.config,
           gameStart: cloneJson(workingGameStart),
+          spinners: cloneJson(workingSpinners),
+          items: cloneJson(workingItems),
+          itemAssign: workingItemAssign,
         },
         options,
       );
       if (options?.touchUpdatedAt !== false && options?.bump === 'save') {
-        savedKeyRef.current = snapshotKey(workingBoard, workingPlayers, cards, packs, workingGameStart);
+        savedKeyRef.current = snapshotKey(
+          workingBoard,
+          workingPlayers,
+          cards,
+          packs,
+          workingGameStart,
+          workingSpinners,
+          workingItems,
+          workingItemAssign,
+        );
         setDirty(false);
       }
     },
-    [active, workingBoard, workingPlayers, workingCards, workingPacks, workingGameStart, snapshot, saveActive],
+    [
+      active,
+      workingBoard,
+      workingPlayers,
+      workingCards,
+      workingPacks,
+      workingGameStart,
+      workingSpinners,
+      workingItems,
+      workingItemAssign,
+      snapshot,
+      saveActive,
+    ],
   );
 
   const skipAutoSaveRef = useRef(true);
@@ -138,7 +177,18 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     if (!active || !workingBoard || !workingPlayers) return;
     const timer = window.setTimeout(() => persistWorking({ touchUpdatedAt: false }), 400);
     return () => window.clearTimeout(timer);
-  }, [active?.id, workingBoard, workingPlayers, workingCards, workingPacks, workingGameStart, persistWorking]);
+  }, [
+    active?.id,
+    workingBoard,
+    workingPlayers,
+    workingCards,
+    workingPacks,
+    workingGameStart,
+    workingSpinners,
+    workingItems,
+    workingItemAssign,
+    persistWorking,
+  ]);
 
   useEffect(() => {
     const onPageHide = () => persistWorking({ touchUpdatedAt: false });
@@ -159,8 +209,14 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     cards: Card[],
     packs: string[],
     gameStart: GameStart = workingGameStart,
+    spinners: SpinnerDef[] = workingSpinners,
+    items: InventoryItem[] = workingItems,
+    itemAssign: ItemAssign = workingItemAssign,
   ) => {
-    if (snapshotKey(board, players, cards, packs, gameStart) !== savedKeyRef.current) {
+    if (
+      snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign) !==
+      savedKeyRef.current
+    ) {
       setDirty(true);
     }
   };
@@ -186,6 +242,46 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     }
     if (active) markActiveEdited();
     markDirtyIfChanged(next.board, workingPlayers, next.cards, next.packs);
+  };
+
+  const onCatalogChange = (next: {
+    spinners: SpinnerDef[];
+    items: InventoryItem[];
+    itemAssign: ItemAssign;
+    cards: Card[];
+    packs: string[];
+    board: Board;
+  }) => {
+    setWorkingSpinners(next.spinners);
+    setWorkingItems(next.items);
+    setWorkingItemAssign(next.itemAssign);
+    if (next.cards !== workingCards) setWorkingCards(next.cards);
+    if (next.packs !== workingPacks) setWorkingPacks(next.packs);
+    if (next.board !== workingBoard) {
+      onBoardChange(next.board);
+      markDirtyIfChanged(
+        next.board,
+        workingPlayers,
+        next.cards,
+        next.packs,
+        workingGameStart,
+        next.spinners,
+        next.items,
+        next.itemAssign,
+      );
+      return;
+    }
+    if (active) markActiveEdited();
+    markDirtyIfChanged(
+      next.board,
+      workingPlayers,
+      next.cards,
+      next.packs,
+      workingGameStart,
+      next.spinners,
+      next.items,
+      next.itemAssign,
+    );
   };
 
   const requestLeave = (kind: 'new' | 'open') => {
@@ -227,6 +323,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setWorkingCards([]);
     setWorkingPacks([]);
     setWorkingGameStart(emptyGameStart());
+    setWorkingSpinners([]);
+    setWorkingItems([]);
+    setWorkingItemAssign('random');
     setSnapshot(null);
     deleteActive();
     setDeleteOpen(false);
@@ -323,6 +422,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onToolChange={setTool}
             gameStart={workingGameStart}
             onGameStartChange={onGameStartChange}
+            spinners={workingSpinners}
+            items={workingItems}
+            itemAssign={workingItemAssign}
+            onCatalogChange={onCatalogChange}
             gameId={active.id}
             media={media}
             metadata={{
@@ -347,6 +450,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
                 ),
               },
               gameStart: workingGameStart,
+              spinners: workingSpinners,
+              items: workingItems,
+              itemAssign: workingItemAssign,
             })}
             gameStart={workingGameStart}
             gameId={active.id}

@@ -398,6 +398,34 @@ describe('StudioShell', () => {
     expect(getActive(reloaded)?.bootstrap.gameStart?.splashes[0]?.caption).toBe('Welcome back');
   });
 
+  it('Save persists spinner, starting item, and tile spinnerId', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-24T16:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Spinners' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New spinner' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Players' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New item' }));
+    fireEvent.click(screen.getByLabelText('Starting item'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.change(screen.getByLabelText('Spinner'), { target: { value: 'spinner-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const draft = getActive(loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' }));
+    expect(draft?.bootstrap.spinners?.[0]).toMatchObject({ id: 'spinner-1', name: 'Spinner 1' });
+    expect(draft?.bootstrap.items?.[0]).toMatchObject({
+      id: 'item-1',
+      name: 'Item 1',
+      starting: true,
+    });
+    expect(draft?.bootstrap.board.floors[0]?.cells.find((c) => c.col === 0 && c.row === 0)?.spinnerId).toBe(
+      'spinner-1',
+    );
+  });
+
   it('Test uses spinner when a spinner HUD widget is designed', async () => {
     renderStudio();
     fireEvent.click(screen.getByRole('button', { name: 'Select' }));

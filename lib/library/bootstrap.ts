@@ -3,8 +3,20 @@ import { createCardState } from '@/lib/engine/cards';
 import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import type { PlayerState } from '@/lib/engine/players';
 import { defaultGameConfig } from '@/lib/engine/types';
-import type { GameStart } from '@/lib/engine/types';
+import type { GameStart, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
 import type { StoredBootstrap } from '@/lib/library/types';
+
+function catalogFields(input: {
+  spinners?: SpinnerDef[];
+  items?: InventoryItem[];
+  itemAssign?: ItemAssign;
+}): Pick<StoredBootstrap, 'spinners' | 'items' | 'itemAssign'> {
+  return {
+    ...(input.spinners ? { spinners: cloneJson(input.spinners) } : {}),
+    ...(input.items ? { items: cloneJson(input.items) } : {}),
+    ...(input.itemAssign ? { itemAssign: input.itemAssign } : {}),
+  };
+}
 
 export function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -23,6 +35,7 @@ export function toStoredBootstrap(bootstrap: GameBootstrap, packIds: string[] = 
     packs: listDraftPackIds(cards, packIds),
     config: cloneJson({ ...defaultGameConfig(), ...bootstrap.config }),
     ...(bootstrap.gameStart ? { gameStart: cloneJson(bootstrap.gameStart) } : {}),
+    ...catalogFields(bootstrap),
   };
 }
 
@@ -33,11 +46,12 @@ export function fromStoredBootstrap(stored: StoredBootstrap): GameBootstrap {
     cards: createCardState(cloneJson(stored.cards)),
     config: cloneJson({ ...defaultGameConfig(), ...stored.config }),
     ...(stored.gameStart ? { gameStart: cloneJson(stored.gameStart) } : {}),
+    ...catalogFields(stored),
   };
 }
 
 export function captureBootstrap(
-  game: Pick<GameState, 'board' | 'cards' | 'config'>,
+  game: Pick<GameState, 'board' | 'cards' | 'config' | 'spinners' | 'items' | 'itemAssign'>,
   startPlayers: PlayerState,
   packIds: string[] = [],
   gameStart?: GameStart,
@@ -50,5 +64,6 @@ export function captureBootstrap(
     packs: listDraftPackIds(cards, packIds),
     config: cloneJson(game.config),
     ...(gameStart ? { gameStart: cloneJson(gameStart) } : {}),
+    ...catalogFields(game),
   };
 }

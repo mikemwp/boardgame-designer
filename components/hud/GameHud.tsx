@@ -9,11 +9,15 @@ import { GameStartOverlay } from '@/components/hud/GameStartOverlay';
 import { HoldStatus } from '@/components/hud/HoldStatus';
 import { PassStatus } from '@/components/hud/PassStatus';
 import { ImportCardsDialog } from '@/components/hud/ImportCardsDialog';
+import { InventoryBar } from '@/components/hud/InventoryBar';
+import { ItemSetup } from '@/components/hud/ItemSetup';
 import { LastRoll } from '@/components/hud/LastRoll';
+import { LastSpin } from '@/components/hud/LastSpin';
 import { MovementStage } from '@/components/hud/MovementStage';
 import { PlayerBar } from '@/components/hud/PlayerBar';
 import { useGameStore } from '@/hooks/use-game-store';
 import { listHudWidgets } from '@/lib/designer/hud';
+import { startingItems } from '@/lib/engine/inventory';
 import type { AudioCue } from '@/lib/engine/audio';
 import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import type { GameStart } from '@/lib/engine/types';
@@ -81,6 +85,7 @@ export function GameHud({
   }, [game, onStateChange]);
   const [tokenSliding, setTokenSliding] = useState(false);
   const [phase, setPhase] = useState<MovementPhase>('idle');
+  const [inventoryConfirmed, setInventoryConfirmed] = useState(game.itemAssign !== 'choose');
   const [cardHoldReleased, setCardHoldReleased] = useState(false);
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
   const seenRollId = useRef(0);
@@ -113,8 +118,11 @@ export function GameHud({
     released: cardHoldReleased,
   });
   const overlayLocksRoll = startPhase !== 'play' && startPhase !== 'skip';
+  const needsItemSetup = game.itemAssign === 'choose' && !inventoryConfirmed;
+  const showItemSetup = !overlayLocksRoll && needsItemSetup;
   const rollLocked =
     overlayLocksRoll ||
+    showItemSetup ||
     isRollLocked({
       tokenSliding,
       awaitingAction: game.cards.awaitingAction,
@@ -299,6 +307,16 @@ export function GameHud({
             activePlayerId={game.players.activePlayerId}
           />
         ) : null}
+        <InventoryBar items={game.items} inventory={activePlayer?.inventory} />
+        {showItemSetup ? (
+          <ItemSetup
+            items={startingItems(game.items)}
+            onConfirm={(itemIds) => {
+              dispatch({ type: 'SET_INVENTORY', itemIds });
+              setInventoryConfirmed(true);
+            }}
+          />
+        ) : null}
         <MovementStage
           viz={game.config.movementViz}
           lastRoll={game.lastRoll}
@@ -309,6 +327,7 @@ export function GameHud({
         {showLastRoll ? (
           <LastRoll lastRoll={game.lastRoll} movementViz={game.config.movementViz} />
         ) : null}
+        <LastSpin lastSpin={game.lastSpin} />
         <HoldStatus hold={game.hold} floorLabel={holdFloor?.label ?? 'this floor'} />
         <PassStatus
           passesEnabled={game.config.passesEnabled}

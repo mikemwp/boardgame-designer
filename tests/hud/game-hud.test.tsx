@@ -20,6 +20,10 @@ vi.mock('@/components/board/BoardScene', () => ({
 }));
 
 import { GameHud } from '@/components/hud/GameHud';
+import { createBoard } from '@/lib/engine/board';
+import { createCardState } from '@/lib/engine/cards';
+import { addPlayer, createPlayerState } from '@/lib/engine/players';
+import { defaultGameConfig } from '@/lib/engine/types';
 import { climbSample } from '@/lib/samples/climb';
 import { HUD_DICE_TUMBLE_MS } from '@/lib/view/hud-dice';
 
@@ -200,6 +204,111 @@ describe('GameHud', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     expect(screen.queryByTestId('game-start-overlay')).toBeNull();
     expect(roll).toHaveProperty('disabled', false);
+  });
+
+  it('always shows inventory and last-spin, and choose setup locks Roll until confirmed', () => {
+    const bootstrap = {
+      ...climbSample,
+      items: [{ id: 'item-1', name: 'Lock pick', starting: true }],
+      itemAssign: 'choose' as const,
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    expect(screen.getByTestId('inventory-bar').textContent).toBe('Inventory empty');
+    expect(screen.getByText('No outcome spin yet')).toBeDefined();
+    expect(screen.getByTestId('item-setup')).toBeDefined();
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByLabelText('Take Lock pick'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm items' }));
+    expect(screen.queryByTestId('item-setup')).toBeNull();
+    expect(screen.getByTestId('inventory-bar').textContent).toBe('Inventory: Lock pick');
+    expect(roll).toHaveProperty('disabled', false);
+  });
+
+  it('shows item setup after the start overlay in choose mode', () => {
+    render(
+      <GameHud
+        bootstrap={{
+          ...climbSample,
+          items: [{ id: 'item-1', name: 'Lock pick', starting: true }],
+          itemAssign: 'choose',
+        }}
+        gameStart={{
+          splashes: [{ id: 's1', caption: 'Welcome', skippable: true, durationMs: 0 }],
+          menu: {
+            items: [
+              { id: 'm1', label: 'Play', action: 'play' },
+              { id: 'm2', label: 'Continue', action: 'continue' },
+            ],
+          },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('game-start-overlay')).toBeDefined();
+    expect(screen.queryByTestId('item-setup')).toBeNull();
+    const roll = screen.getByRole('button', { name: 'Roll dice' });
+    expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    expect(screen.queryByTestId('game-start-overlay')).toBeNull();
+    expect(screen.getByTestId('item-setup')).toBeDefined();
+    expect(roll).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm items' }));
+    expect(screen.queryByTestId('item-setup')).toBeNull();
+    expect(roll).toHaveProperty('disabled', false);
+  });
+
+  it('shows last outcome spin after landing on a spinner tile', () => {
+    const bootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor' as const, col: 0, row: 0 },
+              {
+                id: 'l1',
+                index: 1,
+                kind: 'corridor' as const,
+                col: 1,
+                row: 0,
+                spinnerId: 'spinner-1',
+              },
+            ],
+          },
+        ],
+        [],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([]),
+      config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' as const },
+      rng: () => 0,
+      spinners: [
+        {
+          id: 'spinner-1',
+          name: 'Luck',
+          split: 'equal' as const,
+          segments: [
+            { id: 'a', label: 'Me' },
+            { id: 'b', label: 'You' },
+          ],
+        },
+      ],
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    expect(screen.getByText('No outcome spin yet')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Roll dice' }));
+    act(() => {
+      vi.advanceTimersByTime(HUD_DICE_TUMBLE_MS);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish slide' }));
+    expect(screen.getByText('Last spin: Me (Luck)')).toBeDefined();
   });
 
   it('hides Last roll and Player bar when other HUD widgets are designed', () => {

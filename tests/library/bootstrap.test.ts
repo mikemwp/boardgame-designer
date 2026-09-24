@@ -70,6 +70,43 @@ describe('stored bootstrap codec', () => {
     expect(toStoredBootstrap(climbSample).packs).toEqual(['climb']);
   });
 
+  it('round-trips spinner and item catalogs with a tile spinnerId', () => {
+    const boot = emptyBootstrap();
+    boot.board.floors[0]!.cells[0] = {
+      ...boot.board.floors[0]!.cells[0]!,
+      spinnerId: 'spinner-1',
+    };
+    const stored = toStoredBootstrap({
+      ...boot,
+      spinners: [
+        {
+          id: 'spinner-1',
+          name: 'Luck',
+          split: 'equal',
+          segments: [
+            { id: 'a', label: 'Me' },
+            { id: 'b', label: 'You' },
+          ],
+        },
+      ],
+      items: [{ id: 'item-1', name: 'Lock pick', starting: true }],
+      itemAssign: 'choose',
+    });
+    expect(stored.spinners?.[0]?.name).toBe('Luck');
+    expect(stored.items?.[0]).toMatchObject({ id: 'item-1', name: 'Lock pick', starting: true });
+    expect(stored.itemAssign).toBe('choose');
+    expect(stored.board.floors[0]?.cells[0]?.spinnerId).toBe('spinner-1');
+    const restored = fromStoredBootstrap(stored);
+    expect(restored.spinners?.[0]?.name).toBe('Luck');
+    expect(restored.items?.[0]?.name).toBe('Lock pick');
+    expect(restored.itemAssign).toBe('choose');
+    expect(restored.board.floors[0]?.cells[0]?.spinnerId).toBe('spinner-1');
+    const again = toStoredBootstrap(restored);
+    expect(again.spinners).toEqual(stored.spinners);
+    expect(again.items).toEqual(stored.items);
+    expect(again.itemAssign).toBe('choose');
+  });
+
   it('round-trips gameStart with the draft', () => {
     const gameStart = {
       audio: { id: 'g1', name: 'intro.mp3', source: 'url' as const, src: 'https://ex/intro.mp3' },
