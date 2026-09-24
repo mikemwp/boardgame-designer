@@ -1,6 +1,6 @@
 export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
-export type CellKind = 'corridor' | 'stair' | 'hud' | 'room' | 'door';
+export type CellKind = 'corridor' | 'stair' | 'hud' | 'room';
 
 export type HudWidget = 'empty' | 'dice' | 'spinner' | 'last-roll' | 'player-bar';
 

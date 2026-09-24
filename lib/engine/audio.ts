@@ -1,5 +1,4 @@
 import { getFloor, type Board } from './board';
-import { roomForDoor } from './layout';
 import type { AudioRef, Card, GameStart } from './types';
 
 export type AudioTarget = 'tile' | 'stair' | 'room' | 'card';
@@ -31,11 +30,6 @@ export function cuesForLanding(board: Board, floorId: string, cellId: string): A
   if (cell.kind === 'hud') return [];
   if (cell.kind === 'stair') {
     return cell.audio ? [{ target: 'stair', ownerId: cell.id, audio: cell.audio }] : [];
-  }
-  if (cell.kind === 'door') {
-    const room = roomForDoor(floor, cell);
-    if (room?.audio) return [{ target: 'room', ownerId: room.id, audio: room.audio }];
-    return [];
   }
   if (cell.kind === 'room') {
     return cell.audio ? [{ target: 'room', ownerId: cell.id, audio: cell.audio }] : [];

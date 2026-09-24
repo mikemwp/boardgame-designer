@@ -27,7 +27,6 @@ export function FloorStack({
   const corridorMat = useMaterial({ ...PREVIEW_TILE_COLORS.corridor, emissiveIntensity: 0.9 });
   const stairMat = useMaterial({ ...PREVIEW_TILE_COLORS.stair, emissiveIntensity: 0.8 });
   const roomMat = useMaterial({ ...PREVIEW_TILE_COLORS.room, emissiveIntensity: 0.8 });
-  const doorMat = useMaterial({ ...PREVIEW_TILE_COLORS.door, emissiveIntensity: 0.8 });
   const hudMat = useMaterial({ ...PREVIEW_TILE_COLORS.hud, emissiveIntensity: 0.8 });
   const startMat = useMaterial({ ...PREVIEW_TILE_COLORS.start, emissiveIntensity: 0.85 });
   const selectedMat = useMaterial({ ...PREVIEW_TILE_COLORS.selected, emissiveIntensity: 0.9 });
@@ -53,9 +52,7 @@ export function FloorStack({
                     ? stairMat
                     : color === PREVIEW_TILE_COLORS.room
                       ? roomMat
-                      : color === PREVIEW_TILE_COLORS.door
-                        ? doorMat
-                        : corridorMat;
+                      : corridorMat;
           const polygon = polar ? slotPolygon(floor, cell) : [];
           const seams = polar && polygon.length > 0
             ? tileSeamEdgesFromPolygon(pos.y, polygon)

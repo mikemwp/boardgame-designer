@@ -112,7 +112,6 @@ export function LayoutGrid({
             let fill = 'rgb(2 6 23)';
             if (cell?.kind === 'stair') fill = 'rgb(180 83 9)';
             else if (cell?.kind === 'room') fill = 'rgb(15 118 110)';
-            else if (cell?.kind === 'door') fill = 'rgb(67 56 202)';
             else if (cell) fill = 'rgb(71 85 105)';
             return (
               <path
@@ -184,7 +183,6 @@ export function LayoutGrid({
           if (cell?.kind === 'hud') className += ' border-violet-400 bg-violet-900 text-violet-100';
           else if (cell?.kind === 'stair') className += ' border-amber-500 bg-amber-700 text-amber-50';
           else if (cell?.kind === 'room') className += ' border-teal-400 bg-teal-800 text-teal-50';
-          else if (cell?.kind === 'door') className += ' border-indigo-400 bg-indigo-800 text-indigo-50';
           else if (cell) className += ' border-slate-500 bg-slate-600 text-slate-50';
           else className += ' border-slate-800 bg-slate-950 text-slate-500';
           if (selected) className += ' ring-2 ring-sky-400';

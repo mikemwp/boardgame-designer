@@ -71,19 +71,13 @@ function isOnGeneratedLoop(floor: Board['floors'][0], cell: Cell): boolean {
 export function normalizeBoardRooms(board: Board): Board {
   let changed = false;
   const floors = board.floors.map((floor) => {
-    const cells = floor.cells
-      .map((cell) => {
-        if (cell.kind !== 'door') return cell;
-        changed = true;
-        return { ...cell, kind: 'corridor' as const };
-      })
-      .filter((cell) => {
-        if (cell.kind !== 'room') return true;
-        if (isOnGeneratedLoop(floor, cell)) return true;
-        changed = true;
-        return false;
-      });
-    if (cells === floor.cells) return floor;
+    const cells = floor.cells.filter((cell) => {
+      if (cell.kind !== 'room') return true;
+      if (isOnGeneratedLoop(floor, cell)) return true;
+      changed = true;
+      return false;
+    });
+    if (cells.length === floor.cells.length) return floor;
     return retileFloor({ ...floor, cells });
   });
   const hostIds = new Set(
@@ -102,7 +96,7 @@ export function attachRoom(board: Board, floorId: string, cellId: string): Board
   const floor = board.floors.find((entry) => entry.id === floorId);
   const cell = floor?.cells.find((entry) => entry.id === cellId);
   if (!floor || !cell) return board;
-  if (cell.kind === 'hud' || cell.kind === 'stair' || cell.kind === 'room' || cell.kind === 'door') {
+  if (cell.kind === 'hud' || cell.kind === 'stair' || cell.kind === 'room') {
     return board;
   }
   const rooms = board.rooms ?? [];
@@ -204,8 +198,7 @@ export function isVanillaRoom(room: RoomDef): boolean {
       cell.stairId ||
       cell.roomId ||
       cell.kind === 'stair' ||
-      cell.kind === 'room' ||
-      cell.kind === 'door'
+      cell.kind === 'room'
     ) {
       return false;
     }

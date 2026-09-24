@@ -39,22 +39,8 @@ export function adjacentCells(floor: Floor, cell: Cell): Cell[] {
   return floor.cells.filter((other) => other.id !== cell.id && areAdjacent(cell, other));
 }
 
-export function roomForDoor(floor: Floor, door: Cell): Cell | undefined {
-  const rooms = adjacentCells(floor, door).filter((other) => other.kind === 'room');
-  if (rooms.length === 0) return undefined;
-  const packId = rooms.find((room) => room.packId)?.packId;
-  if (packId) {
-    const matched = rooms.find((room) => room.packId === packId);
-    if (matched) return matched;
-  }
-  return rooms[0];
-}
-
-export function landingPackId(floor: Floor, cell: Cell): string | undefined {
+export function landingPackId(_floor: Floor, cell: Cell): string | undefined {
   if (cell.kind === 'stair') return undefined;
-  if (cell.kind === 'door') {
-    return roomForDoor(floor, cell)?.packId ?? cell.packId;
-  }
   return cell.packId;
 }
 

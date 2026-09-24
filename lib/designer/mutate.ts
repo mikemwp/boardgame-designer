@@ -223,20 +223,6 @@ export function placeRoom(
   return board;
 }
 
-export function placeDoor(board: Board, _floorId: string, _cellId: string): Board {
-  return board;
-}
-
-export function clearDoor(board: Board, floorId: string, cellId: string): Board {
-  const floor = board.floors.find((f) => f.id === floorId);
-  const cell = floor?.cells.find((c) => c.id === cellId);
-  if (!floor || !cell || cell.kind !== 'door') return board;
-  return mapFloor(board, floorId, (current) => ({
-    ...current,
-    cells: current.cells.map((c) => (c.id === cellId ? { ...c, kind: 'corridor' as const } : c)),
-  }));
-}
-
 export function placeCorridor(
   board: Board,
   floorId: string,
@@ -367,7 +353,7 @@ function setCellMedia<K extends 'audio' | 'image' | 'video'>(
     ...current,
     cells: current.cells.map((cell) => {
       if (cell.id !== cellId) return cell;
-      if (cell.kind === 'hud' || cell.kind === 'door') return cell;
+      if (cell.kind === 'hud') return cell;
       if (!value) {
         const next = { ...cell };
         delete next[key];
@@ -469,7 +455,7 @@ export function setCellPack(
     ...current,
     cells: current.cells.map((cell) => {
       if (cell.id !== cellId) return cell;
-      if (cell.kind === 'stair' || cell.kind === 'door') return cell;
+      if (cell.kind === 'stair') return cell;
       return { ...cell, packId };
     }),
   }));
@@ -546,7 +532,7 @@ export function nextStairId(cellId: string): string {
 export function attachStair(board: Board, floorId: string, cellId: string): Board {
   const floor = board.floors.find((f) => f.id === floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
-  if (!floor || !cell || cell.kind === 'stair' || cell.kind === 'room' || cell.kind === 'door') {
+  if (!floor || !cell || cell.kind === 'stair' || cell.kind === 'room') {
     return board;
   }
   const stairId = nextStairId(cellId);

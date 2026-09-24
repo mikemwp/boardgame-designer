@@ -42,7 +42,6 @@ export function CellInspector({
   onAttachStair,
   onLinkStair,
   onClearStair,
-  onClearDoor,
   onClear,
   onSetHudWidget,
   spinners,
@@ -64,7 +63,6 @@ export function CellInspector({
   onAttachStair: () => void;
   onLinkStair: (toFloorId: string, toCellId: string) => void;
   onClearStair: () => void;
-  onClearDoor?: () => void;
   onClear?: () => void;
   onSetHudWidget?: (widget: HudWidget) => void;
   spinners?: SpinnerDef[];
@@ -237,7 +235,7 @@ export function CellInspector({
               ) : null}
             </>
           )}
-          {cell.kind !== 'hud' && cell.kind !== 'door' && onSetAudio ? (
+          {cell.kind !== 'hud' && onSetAudio ? (
             <>
               <AudioField
                 value={cell.audio}

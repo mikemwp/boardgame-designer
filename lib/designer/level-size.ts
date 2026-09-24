@@ -23,8 +23,7 @@ function isConfiguredCell(cell: Cell): boolean {
       extra.stairId ||
       extra.roomId ||
       extra.kind === 'stair' ||
-      extra.kind === 'room' ||
-      extra.kind === 'door',
+      extra.kind === 'room',
   );
 }
 
