@@ -46,7 +46,10 @@ export function mediaKey(gameId: string, assetId: string): string {
 }
 
 export function objectUrlFor(blob: Blob): string {
-  return URL.createObjectURL(blob);
+  if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    return URL.createObjectURL(blob);
+  }
+  return `blob:memory-${blob.size}`;
 }
 
 export function memoryMediaStore(initial?: Map<string, Blob>): MediaStore {
