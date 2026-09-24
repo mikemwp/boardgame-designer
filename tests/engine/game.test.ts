@@ -252,3 +252,98 @@ describe('climb sample still boots', () => {
     expect(game.cards.currentCard).toBeNull();
   });
 });
+
+describe('lastAudioCues', () => {
+  const clip = (id: string) => ({ id, name: `${id}.mp3`, source: 'url' as const, src: `https://ex/${id}.mp3` });
+
+  it('starts with empty cues and cue id 0', () => {
+    const game = createGame(loopBootstrap());
+    expect(game.lastAudioCues).toEqual([]);
+    expect(game.audioCueId).toBe(0);
+  });
+
+  it('records tile then card cues when landing a packed corridor with audio', () => {
+    const bootstrap = loopBootstrap();
+    bootstrap.board.floors[0]!.cells[1] = {
+      ...bootstrap.board.floors[0]!.cells[1]!,
+      audio: clip('tile'),
+    };
+    bootstrap.cards = createCardState([
+      { id: 'climb-1', pack: 'climb', title: 'First Rung', body: 'A foothold', audio: clip('deal') },
+    ]);
+    const game = createGame(bootstrap, { rng: () => 0 });
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.lastAudioCues.map((c) => c.target)).toEqual(['tile', 'card']);
+    expect(next.audioCueId).toBe(game.audioCueId + 1);
+  });
+
+  it('records room cue on door land', () => {
+    const bootstrap: GameBootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
+              { id: 'l1', index: 1, kind: 'door', col: 1, row: 0 },
+              { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
+              { id: 'room', index: 3, kind: 'room', col: 1, row: 1, packId: 'notes', audio: clip('room') },
+            ],
+          },
+        ],
+        [],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([{ id: 'n1', pack: 'notes', title: 'Clue' }]),
+      config: { ...defaultGameConfig(), diceEnabled: true, actionMode: 'neither' },
+    };
+    const next = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    expect(next.lastAudioCues.map((c) => c.target)).toEqual(['room']);
+    expect(next.lastAudioCues[0]?.ownerId).toBe('room');
+  });
+
+  it('records stair then destination cues after a legal teleport', () => {
+    const bootstrap = loopBootstrap();
+    bootstrap.board.floors[0]!.cells[3] = {
+      ...bootstrap.board.floors[0]!.cells[3]!,
+      audio: clip('up'),
+    };
+    bootstrap.board.floors[1]!.cells[0] = {
+      ...bootstrap.board.floors[1]!.cells[0]!,
+      audio: clip('dest'),
+    };
+    bootstrap.cards = createCardState([
+      { id: 'climb-1', pack: 'climb', title: 'First Rung', audio: clip('deal') },
+    ]);
+    const game = createGame(bootstrap, { rng: () => 0.35 });
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.lastRoll?.value).toBe(3);
+    expect(next.lastAudioCues.map((c) => c.target)).toEqual(['stair', 'tile', 'card']);
+    expect(next.lastAudioCues[0]?.ownerId).toBe('l3');
+    expect(next.lastAudioCues[1]?.ownerId).toBe('f1c0');
+  });
+
+  it('does not retrigger cues on Pass', () => {
+    const bootstrap = loopBootstrap();
+    bootstrap.board.floors[0]!.cells[1] = {
+      ...bootstrap.board.floors[0]!.cells[1]!,
+      audio: clip('tile'),
+    };
+    bootstrap.cards = createCardState([
+      { id: 'climb-1', pack: 'climb', title: 'First Rung', audio: clip('deal') },
+    ]);
+    let game = createGame(bootstrap, { rng: () => 0 });
+    game = dispatch(game, { type: 'ROLL_DICE' });
+    const afterDeal = game.audioCueId;
+    const cues = game.lastAudioCues;
+    const passed = dispatch(game, { type: 'PASS_CARD', packId: 'climb' });
+    expect(passed.audioCueId).toBe(afterDeal);
+    expect(passed.lastAudioCues).toEqual(cues);
+  });
+});

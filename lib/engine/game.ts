@@ -8,6 +8,7 @@ import { canExitHold, createHoldState, recordHoldReveal, type HoldState } from '
 import { landingPackId } from './layout';
 import { allowedMoveValues, walkSteps } from './movement';
 import type { GameCommand, GameEvent } from './events';
+import { cueForCard, cuesForLanding, type AudioCue } from './audio';
 
 export interface LastRoll {
   value: number;
@@ -24,6 +25,8 @@ export interface GameState {
   hold: HoldState | null;
   lastEvent: GameEvent | null;
   lastRoll: LastRoll | null;
+  lastAudioCues: AudioCue[];
+  audioCueId: number;
   rng: Rng;
 }
 
@@ -48,6 +51,8 @@ export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameCon
     hold: null,
     lastEvent: null,
     lastRoll: null,
+    lastAudioCues: [],
+    audioCueId: 0,
     rng: overrides?.rng ?? bootstrap.rng ?? Math.random,
   };
 }
@@ -57,7 +62,15 @@ export function tryExitHold(state: GameState): GameState {
   return { ...state, hold: null, lastEvent: { type: 'HOLD_EXITED' } };
 }
 
-function dealOnLand(state: GameState, packId: string): GameState {
+function withCues(state: GameState, cues: AudioCue[]): GameState {
+  return {
+    ...state,
+    lastAudioCues: cues,
+    audioCueId: state.audioCueId + 1,
+  };
+}
+
+function dealOnLand(state: GameState, packId: string, landCues: AudioCue[]): GameState {
   const cards = dealFromPack(state.cards, packId, state.config.actionMode);
   let hold = state.hold;
   if (hold && state.config.actionMode === 'neither' && cards.currentCard) {
@@ -66,7 +79,8 @@ function dealOnLand(state: GameState, packId: string): GameState {
   const lastEvent: GameEvent = cards.currentCard
     ? { type: 'CARD_DEALT', packId, cardId: cards.currentCard.id }
     : state.lastEvent;
-  return tryExitHold({ ...state, cards, hold, lastEvent });
+  const cues = [...landCues, ...cueForCard(cards.currentCard)];
+  return tryExitHold(withCues({ ...state, cards, hold, lastEvent }, cues));
 }
 
 function afterMove(state: GameState, playerId: string, landing: TokenPos): GameState {
@@ -74,16 +88,21 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
   const cell = floor?.cells.find((c) => c.id === landing.cellId);
   if (!cell) return state;
 
+  const landCues = cuesForLanding(state.board, landing.floorId, landing.cellId);
+
   if (cell.kind === 'stair' && cell.stairId) {
     const stair = state.board.stairs.find((s) => s.id === cell.stairId);
     const heldExit = Boolean(
       state.config.holdEnabled && state.hold?.active && state.hold.floorId === landing.floorId,
     );
     if (!stair || !stair.legal || heldExit) {
-      return {
-        ...state,
-        lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: landing.floorId, cellId: landing.cellId },
-      };
+      return withCues(
+        {
+          ...state,
+          lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: landing.floorId, cellId: landing.cellId },
+        },
+        landCues,
+      );
     }
     const dest: TokenPos = { floorId: stair.toFloorId, cellId: stair.toCellId };
     const players = moveToken(state.players, playerId, dest);
@@ -99,24 +118,29 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
       hold = createHoldState(destFloor.id, destFloor.holdQuotas ?? { climb: 1 });
       lastEvent = { type: 'HOLD_ENTERED', floorId: destFloor.id };
     }
+    const destCues = cuesForLanding(state.board, dest.floorId, dest.cellId);
+    const cues = [...landCues, ...destCues];
     const moved: GameState = { ...state, players, hold, lastEvent };
     const destCell = destFloor?.cells.find((c) => c.id === dest.cellId);
     const destPack = destFloor && destCell ? landingPackId(destFloor, destCell) : undefined;
     if (destPack) {
-      return dealOnLand(moved, destPack);
+      return dealOnLand(moved, destPack, cues);
     }
-    return moved;
+    return withCues(moved, cues);
   }
 
   const packId = landingPackId(floor, cell);
   if (packId) {
-    return dealOnLand(state, packId);
+    return dealOnLand(state, packId, landCues);
   }
 
-  return {
-    ...state,
-    lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: landing.floorId, cellId: landing.cellId },
-  };
+  return withCues(
+    {
+      ...state,
+      lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: landing.floorId, cellId: landing.cellId },
+    },
+    landCues,
+  );
 }
 
 export function dispatch(state: GameState, cmd: GameCommand): GameState {
