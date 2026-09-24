@@ -16,8 +16,9 @@ export function nextMenuItemId(start: GameStart): string {
 
 export function setGameStartAudio(start: GameStart, audio: AudioRef | undefined): GameStart {
   if (!audio) {
-    const { audio: _drop, ...rest } = start;
-    return rest;
+    const next = { ...start };
+    delete next.audio;
+    return next;
   }
   return { ...start, audio };
 }

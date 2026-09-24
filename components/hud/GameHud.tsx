@@ -57,7 +57,7 @@ export function GameHud({
 }) {
   const { game, dispatch, updateConfig, importCards } = useGameStore(bootstrap);
   const [importOpen, setImportOpen] = useState(false);
-  const fallbackMedia = useRef(memoryMediaStore()).current;
+  const [fallbackMedia] = useState(() => memoryMediaStore());
   const mediaStore = media ?? fallbackMedia;
   const resolvedGameId = gameId ?? 'draft';
   const playerRef = useRef(createAudioPlayer());
@@ -125,12 +125,8 @@ export function GameHud({
   const playCue = useCallback(
     async (cue: AudioCue) => {
       const url = await resolveRef(cue.audio, mediaStore, resolvedGameId);
-      if (!url) {
-        setMissingSound(true);
-        return;
-      }
-      const result = await playerRef.current.playSfx(url);
-      if (result === 'missing') setMissingSound(true);
+      if (!url) return 'missing' as const;
+      return playerRef.current.playSfx(url);
     },
     [mediaStore, resolvedGameId],
   );
@@ -140,14 +136,24 @@ export function GameHud({
     lastCueId.current = game.audioCueId;
     const land = game.lastAudioCues.filter((cue) => cue.target !== 'card');
     pendingCardCues.current = game.lastAudioCues.filter((cue) => cue.target === 'card');
-    for (const cue of land) void playCue(cue);
+    void (async () => {
+      for (const cue of land) {
+        const result = await playCue(cue);
+        if (result === 'missing') setMissingSound(true);
+      }
+    })();
   }, [game.audioCueId, game.lastAudioCues, playCue]);
 
   useEffect(() => {
     if (!visibleCard) return;
     const cards = pendingCardCues.current.filter((cue) => cue.ownerId === visibleCard.id);
     pendingCardCues.current = pendingCardCues.current.filter((cue) => cue.ownerId !== visibleCard.id);
-    for (const cue of cards) void playCue(cue);
+    void (async () => {
+      for (const cue of cards) {
+        const result = await playCue(cue);
+        if (result === 'missing') setMissingSound(true);
+      }
+    })();
   }, [visibleCard, playCue]);
 
   const startMusic = useCallback(async () => {
@@ -161,32 +167,33 @@ export function GameHud({
     if (result === 'blocked') setTapToStart(true);
     if (result === 'missing') setMissingSound(true);
     if (result === 'played') setTapToStart(false);
-  }, [gameStart?.audio, mediaStore, resolvedGameId]);
+  }, [gameStart, mediaStore, resolvedGameId]);
 
   useEffect(() => {
     if (startPhase === 'skip' || startPhase === 'play') return;
-    void startMusic();
+    const timer = window.setTimeout(() => {
+      void startMusic();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [startPhase, startMusic]);
 
+  const splash = gameStart?.splashes[splashIndex];
+  const splashUrl = startPhase === 'splash' && splash?.image?.source === 'url' ? splash.image.src : undefined;
+
   useEffect(() => {
-    const splash = gameStart?.splashes[splashIndex];
-    if (startPhase !== 'splash' || !splash?.image) {
-      setSplashImageSrc(undefined);
+    if (startPhase !== 'splash' || splash?.image?.source !== 'file' || !splash.image) {
       return;
     }
-    if (splash.image.source === 'url') {
-      setSplashImageSrc(splash.image.src);
-      return;
-    }
+    const assetId = splash.image.id;
     let cancelled = false;
-    void mediaStore.get(resolvedGameId, splash.image.id).then((blob) => {
+    void mediaStore.get(resolvedGameId, assetId).then((blob) => {
       if (cancelled) return;
       setSplashImageSrc(blob ? URL.createObjectURL(blob) : undefined);
     });
     return () => {
       cancelled = true;
     };
-  }, [gameStart, splashIndex, startPhase, mediaStore, resolvedGameId]);
+  }, [gameStart, splash, splashIndex, startPhase, mediaStore, resolvedGameId]);
 
   const goToAfterSplash = useCallback(
     (mode: 'timeout' | 'skip') => {
@@ -260,7 +267,7 @@ export function GameHud({
       phase={startPhase}
       start={gameStart ?? { splashes: [], menu: { items: [] } }}
       splashIndex={splashIndex}
-      splashImageSrc={splashImageSrc}
+      splashImageSrc={splashUrl ?? splashImageSrc}
       tapToStart={tapToStart}
       missingSound={missingSound}
       muted={muted}

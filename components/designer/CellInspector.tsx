@@ -145,7 +145,7 @@ export function CellInspector({
             </>
           ) : cell.kind === 'door' ? (
             <>
-              <p className="text-sm text-slate-400">Landing here deals the adjacent room's pack.</p>
+              <p className="text-sm text-slate-400">Landing here deals the adjacent room&apos;s pack.</p>
               <p className="text-sm text-slate-400">Room audio plays on this door.</p>
               <Button type="button" variant="outline" onClick={onClearDoor}>
                 Convert to tile

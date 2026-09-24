@@ -37,7 +37,7 @@ function snapshotKey(
 }
 
 export function StudioShell(options: UseLibraryOptions = {}) {
-  const media = useRef(options.media ?? browserMediaStore()).current;
+  const [media] = useState(() => options.media ?? browserMediaStore());
   const {
     active,
     activeId,

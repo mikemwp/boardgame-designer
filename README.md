@@ -24,11 +24,20 @@ The studio opens in **Design**. The product title and library bar share one top 
 1. **Board shape** sits in the center of the level/tool row. **Square** uses a **Tiles** picker (3×3…12×12, default 8×8). **Rectangle** has separate length and width selectors (default 8×6, sides cannot be equal). Polar shapes stay hidden. New empty drafts are square 8×8 (28 perimeter cells, first tab **Level 1**). Climb stays square 3. Changing size rebuilds the perimeter loop with unique cell ids (no leftover `floor-1-c24` collisions).
 2. Level tabs (**Add level** / **Delete level**) plus the selected **Level name** sit on the toolbar. New levels are **Level 2**, **Level 3**, … Delete removes only the selected level and is disabled when one remains. Adding a level copies the selected level’s shape.
 3. Palette: **Select**, **Tile**, **Room**, **Door**, **HUD**, **Stair**, **Erase**. Click empty slots to place; pointer-down on a tile and pointer-up on an empty slot to move. Erase of any tile leaves a free square you can place on again. **Room** goes on an inner/free square (not on the corridor loop). **Door** converts a corridor tile that touches a room so the room is enterable. Stair converts a corridor cell and must link a destination level + landing square before **Test**.
-4. Right pane tabs: **Tile Actions** (HUD type, Level hold + pack quotas, pack, start, end, stairs) and **Packs** (create / rename / delete packs and cards). Preview stays below. Level name is not in that pane. Select a HUD cell to set its type: empty slot, dice, spinner, last roll, or player bar.
-5. **Packs** can exist with zero cards — no CSV required. Tile Actions can attach that pack to a corridor tile or a **room**. Landing on the room’s **door** deals that room pack; the token stays on the door. **New card** edits title, body, **Timer seconds**, and **Extra button**. Mark **End room** on a room with the existing End control. **Level hold** on the selected floor turns on per-pack reveal quotas before that floor’s stairs open.
-6. **Save** writes the working layout (including HUD widget types and Level hold quotas), pack catalog, and card deck (including timer and extra-button fields) even if stairs or loops are invalid. **Test** is blocked with a named list until the layout is valid, then remounts the play HUD. **Publish** uses the same layout gate as Test: it stays disabled until the board is valid, then freezes the current snapshot as published.
+4. Right pane tabs: **Tile Actions** (HUD type, Level hold + pack quotas, pack, start, end, stairs, **Audio**), **Packs**, and **Start**. Preview stays below. Level name is not in that pane. Select a HUD cell to set its type: empty slot, dice, spinner, last roll, or player bar.
+5. **Packs** can exist with zero cards — no CSV required. Tile Actions can attach that pack to a corridor tile or a **room**. Landing on the room’s **door** deals that room pack; the token stays on the door. **New card** edits title, body, **Timer seconds**, **Extra button**, and **Audio**. Mark **End room** on a room with the existing End control. **Level hold** on the selected floor turns on per-pack reveal quotas before that floor’s stairs open.
+6. **Save** writes the working layout (including HUD widget types, Level hold quotas, audio refs, and Start), pack catalog, and card deck (including timer, extra-button, and audio fields) even if stairs, loops, or splashes are invalid. **Test** is blocked with a named list until the layout is valid, then remounts the play HUD. **Publish** uses the same layout gate as Test: it stays disabled until the board is valid, then freezes the current snapshot as published.
 
 A room without a door, or a door that does not touch both a corridor and a room, blocks **Test** and **Publish**. Inner maps, first-person, polar shape UI, cloud accounts, and buyable packs are not in this slice.
+
+## Audio
+
+Attach one optional clip per surface: a **URL** or a **local file** (IndexedDB on this device; refs only in the game JSON).
+
+- **Tile Actions Audio:** corridor, stair, and room. Room sound plays when the token lands on that room’s door. Crossing a tile or stair without stopping does not play. HUD and door cells do not hold audio.
+- **Packs:** card audio plays when the card is dealt and shown. Pass and Play do not replay it.
+- **Start:** splash screens, then a menu (**Play** / **Continue**). Empty Start skips the overlay. Continue is disabled until saved sessions exist. Game-start audio begins on the splash (or the menu if there are no splashes). If the browser blocks autoplay, **Tap to start** plays it without skipping the screen.
+- One **Mute** / **Unmute** control on the start overlay and the play HUD. Missing sound shows a placeholder and does not block Test or Publish.
 
 ## Game library
 
@@ -36,7 +45,7 @@ Drafts and published games live in this browser (`localStorage` key `building-bo
 
 1. First visit seeds **Climb (sample)** and shows **Climb (sample) (draft)** in the centered title. An empty library shows no “No game” placeholder.
 2. **New** asks for a name (empty and focused) and starts from **Empty board** (default), any saved game (`(draft)` / `(Published)`), or **Climb sample** last. Unsaved changes prompt before New or Open.
-3. **Save** writes the active draft (board including HUD types and Level hold quotas, starting players, pack catalog, card deck including Design timer/extra fields and CSV imports, feature-toggle config). Save, Test, Publish, and Delete are disabled when no game is loaded. Save matches the other outline buttons.
+3. **Save** writes the active draft (board including HUD types, Level hold quotas, and audio refs, starting players, pack catalog, card deck including Design timer/extra/audio fields and CSV imports, Start designer, feature-toggle config). Save, Test, Publish, and Delete are disabled when no game is loaded. Save matches the other outline buttons.
 4. **Open** lists draft and published games. Choosing one remounts play from that game’s saved definition (token back at start, no card up).
 5. **Delete** removes the active draft after confirm. Published games cannot be deleted. After an edit the game is a draft again and Delete may enable. After delete, another game is selected, or the studio stays empty.
 6. **Publish** is enabled when a game is loaded and the layout would pass Test. First publish is **(Published) v1** and assigns a local slug. Later publish keeps the landed version and the same slug. Open lists `/play/{slug}` on published rows. `/play/{slug}` plays that published snapshot from this browser (missing or unpublished slugs show an empty state).
@@ -49,7 +58,8 @@ Drafts and published games live in this browser (`localStorage` key `building-bo
 - **`lib/engine/*`** — Authoritative game rules and state (no PlayCanvas imports). Commands flow in; events flow out.
 - **`lib/engine/layout.ts`** — Grid occupancy, corridor loops, start square. No PlayCanvas.
 - **`lib/designer/*`** — Board mutations and Test validation. No PlayCanvas.
-- **`lib/library/*`** — Local draft documents (New / Save / Open). No PlayCanvas, no backend.
+- **`lib/library/*`** — Local draft documents (New / Save / Open). IndexedDB media store for local audio/splash files. No PlayCanvas, no backend.
+- **`lib/engine/audio.ts`** / **`lib/view/audio-player.ts`** — Land/deal cues and DOM `<audio>` playback (no PlayCanvas).
 - **`components/board/*`** — PlayCanvas React view layer: floor stack and sliding tokens.
 - **`components/board/FloorPreview.tsx`** — PlayCanvas preview of the floor being edited.
 - **`components/designer/*`** — HTML layout grid over the library draft.

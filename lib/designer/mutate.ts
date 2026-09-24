@@ -354,8 +354,9 @@ export function setCellAudio(
       if (cell.id !== cellId) return cell;
       if (cell.kind === 'hud' || cell.kind === 'door') return cell;
       if (!audio) {
-        const { audio: _drop, ...rest } = cell;
-        return rest;
+        const next = { ...cell };
+        delete next.audio;
+        return next;
       }
       return { ...cell, audio };
     }),

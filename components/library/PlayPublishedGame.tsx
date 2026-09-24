@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GameHud } from '@/components/hud/GameHud';
 import { fromStoredBootstrap } from '@/lib/library/bootstrap';
+import { browserMediaStore } from '@/lib/library/media-store';
 import { findPublishedBySlug, parseLibrary } from '@/lib/library/state';
 import { browserStorage, type LibraryStorage } from '@/lib/library/storage';
 import type { GameDocument } from '@/lib/library/types';
@@ -18,6 +19,7 @@ export function PlayPublishedGame({
 }) {
   const [ready, setReady] = useState(false);
   const [doc, setDoc] = useState<GameDocument | undefined>();
+  const [media] = useState(() => browserMediaStore());
 
   useEffect(() => {
     const store = storage ?? browserStorage();
@@ -44,6 +46,7 @@ export function PlayPublishedGame({
           bootstrap={fromStoredBootstrap(doc.bootstrap)}
           gameStart={doc.bootstrap.gameStart}
           gameId={doc.id}
+          media={media}
         />
       ) : null}
     </div>

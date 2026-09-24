@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,10 +53,6 @@ export function AudioField({
   const [urlDraft, setUrlDraft] = useState(value?.source === 'url' ? (value.src ?? '') : '');
   const [error, setError] = useState<string | null>(null);
   const [sizeWarn, setSizeWarn] = useState(false);
-
-  useEffect(() => {
-    setUrlDraft(value?.source === 'url' ? (value.src ?? '') : '');
-  }, [value?.id, value?.source, value?.src]);
 
   const commitUrl = async (raw: string) => {
     const trimmed = raw.trim();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { FloorPreview } from '@/components/board/FloorPreview';
 import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { CellInspector } from '@/components/designer/CellInspector';
@@ -95,7 +95,7 @@ export function LayoutDesigner({
   media?: MediaStore;
 }) {
   const start = gameStart ?? emptyGameStart();
-  const fallbackMedia = useRef(memoryMediaStore()).current;
+  const [fallbackMedia] = useState(() => memoryMediaStore());
   const mediaStore = media ?? fallbackMedia;
   const [sideTab, setSideTab] = useState<'actions' | 'packs' | 'start'>('actions');
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
