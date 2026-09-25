@@ -233,7 +233,7 @@ export function addCard(cards: Card[], card: Card): Card[] {
 export function updateCard(
   cards: Card[],
   cardId: string,
-  patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId' | 'image'>>,
+  patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId' | 'itemId' | 'image'>>,
 ): Card[] {
   if (patch.title !== undefined && patch.title.trim().length === 0) return cards;
   return cards.map((card) => {
@@ -264,6 +264,10 @@ export function updateCard(
     if ('spinnerId' in patch) {
       if (patch.spinnerId) next.spinnerId = patch.spinnerId;
       else delete next.spinnerId;
+    }
+    if ('itemId' in patch) {
+      if (patch.itemId) next.itemId = patch.itemId;
+      else delete next.itemId;
     }
     if ('image' in patch) {
       if (patch.image) next.image = patch.image;

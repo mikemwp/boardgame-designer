@@ -369,7 +369,12 @@ export function GameHud({
             activePlayerId={game.players.activePlayerId}
           />
         ) : null}
-        <InventoryBar items={game.items} inventory={activePlayer?.inventory} />
+        <InventoryBar
+          items={game.items}
+          inventory={activePlayer?.inventory}
+          player={activePlayer}
+          onUse={(itemId) => dispatch({ type: 'USE_ITEM', itemId })}
+        />
         {showItemSetup ? (
           <ItemSetup
             items={startingItems(game.items)}

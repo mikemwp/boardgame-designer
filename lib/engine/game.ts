@@ -12,7 +12,7 @@ import {
 } from './types';
 import { createBoard, getFloor, type Board } from './board';
 import { initPlayerPasses, moveToken, setPlayerPassesLeft, type PlayerState } from './players';
-import { assignStartingItems } from './inventory';
+import { assignStartingItems, seedItemUses, useItem } from './inventory';
 import { sampleSegment } from './spinner';
 import { canSpendPass, createPassesLeft, spendPass } from './passes';
 import { movementRange, sampleMovement, type Rng } from './dice';
@@ -401,7 +401,8 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
     }
     case 'SPIN_OUTCOME':
       return applyOutcomeSpin(state, cmd.spinnerId);
-    case 'SET_INVENTORY':
+    case 'SET_INVENTORY': {
+      const itemUses = seedItemUses(state.items, cmd.itemIds);
       return {
         ...state,
         players: {
@@ -409,10 +410,30 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
           players: state.players.players.map((player) => ({
             ...player,
             inventory: [...cmd.itemIds],
+            ...(itemUses ? { itemUses: { ...itemUses } } : { itemUses: undefined }),
           })),
         },
         lastEvent: { type: 'INVENTORY_SET' },
       };
+    }
+    case 'USE_ITEM': {
+      const active = state.players.activePlayerId;
+      if (!active) return state;
+      const player = state.players.players.find((entry) => entry.id === active);
+      if (!player) return state;
+      const used = useItem(player, cmd.itemId, state.items);
+      if (used.player === player) return state;
+      return {
+        ...state,
+        players: {
+          ...state.players,
+          players: state.players.players.map((entry) => (entry.id === active ? used.player : entry)),
+        },
+        lastEvent: used.destroyed
+          ? { type: 'ITEM_DESTROYED', itemId: cmd.itemId }
+          : { type: 'ITEM_USED', itemId: cmd.itemId, usesLeft: used.usesLeft },
+      };
+    }
     default:
       return state;
   }

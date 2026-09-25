@@ -132,6 +132,12 @@ export interface InventoryItem {
   id: string;
   name: string;
   starting?: boolean;
+  description?: string;
+  usageNotes?: string;
+  usesRemaining?: number;
+  image?: ImageRef;
+  video?: VideoRef;
+  audio?: AudioRef;
 }
 
 export type EdgeMaterial = 'wood' | 'metal' | 'plastic';
@@ -185,6 +191,7 @@ export interface Cell {
   kind?: CellKind;
   packId?: string;
   spinnerId?: string;
+  itemId?: string;
   stairId?: string;
   roomId?: string;
   col?: number;
@@ -236,6 +243,7 @@ export interface Player {
   token: TokenPos;
   passesLeftByPack?: Record<string, number>;
   inventory?: string[];
+  itemUses?: Record<string, number>;
 }
 
 export interface Card {
@@ -248,6 +256,7 @@ export interface Card {
   extraButton?: string;
   audio?: AudioRef;
   spinnerId?: string;
+  itemId?: string;
   image?: ImageRef;
 }
 

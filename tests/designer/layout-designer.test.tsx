@@ -611,7 +611,7 @@ describe('LayoutDesigner', () => {
     expect(next.floors[0]?.cells.find((c) => c.id === corridor.id)?.spinnerId).toBe('spinner-1');
   });
 
-  it('creates a starting item from the Players tab', () => {
+  it('creates an item on the Items tab and marks it starting on Players', () => {
     const onCatalogChange = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
     const { rerender } = render(
@@ -629,7 +629,7 @@ describe('LayoutDesigner', () => {
         onCatalogChange={onCatalogChange}
       />,
     );
-    fireEvent.click(screen.getByRole('tab', { name: 'Players' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Items' }));
     fireEvent.click(screen.getByRole('button', { name: 'New item' }));
     expect(onCatalogChange).toHaveBeenCalled();
     const created = onCatalogChange.mock.calls[0][0];
@@ -652,10 +652,33 @@ describe('LayoutDesigner', () => {
         onCatalogChange={onCatalogChange}
       />,
     );
+    fireEvent.click(screen.getByRole('tab', { name: 'Players' }));
+    expect(screen.queryByRole('button', { name: 'New item' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Select item Item 1' }));
     fireEvent.click(screen.getByLabelText('Starting item'));
     const updated = onCatalogChange.mock.calls.at(-1)![0];
     expect(updated.items[0]).toMatchObject({ id: 'item-1', starting: true });
+  });
+
+  it('shows the selected level name and hold on the Levels tab', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Levels' }));
+    expect(screen.getByTestId('hold-editor').textContent).toContain('Level 1');
+    expect(screen.getByLabelText('Level hold')).toBeDefined();
   });
 
   it('asks before Delete level', () => {

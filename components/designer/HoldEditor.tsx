@@ -11,6 +11,7 @@ export function HoldEditor({
   floor,
   packIds,
   onChange,
+  onRename,
   gameId,
   media,
   onBackgroundChange,
@@ -18,6 +19,7 @@ export function HoldEditor({
   floor: Floor;
   packIds: string[];
   onChange: (patch: { holdEnabled?: boolean; holdQuotas?: Record<string, number> }) => void;
+  onRename?: (label: string) => void;
   gameId?: string;
   media?: MediaStore;
   onBackgroundChange?: (background: ImageRef | undefined) => void;
@@ -25,6 +27,21 @@ export function HoldEditor({
   const holdOn = Boolean(floor.holdEnabled);
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-slate-800 p-3" data-testid="hold-editor">
+      <p className="text-sm font-medium text-slate-100" data-testid="level-tab-name">
+        {floor.label}
+      </p>
+      {onRename ? (
+        <>
+          <Label htmlFor="levels-tab-name">Level name</Label>
+          <Input
+            id="levels-tab-name"
+            key={floor.id}
+            aria-label="Selected level name"
+            defaultValue={floor.label}
+            onBlur={(e) => onRename(e.target.value)}
+          />
+        </>
+      ) : null}
       <div className="flex items-center justify-between gap-4">
         <Label htmlFor="level-hold">Level hold</Label>
         <Switch

@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cardsInPack } from '@/lib/designer/packs';
-import type { Card, ImageRef, SpinnerDef } from '@/lib/engine/types';
+import type { Card, ImageRef, InventoryItem, SpinnerDef } from '@/lib/engine/types';
 import type { CopyCardSource, CopyPackSource } from '@/lib/library/floating';
 import type { MediaStore } from '@/lib/library/media-store';
 
@@ -58,6 +58,7 @@ export function PackEditor({
   copyPackSources = [],
   copyCardSources = [],
   spinners,
+  items,
   gameId,
   media,
 }: {
@@ -75,7 +76,7 @@ export function PackEditor({
   onCreateCard: () => void;
   onCopyCard?: (source: CopyCardSource) => void;
   onUpdateCard: (
-    patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId' | 'image'>>,
+    patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId' | 'itemId' | 'image'>>,
   ) => void;
   onRemoveCard?: (cardId: string) => void;
   onDeleteCard: (cardId: string) => void;
@@ -84,6 +85,7 @@ export function PackEditor({
   copyPackSources?: CopyPackSource[];
   copyCardSources?: CopyCardSource[];
   spinners?: SpinnerDef[];
+  items?: InventoryItem[];
   gameId?: string;
   media?: MediaStore;
 }) {
@@ -274,6 +276,25 @@ export function PackEditor({
                 value={selectedCard.extraButton ?? ''}
                 onChange={(e) => onUpdateCard({ extraButton: e.target.value })}
               />
+              {items && items.length > 0 ? (
+                <>
+                  <Label htmlFor="card-item">Item</Label>
+                  <select
+                    id="card-item"
+                    aria-label="Card item"
+                    className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                    value={selectedCard.itemId ?? ''}
+                    onChange={(e) => onUpdateCard({ itemId: e.target.value || undefined })}
+                  >
+                    <option value="">None</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
               {spinners && spinners.length > 0 ? (
                 <>
                   <Label htmlFor="card-spinner">Spinner</Label>

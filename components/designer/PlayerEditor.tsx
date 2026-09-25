@@ -1,7 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { InventoryItem, ItemAssign } from '@/lib/engine/types';
 
@@ -10,20 +8,14 @@ export function PlayerEditor({
   itemAssign,
   selectedId,
   onSelect,
-  onCreate,
-  onRename,
   onStarting,
-  onDelete,
   onAssign,
 }: {
   items: InventoryItem[];
   itemAssign: ItemAssign;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  onCreate: () => void;
-  onRename: (name: string) => void;
   onStarting: (starting: boolean) => void;
-  onDelete: () => void;
   onAssign: (mode: ItemAssign) => void;
 }) {
   const selected = items.find((item) => item.id === selectedId);
@@ -42,13 +34,8 @@ export function PlayerEditor({
         <option value="random">Randomly assign</option>
         <option value="choose">Players choose</option>
       </select>
-      <Button type="button" variant="outline" onClick={onCreate}>
-        New item
-      </Button>
       {items.length === 0 ? (
-        <p className="text-sm text-slate-400">
-          No inventory items yet. Create items players can start with.
-        </p>
+        <p className="text-sm text-slate-400">Create items on the Items tab.</p>
       ) : (
         <ul className="flex flex-col gap-1">
           {items.map((item) => (
@@ -70,27 +57,15 @@ export function PlayerEditor({
         </ul>
       )}
       {selected ? (
-        <>
-          <Label htmlFor="item-name">Name</Label>
-          <Input
-            id="item-name"
-            aria-label="Item name"
-            value={selected.name}
-            onChange={(e) => onRename(e.target.value)}
+        <label className="flex items-center gap-2 text-sm text-slate-200">
+          <input
+            type="checkbox"
+            aria-label="Starting item"
+            checked={Boolean(selected.starting)}
+            onChange={(e) => onStarting(e.target.checked)}
           />
-          <label className="flex items-center gap-2 text-sm text-slate-200">
-            <input
-              type="checkbox"
-              aria-label="Starting item"
-              checked={Boolean(selected.starting)}
-              onChange={(e) => onStarting(e.target.checked)}
-            />
-            Starting item
-          </label>
-          <Button type="button" variant="outline" onClick={onDelete}>
-            Delete item
-          </Button>
-        </>
+          Starting item
+        </label>
       ) : null}
     </div>
   );

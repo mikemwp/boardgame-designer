@@ -524,6 +524,20 @@ describe('outcome spin and inventory', () => {
     });
     expect(game.players.players[0]?.inventory).toEqual(['item-1']);
   });
+
+  it('USE_ITEM decrements uses and destroys the item at 0', () => {
+    const game = createGame({
+      ...loopBootstrap(),
+      items: [{ id: 'item-1', name: 'Lock pick', starting: true, usesRemaining: 2 }],
+      itemAssign: 'random',
+    });
+    expect(game.players.players[0]?.itemUses).toEqual({ 'item-1': 2 });
+    const once = dispatch(game, { type: 'USE_ITEM', itemId: 'item-1' });
+    expect(once.lastEvent).toEqual({ type: 'ITEM_USED', itemId: 'item-1', usesLeft: 1 });
+    const twice = dispatch(once, { type: 'USE_ITEM', itemId: 'item-1' });
+    expect(twice.lastEvent).toEqual({ type: 'ITEM_DESTROYED', itemId: 'item-1' });
+    expect(twice.players.players[0]?.inventory).toEqual([]);
+  });
 });
 
 describe('climb sample still boots', () => {

@@ -4,6 +4,7 @@ export type GameCommand =
   | { type: 'PASS_CARD'; packId: string }
   | { type: 'SPIN_OUTCOME'; spinnerId: string }
   | { type: 'SET_INVENTORY'; itemIds: string[] }
+  | { type: 'USE_ITEM'; itemId: string }
   | { type: 'ENTER_ROOM' }
   | { type: 'PASS_ROOM' }
   | { type: 'LEAVE_ROOM' }
@@ -16,4 +17,6 @@ export type GameEvent =
   | { type: 'HOLD_ENTERED'; floorId: string }
   | { type: 'HOLD_EXITED' }
   | { type: 'SPINNER_LANDED'; spinnerId: string; label: string }
-  | { type: 'INVENTORY_SET' };
+  | { type: 'INVENTORY_SET' }
+  | { type: 'ITEM_USED'; itemId: string; usesLeft?: number }
+  | { type: 'ITEM_DESTROYED'; itemId: string };

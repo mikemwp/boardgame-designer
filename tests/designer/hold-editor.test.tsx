@@ -42,4 +42,11 @@ describe('HoldEditor', () => {
     );
     expect(screen.getByText('Uses the Start background.')).toBeDefined();
   });
+
+  it('shows the selected level name', () => {
+    const floor = createLoopedFloor('ground', 'Level 1', 0);
+    render(<HoldEditor floor={floor} packIds={[]} onChange={() => {}} onRename={() => {}} />);
+    expect(screen.getByTestId('level-tab-name').textContent).toBe('Level 1');
+    expect(screen.getByLabelText('Selected level name')).toBeDefined();
+  });
 });

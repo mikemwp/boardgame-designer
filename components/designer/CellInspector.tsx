@@ -10,7 +10,7 @@ import { tileActionKind } from '@/lib/designer/tile-chrome';
 import { roomById } from '@/lib/designer/rooms';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { AudioRef, Cell, DoorExit, HudWidget, ImageRef, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
+import type { AudioRef, Cell, DoorExit, HudWidget, ImageRef, InventoryItem, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
@@ -40,6 +40,8 @@ export function CellInspector({
   onSetHudWidget,
   spinners,
   onSetSpinner,
+  items,
+  onSetItem,
   gameId,
   media,
   onSetAudio,
@@ -63,6 +65,8 @@ export function CellInspector({
   onSetHudWidget?: (widget: HudWidget) => void;
   spinners?: SpinnerDef[];
   onSetSpinner?: (spinnerId: string | undefined) => void;
+  items?: InventoryItem[];
+  onSetItem?: (itemId: string | undefined) => void;
   gameId?: string;
   media?: MediaStore;
   onSetAudio?: (audio: AudioRef | undefined) => void;
@@ -223,6 +227,25 @@ export function CellInspector({
                   </select>
                 </>
               )}
+              {items && items.length > 0 && onSetItem ? (
+                <>
+                  <Label htmlFor="cell-item">Item</Label>
+                  <select
+                    id="cell-item"
+                    aria-label="Item"
+                    className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                    value={cell.itemId ?? ''}
+                    onChange={(e) => onSetItem(e.target.value || undefined)}
+                  >
+                    <option value="">None</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
               {catalog.length > 0 && onSetSpinner ? (
                 <>
                   <Label htmlFor="cell-spinner">Spinner</Label>

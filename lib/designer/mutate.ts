@@ -379,6 +379,26 @@ export function setCellVideo(
   return setCellMedia(board, floorId, cellId, 'video', video);
 }
 
+export function setCellItem(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  itemId: string | undefined,
+): Board {
+  return mapFloor(board, floorId, (current) => ({
+    ...current,
+    cells: current.cells.map((cell) => {
+      if (cell.id !== cellId) return cell;
+      if (cell.kind === 'hud' || cell.kind === 'board') return cell;
+      if (!itemId) {
+        const { itemId: _drop, ...rest } = cell;
+        return rest;
+      }
+      return { ...cell, itemId };
+    }),
+  }));
+}
+
 export function setCellSpinner(
   board: Board,
   floorId: string,
@@ -415,6 +435,7 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
           const {
             packId: _pack,
             spinnerId: _spinner,
+            itemId: _item,
             stairId: _stair,
             roomId: _room,
             start: _start,

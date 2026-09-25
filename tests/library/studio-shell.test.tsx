@@ -434,8 +434,9 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Spinners' }));
     fireEvent.click(screen.getByRole('button', { name: 'New spinner' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Players' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Items' }));
     fireEvent.click(screen.getByRole('button', { name: 'New item' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Players' }));
     fireEvent.click(screen.getByLabelText('Starting item'));
     fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
     fireEvent.click(screen.getByTestId('slot-0-0'));
