@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   designerCellLabel,
+  previewMaterialName,
   previewTileColor,
   previewTileLabel,
   PREVIEW_TILE_COLORS,
@@ -29,5 +30,9 @@ describe('previewTileColor', () => {
     expect(previewTileColor({ kind: 'hud' })).toEqual(PREVIEW_TILE_COLORS.hud);
     expect(previewTileColor({ kind: 'corridor' })).toEqual(PREVIEW_TILE_COLORS.corridor);
     expect(previewTileLabel({ kind: 'stair', start: true })).toBeNull();
+    expect(previewMaterialName({ kind: 'board' })).toBe('board');
+    expect(previewMaterialName({ kind: 'door' })).toBe('door');
+    expect(previewMaterialName({ kind: 'corridor' })).toBe('corridor');
+    expect(previewMaterialName({ kind: 'board' }, true)).toBe('selected');
   });
 });

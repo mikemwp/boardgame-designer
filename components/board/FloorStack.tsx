@@ -5,7 +5,7 @@ import { Entity } from '@playcanvas/react';
 import { Collision, Render, RigidBody } from '@playcanvas/react/components';
 import { useMaterial } from '@playcanvas/react/hooks';
 import { defaultFloorLook, usesBoardTexture } from '@/lib/designer/board-look';
-import { PREVIEW_TILE_COLORS, previewTileColor } from '@/lib/designer/tile-chrome';
+import { PREVIEW_TILE_COLORS, previewMaterialName } from '@/lib/designer/tile-chrome';
 import type { Board } from '@/lib/engine/board';
 import { inferShape } from '@/lib/engine/shape';
 import type { Floor } from '@/lib/engine/types';
@@ -143,6 +143,8 @@ export function FloorStack({
   const hudMat = useMaterial({ ...PREVIEW_TILE_COLORS.hud, emissiveIntensity: 0.8 });
   const startMat = useMaterial({ ...PREVIEW_TILE_COLORS.start, emissiveIntensity: 0.85 });
   const selectedMat = useMaterial({ ...PREVIEW_TILE_COLORS.selected, emissiveIntensity: 0.9 });
+  const boardMat = useMaterial({ ...PREVIEW_TILE_COLORS.board, emissiveIntensity: 0.75 });
+  const doorMat = useMaterial({ ...PREVIEW_TILE_COLORS.door, emissiveIntensity: 0.8 });
   const seamMat = useMaterial({ diffuse: '#1e293b', emissive: '#0f172a', emissiveIntensity: 1.2 });
   const faceMat = useMaterial({ diffuse: '#e7d3b0', emissive: '#a16207', emissiveIntensity: 0.2 });
   const floors = board.floors ?? [];
@@ -157,36 +159,29 @@ export function FloorStack({
           const pos = cellToWorld(floor.index, cell, floor.hud, floor);
           const selected = cell.id === selectedCellId;
           const textured = !polar && usesBoardTexture(cell, look);
-          const color = selected ? PREVIEW_TILE_COLORS.selected : previewTileColor(cell);
-          const material = textured
-            ? faceMat
-            : color === PREVIEW_TILE_COLORS.selected
+          const materialName = previewMaterialName(cell, selected);
+          const kindMat =
+            materialName === 'selected'
               ? selectedMat
-              : color === PREVIEW_TILE_COLORS.start
+              : materialName === 'start'
                 ? startMat
-                : color === PREVIEW_TILE_COLORS.hud
+                : materialName === 'hud'
                   ? hudMat
-                  : color === PREVIEW_TILE_COLORS.stair
+                  : materialName === 'stair'
                     ? stairMat
-                    : color === PREVIEW_TILE_COLORS.room
+                    : materialName === 'room'
                       ? roomMat
-                      : corridorMat;
+                      : materialName === 'door'
+                        ? doorMat
+                        : materialName === 'board'
+                          ? boardMat
+                          : corridorMat;
+          const material = textured ? faceMat : kindMat;
           const polygon = polar ? slotPolygon(floor, cell) : [];
           const seams = polar && polygon.length > 0
             ? tileSeamEdgesFromPolygon(pos.y, polygon)
             : tileSeamEdges(pos);
-          const rimMat =
-            color === PREVIEW_TILE_COLORS.selected
-              ? selectedMat
-              : color === PREVIEW_TILE_COLORS.start
-                ? startMat
-                : color === PREVIEW_TILE_COLORS.hud
-                  ? hudMat
-                  : color === PREVIEW_TILE_COLORS.stair
-                    ? stairMat
-                    : color === PREVIEW_TILE_COLORS.room
-                      ? roomMat
-                      : corridorMat;
+          const rimMat = kindMat;
           return (
             <Fragment key={`${floor.id}:${cellIndex}:${cell.id}`}>
               {polar && polygon.length > 0 ? (

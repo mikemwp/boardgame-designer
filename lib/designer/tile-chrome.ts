@@ -26,6 +26,28 @@ export function designerCellLabel(cell: TileChromeCell): string {
   return '';
 }
 
+export type PreviewMaterialName =
+  | 'selected'
+  | 'start'
+  | 'hud'
+  | 'stair'
+  | 'room'
+  | 'door'
+  | 'board'
+  | 'corridor';
+
+export function previewMaterialName(cell: TileChromeCell, selected = false): PreviewMaterialName {
+  if (selected) return 'selected';
+  const color = previewTileColor(cell);
+  if (color === PREVIEW_TILE_COLORS.start) return 'start';
+  if (color === PREVIEW_TILE_COLORS.hud) return 'hud';
+  if (color === PREVIEW_TILE_COLORS.stair) return 'stair';
+  if (color === PREVIEW_TILE_COLORS.room) return 'room';
+  if (color === PREVIEW_TILE_COLORS.door) return 'door';
+  if (color === PREVIEW_TILE_COLORS.board) return 'board';
+  return 'corridor';
+}
+
 export function previewTileColor(cell: TileChromeCell): { diffuse: string; emissive: string } {
   if (cell.start) return PREVIEW_TILE_COLORS.start;
   if (cell.kind === 'stair') return PREVIEW_TILE_COLORS.stair;
