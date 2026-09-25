@@ -2,6 +2,7 @@ import type { Board } from './board';
 import { getFloor, listLegalStairLandings } from './board';
 import type { Rng } from './dice';
 import type { HoldState } from './hold';
+import { isOffPathCell } from './layout';
 import { inferShape } from './shape';
 import { layoutNeighbors } from './shape-layout';
 import type { Cell, Floor, TokenPos } from './types';
@@ -11,7 +12,7 @@ export function sortedCells(floor: { cells: Cell[] }): Cell[] {
 }
 
 export function walkableCells(floor: { cells: Cell[] }): Cell[] {
-  return sortedCells(floor).filter((cell) => cell.kind !== 'hud');
+  return sortedCells(floor).filter((cell) => !isOffPathCell(cell));
 }
 
 function pathCells(floor: { cells: Cell[]; shape?: Floor['shape'] }): Cell[] {

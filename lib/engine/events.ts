@@ -6,7 +6,8 @@ export type GameCommand =
   | { type: 'SET_INVENTORY'; itemIds: string[] }
   | { type: 'ENTER_ROOM' }
   | { type: 'PASS_ROOM' }
-  | { type: 'LEAVE_ROOM' };
+  | { type: 'LEAVE_ROOM' }
+  | { type: 'STAY_ROOM' };
 
 export type GameEvent =
   | { type: 'DICE_ROLLED'; value: number; sides: number }

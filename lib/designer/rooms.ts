@@ -96,7 +96,7 @@ export function attachRoom(board: Board, floorId: string, cellId: string): Board
   const floor = board.floors.find((entry) => entry.id === floorId);
   const cell = floor?.cells.find((entry) => entry.id === cellId);
   if (!floor || !cell) return board;
-  if (cell.kind === 'hud' || cell.kind === 'stair' || cell.kind === 'room') {
+  if (cell.kind === 'hud' || cell.kind === 'stair' || cell.kind === 'room' || cell.kind === 'board' || cell.kind === 'door') {
     return board;
   }
   const rooms = board.rooms ?? [];
@@ -198,7 +198,10 @@ export function isVanillaRoom(room: RoomDef): boolean {
       cell.stairId ||
       cell.roomId ||
       cell.kind === 'stair' ||
-      cell.kind === 'room'
+      cell.kind === 'room' ||
+      cell.kind === 'board' ||
+      cell.kind === 'door' ||
+      Boolean(cell.doorExit)
     ) {
       return false;
     }

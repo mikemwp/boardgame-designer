@@ -18,7 +18,8 @@ export type LayoutIssueCode =
   | 'pack-on-stair'
   | 'missing-start'
   | 'missing-hud'
-  | 'room-without-interior';
+  | 'room-without-interior'
+  | 'missing-room-door';
 
 export interface LayoutIssue {
   code: LayoutIssueCode;
@@ -187,6 +188,12 @@ export function validateLayout(board: Board): LayoutIssue[] {
       issues.push({
         code: 'room-without-interior',
         message: `${room.name}: multi-tile room has no walkable interior.`,
+      });
+    }
+    if (room.mode === 'multi' && !(room.cells ?? []).some((cell) => cell.kind === 'door')) {
+      issues.push({
+        code: 'missing-room-door',
+        message: `${room.name}: multi-tile room needs a Door.`,
       });
     }
   }

@@ -15,8 +15,13 @@ import {
   placeCorridor,
   placeCorridorOnSlot,
   attachRoom,
+  attachDoor,
+  canvasClearCell,
+  fillFreeWithBoard,
+  placeBoard,
   placeHud,
   placeRoom,
+  setDoorExit,
   renameFloor,
   setCellPack,
   setEndCell,
@@ -72,6 +77,43 @@ describe('placeHud', () => {
       col: hudCol,
       row: hudRow,
     });
+  });
+});
+
+describe('placeBoard, fill, and canvasClear', () => {
+  it('places Board on a free square and Fill covers remaining empties', () => {
+    const placed = placeBoard(groundBoard(), 'ground', 1, 1, 'ground-b1');
+    expect(placed.floors[0]?.cells.find((c) => c.id === 'ground-b1')).toMatchObject({
+      kind: 'board',
+      col: 1,
+      row: 1,
+    });
+    const filled = fillFreeWithBoard(placed, 'ground');
+    const empties = [];
+    const floor = filled.floors[0]!;
+    for (let row = 0; row < (floor.rows ?? 0); row += 1) {
+      for (let col = 0; col < (floor.columns ?? 0); col += 1) {
+        if (!floor.cells.some((c) => c.col === col && c.row === row)) empties.push(`${col},${row}`);
+      }
+    }
+    expect(empties).toEqual([]);
+    expect(filled.floors[0]!.cells.filter((c) => c.kind === 'board').length).toBeGreaterThan(1);
+  });
+
+  it('canvas Clear frees HUD/Tile, converts Stair, and leaves Board', () => {
+    const board = groundBoard();
+    const hud = board.floors[0]!.cells.find((c) => c.kind === 'hud')!;
+    const corridor = board.floors[0]!.cells.find((c) => c.kind === 'corridor')!;
+    expect(canvasClearCell(board, 'ground', hud.id).floors[0]?.cells.some((c) => c.id === hud.id)).toBe(false);
+    expect(canvasClearCell(board, 'ground', corridor.id).floors[0]?.cells.some((c) => c.id === corridor.id)).toBe(
+      false,
+    );
+    const stair = attachStair(board, 'ground', 'ground-c3');
+    expect(canvasClearCell(stair, 'ground', 'ground-c3').floors[0]?.cells.find((c) => c.id === 'ground-c3')?.kind).toBe(
+      'corridor',
+    );
+    const withBoard = placeBoard(board, 'ground', 1, 1, 'ground-b1');
+    expect(canvasClearCell(withBoard, 'ground', 'ground-b1')).toBe(withBoard);
   });
 });
 

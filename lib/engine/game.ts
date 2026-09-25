@@ -64,6 +64,7 @@ export interface GameState {
   itemAssign: ItemAssign;
   awaitingRoom: AwaitingRoom | null;
   insideRoom: InsideRoom | null;
+  awaitingDoorExit: boolean;
 }
 
 export interface GameBootstrap {
@@ -104,6 +105,7 @@ export function createGame(bootstrap: GameBootstrap, overrides?: Partial<GameCon
     itemAssign,
     awaitingRoom: null,
     insideRoom: null,
+    awaitingDoorExit: false,
   };
 }
 
@@ -113,7 +115,11 @@ function roomOf(board: Board, roomId: string | undefined): RoomDef | undefined {
 }
 
 export function roomEntrance(room: RoomDef): Cell | undefined {
-  return room.cells?.find((cell) => cell.start) ?? room.cells?.[0];
+  return (
+    room.cells?.find((cell) => cell.kind === 'door') ??
+    room.cells?.find((cell) => cell.start) ??
+    room.cells?.[0]
+  );
 }
 
 export function roomPlayFloor(room: RoomDef): Floor {
@@ -256,6 +262,14 @@ function afterMoveInside(state: GameState, playerId: string, floor: Floor, cell:
     ...state,
     lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: floor.id, cellId: cell.id },
   };
+  if (cell.kind === 'door') {
+    if (cell.doorExit === 'auto-leave') {
+      return withCues({ ...moved, insideRoom: null, awaitingDoorExit: false }, landCues);
+    }
+    const prompted = { ...moved, awaitingDoorExit: true };
+    if (packId) return dealOnLand(prompted, packId, landCues);
+    return withCues(prompted, landCues);
+  }
   if (packId) return dealOnLand(moved, packId, landCues);
   return withCues(moved, landCues);
 }
@@ -263,7 +277,7 @@ function afterMoveInside(state: GameState, playerId: string, floor: Floor, cell:
 export function dispatch(state: GameState, cmd: GameCommand): GameState {
   switch (cmd.type) {
     case 'ROLL_DICE': {
-      if (state.awaitingRoom) return state;
+      if (state.awaitingRoom || state.awaitingDoorExit) return state;
       const active = state.players.activePlayerId;
       if (!active) return state;
       const player = state.players.players.find((p) => p.id === active);
@@ -348,8 +362,13 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       };
     }
     case 'LEAVE_ROOM': {
-      if (!state.insideRoom || !isOnRoomEntrance(state)) return state;
-      return { ...state, insideRoom: null };
+      if (!state.insideRoom) return state;
+      if (!state.awaitingDoorExit && !isOnRoomEntrance(state)) return state;
+      return { ...state, insideRoom: null, awaitingDoorExit: false };
+    }
+    case 'STAY_ROOM': {
+      if (!state.awaitingDoorExit) return state;
+      return { ...state, awaitingDoorExit: false };
     }
     case 'PASS_CARD': {
       const active = state.players.activePlayerId;

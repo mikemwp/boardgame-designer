@@ -105,6 +105,14 @@ describe('validateLayout', () => {
     );
   });
 
+  it('blocks a multi-tile room that has no Door', () => {
+    let board = attachRoom(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'ground', 'ground-c3');
+    board = setStartCell(board, 'ground', 'ground-c0');
+    board = setRoomMode(board, board.rooms![0]!.id, 'multi');
+    expect(validateLayout(board).some((i) => i.code === 'missing-room-door')).toBe(true);
+    expect(canTestPlay(board)).toBe(false);
+  });
+
   it('does not require an end tile for test play', () => {
     let board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     board = setStartCell(board, 'ground', 'ground-c0');

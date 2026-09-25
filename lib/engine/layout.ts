@@ -46,7 +46,7 @@ export function fullHudFill(layout: ReturnType<typeof buildShapeLayout>): Array<
 }
 
 export function isOffPathCell(cell: { kind?: string }): boolean {
-  return cell.kind === 'hud';
+  return cell.kind === 'hud' || cell.kind === 'board';
 }
 
 export function loopCells(floor: Floor): Cell[] {

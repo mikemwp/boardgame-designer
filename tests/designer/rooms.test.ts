@@ -53,10 +53,36 @@ describe('attachRoom', () => {
   });
 });
 
-describe('placeDoor', () => {
-  it('is not exported', () => {
-    expect(mutate).not.toHaveProperty('placeDoor');
-    expect(mutate).not.toHaveProperty('clearDoor');
+describe('attachDoor', () => {
+  it('converts a room corridor to a door and keeps one door', () => {
+    let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
+    board = setRoomMode(board, board.rooms![0]!.id, 'multi');
+    const roomFloor = {
+      ...board.rooms![0]!,
+      cells: board.rooms![0]!.cells ?? [],
+    };
+    const fake = createBoard(
+      [
+        {
+          id: roomFloor.id,
+          index: 0,
+          label: roomFloor.name,
+          cells: roomFloor.cells,
+          shape: roomFloor.shape,
+        },
+      ],
+      [],
+    );
+    const corridor = fake.floors[0]!.cells.find((c) => c.kind === 'corridor')!;
+    const other = fake.floors[0]!.cells.find((c) => c.kind === 'corridor' && c.id !== corridor.id)!;
+    const withDoor = mutate.attachDoor(fake, fake.floors[0]!.id, corridor.id);
+    expect(withDoor.floors[0]?.cells.find((c) => c.id === corridor.id)).toMatchObject({
+      kind: 'door',
+      doorExit: 'leave-or-stay',
+    });
+    const moved = mutate.attachDoor(withDoor, fake.floors[0]!.id, other.id);
+    expect(moved.floors[0]?.cells.find((c) => c.id === corridor.id)?.kind).toBe('corridor');
+    expect(moved.floors[0]?.cells.find((c) => c.id === other.id)?.kind).toBe('door');
   });
 });
 

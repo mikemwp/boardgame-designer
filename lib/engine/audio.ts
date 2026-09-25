@@ -27,7 +27,7 @@ export function cuesForLanding(board: Board, floorId: string, cellId: string): A
   const floor = getFloor(board, floorId);
   const cell = floor?.cells.find((c) => c.id === cellId);
   if (!floor || !cell) return [];
-  if (cell.kind === 'hud') return [];
+  if (cell.kind === 'hud' || cell.kind === 'board') return [];
   if (cell.kind === 'stair') {
     return cell.audio ? [{ target: 'stair', ownerId: cell.id, audio: cell.audio }] : [];
   }

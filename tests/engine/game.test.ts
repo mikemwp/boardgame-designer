@@ -203,6 +203,102 @@ describe('ROLL_DICE', () => {
     expect(left.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
   });
 
+  it('auto-leaves when landing on a door again', () => {
+    const interior = [
+      { id: 'room-1-c0', index: 0, kind: 'door' as const, doorExit: 'auto-leave' as const, col: 0, row: 0 },
+      { id: 'room-1-c1', index: 1, kind: 'corridor' as const, col: 1, row: 0 },
+      { id: 'room-1-c2', index: 2, kind: 'corridor' as const, col: 1, row: 1 },
+      { id: 'room-1-c3', index: 3, kind: 'corridor' as const, col: 0, row: 1 },
+    ];
+    const bootstrap: GameBootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
+              { id: 'l1', index: 1, kind: 'room', roomId: 'room-1', col: 1, row: 0 },
+              { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
+            ],
+          },
+        ],
+        [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'multi', shape: { kind: 'square', tilesPerSide: 3 }, cells: interior }],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([]),
+      config: { ...defaultGameConfig(), diceEnabled: true },
+    };
+    const landed = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    const entered = dispatch(landed, { type: 'ENTER_ROOM' });
+    expect(entered.insideRoom).toEqual({ roomId: 'room-1', cellId: 'room-1-c0' });
+    const away = dispatch(entered, { type: 'ROLL_DICE' });
+    expect(away.insideRoom?.cellId).toBeTruthy();
+    expect(away.insideRoom?.cellId).not.toBe('room-1-c0');
+    const back = dispatch(
+      { ...away, insideRoom: { roomId: 'room-1', cellId: 'room-1-c3' }, rng: () => 0 },
+      { type: 'ROLL_DICE' },
+    );
+    expect(back.insideRoom).toBeNull();
+    expect(back.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
+  });
+
+  it('offers Leave or Stay when the door type is leave-or-stay', () => {
+    const interior = [
+      { id: 'room-1-c0', index: 0, kind: 'door' as const, doorExit: 'leave-or-stay' as const, col: 0, row: 0 },
+      { id: 'room-1-c1', index: 1, kind: 'corridor' as const, col: 1, row: 0 },
+      { id: 'room-1-c2', index: 2, kind: 'corridor' as const, col: 1, row: 1 },
+      { id: 'room-1-c3', index: 3, kind: 'corridor' as const, col: 0, row: 1 },
+    ];
+    const bootstrap: GameBootstrap = {
+      board: createBoard(
+        [
+          {
+            id: 'lobby',
+            index: 0,
+            label: 'Lobby',
+            cells: [
+              { id: 'l0', index: 0, kind: 'corridor', col: 0, row: 0 },
+              { id: 'l1', index: 1, kind: 'room', roomId: 'room-1', col: 1, row: 0 },
+              { id: 'l2', index: 2, kind: 'corridor', col: 2, row: 0 },
+            ],
+          },
+        ],
+        [],
+        [{ id: 'room-1', name: 'Room 1', mode: 'multi', shape: { kind: 'square', tilesPerSide: 3 }, cells: interior }],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'A',
+        token: { floorId: 'lobby', cellId: 'l0' },
+      }),
+      cards: createCardState([]),
+      config: { ...defaultGameConfig(), diceEnabled: true },
+    };
+    const landed = dispatch(createGame(bootstrap, { rng: () => 0 }), { type: 'ROLL_DICE' });
+    const entered = dispatch(landed, { type: 'ENTER_ROOM' });
+    const away = dispatch(entered, { type: 'ROLL_DICE' });
+    const back = dispatch(
+      { ...away, insideRoom: { roomId: 'room-1', cellId: 'room-1-c3' }, rng: () => 0 },
+      { type: 'ROLL_DICE' },
+    );
+    expect(back.awaitingDoorExit).toBe(true);
+    expect(back.insideRoom?.cellId).toBe('room-1-c0');
+    const stayed = dispatch(back, { type: 'STAY_ROOM' });
+    expect(stayed.awaitingDoorExit).toBe(false);
+    expect(stayed.insideRoom?.cellId).toBe('room-1-c0');
+    const prompted = { ...back };
+    const left = dispatch(prompted, { type: 'LEAVE_ROOM' });
+    expect(left.insideRoom).toBeNull();
+    expect(left.players.players[0]?.token).toEqual({ floorId: 'lobby', cellId: 'l1' });
+  });
+
   it('moves along the loop and deals on a content landing', () => {
     const game = createGame(loopBootstrap(), { rng: () => 0 });
     const next = dispatch(game, { type: 'ROLL_DICE' });

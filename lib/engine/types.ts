@@ -1,6 +1,8 @@
 export type ActionMode = 'positive' | 'pass' | 'both' | 'neither';
 
-export type CellKind = 'corridor' | 'stair' | 'hud' | 'room';
+export type CellKind = 'corridor' | 'stair' | 'hud' | 'room' | 'board' | 'door';
+
+export type DoorExit = 'auto-leave' | 'leave-or-stay';
 
 export type HudWidget = 'empty' | 'dice' | 'spinner' | 'last-roll' | 'player-bar';
 
@@ -190,6 +192,7 @@ export interface Cell {
   slot?: number;
   start?: boolean;
   end?: boolean;
+  doorExit?: DoorExit;
   hudWidget?: HudWidget;
   audio?: AudioRef;
   image?: ImageRef;
