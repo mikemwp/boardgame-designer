@@ -51,6 +51,7 @@ export function CellInspector({
   onSetAudio,
   onSetImage,
   onSetVideo,
+  onSetFace,
   onSetRoomMode,
 }: {
   board: Board;
@@ -72,6 +73,7 @@ export function CellInspector({
   onSetAudio?: (audio: AudioRef | undefined) => void;
   onSetImage?: (image: ImageRef | undefined) => void;
   onSetVideo?: (video: VideoRef | undefined) => void;
+  onSetFace?: (face: ImageRef | undefined) => void;
   onSetRoomMode?: (mode: RoomMode) => void;
 }) {
   const [clearOpen, setClearOpen] = useState(false);
@@ -247,11 +249,26 @@ export function CellInspector({
               {onSetImage ? (
                 <MediaField
                   kind="image"
+                  label="Image"
                   value={cell.image}
                   gameId={gameId ?? 'draft'}
                   media={media}
                   onChange={(next) => onSetImage(next as ImageRef | undefined)}
                   idPrefix={`cell-${cell.id}`}
+                />
+              ) : null}
+              {onSetImage ? (
+                <p className="text-xs text-slate-400">Land / HUD popup — not the 3D face.</p>
+              ) : null}
+              {onSetFace ? (
+                <MediaField
+                  kind="image"
+                  label="Tile face"
+                  value={cell.face}
+                  gameId={gameId ?? 'draft'}
+                  media={media}
+                  onChange={(next) => onSetFace(next as ImageRef | undefined)}
+                  idPrefix={`cell-${cell.id}-face`}
                 />
               ) : null}
               {onSetVideo ? (

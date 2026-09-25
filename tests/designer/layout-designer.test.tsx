@@ -351,6 +351,8 @@ describe('LayoutDesigner', () => {
         onToolChange={() => {}}
       />,
     );
+    fireEvent.click(screen.getByRole('tab', { name: 'Board' }));
+    expect(screen.getByTestId('board-editor')).toBeDefined();
     fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
     fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
     expect(onDraftChange).toHaveBeenCalled();

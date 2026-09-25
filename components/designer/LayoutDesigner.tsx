@@ -13,7 +13,9 @@ import { SpinnerEditor } from '@/components/designer/SpinnerEditor';
 import { isVanillaFloor, isVanillaRoom, resetFloor } from '@/lib/designer/level-size';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { RoomTabs } from '@/components/designer/RoomTabs';
+import { BoardEditor } from '@/components/designer/BoardEditor';
 import { PackEditor } from '@/components/designer/PackEditor';
+import { setCellFace, setFloorLook } from '@/lib/designer/board-look';
 import { StartEditor } from '@/components/designer/StartEditor';
 import { ValidationList } from '@/components/designer/ValidationList';
 import { Button } from '@/components/ui/button';
@@ -102,7 +104,7 @@ import type { GameStatus } from '@/lib/library/types';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
 import { formatDesignerLastSaved, formatDesignerStatus } from '@/lib/library/version';
 
-export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'spinners' | 'players' | 'start';
+export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'board' | 'spinners' | 'players' | 'start';
 
 export type DesignerMetadata = {
   lastSaved?: string;
@@ -134,6 +136,7 @@ export function LayoutDesigner({
   gameId,
   media,
   metadata,
+  gameTitle,
   copyPackSources,
   copyCardSources,
   resolveCopyPack,
@@ -181,6 +184,7 @@ export function LayoutDesigner({
   gameId?: string;
   media?: MediaStore;
   metadata?: DesignerMetadata;
+  gameTitle?: string;
 }) {
   const start = gameStart ?? emptyGameStart();
   const [fallbackMedia] = useState(() => memoryMediaStore());
@@ -433,6 +437,9 @@ export function LayoutDesigner({
           </button>
           <button type="button" role="tab" aria-selected={sideTab === 'packs'} className={tabClass('packs')} onClick={() => setSideTab('packs')}>
             Packs
+          </button>
+          <button type="button" role="tab" aria-selected={sideTab === 'board'} className={tabClass('board')} onClick={() => setSideTab('board')}>
+            Board
           </button>
           <button type="button" role="tab" aria-selected={sideTab === 'spinners'} className={tabClass('spinners')} onClick={() => setSideTab('spinners')}>
             Spinners
@@ -701,6 +708,18 @@ export function LayoutDesigner({
                 if (!selectedCellId) return;
                 commitCanvas(setCellVideo(canvasBoard, canvasFloor.id, selectedCellId, video));
               }}
+              onSetFace={(face) => {
+                if (!selectedCellId) return;
+                commitCanvas(setCellFace(canvasBoard, canvasFloor.id, selectedCellId, face));
+              }}
+            />
+          ) : sideTab === 'board' ? (
+            <BoardEditor
+              look={floor.look}
+              gameTitle={gameTitle ?? 'Untitled game'}
+              gameId={gameId}
+              media={mediaStore}
+              onChange={(patch) => onBoardChange(setFloorLook(board, floor.id, patch))}
             />
           ) : (
             <PackEditor

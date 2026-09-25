@@ -176,10 +176,13 @@ describe('CellInspector', () => {
         onSetAudio={onSetAudio}
         onSetImage={() => {}}
         onSetVideo={() => {}}
+        onSetFace={() => {}}
       />,
     );
     expect(screen.getByText('Audio')).toBeDefined();
     expect(screen.getByText('Image')).toBeDefined();
+    expect(screen.getByText('Tile face')).toBeDefined();
+    expect(screen.getByText('Land / HUD popup — not the 3D face.')).toBeDefined();
     expect(screen.getByText('Video')).toBeDefined();
     fireEvent.change(screen.getByLabelText('Audio URL'), {
       target: { value: 'https://example.com/tile.mp3' },

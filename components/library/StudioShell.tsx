@@ -484,6 +484,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             itemAssign={workingItemAssign}
             onCatalogChange={onCatalogChange}
             gameId={active.id}
+            gameTitle={active.name}
             media={media}
             metadata={{
               lastSaved: active.lastSaved,
