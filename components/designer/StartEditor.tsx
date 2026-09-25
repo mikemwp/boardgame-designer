@@ -15,7 +15,7 @@ import {
   setStayThroughout,
   updateSplash,
 } from '@/lib/designer/game-start';
-import type { GameStart, ImageRef } from '@/lib/engine/types';
+import { defaultGameConfig, type GameConfig, type GameStart, type ImageRef, type SpinnerDef } from '@/lib/engine/types';
 import {
   AUDIO_SIZE_WARN_BYTES,
   isAllowedImageMime,
@@ -168,12 +168,19 @@ export function StartEditor({
   gameId,
   media,
   onChange,
+  config,
+  spinners = [],
+  onConfigChange,
 }: {
   value: GameStart;
   gameId: string;
   media: MediaStore;
   onChange: (next: GameStart) => void;
+  config?: GameConfig;
+  spinners?: SpinnerDef[];
+  onConfigChange?: (patch: Partial<GameConfig>) => void;
 }) {
+  const movement = config ?? defaultGameConfig();
   return (
     <div className="flex h-full flex-col gap-3 rounded-lg border border-slate-800 p-3" data-testid="start-editor">
       <p className="text-sm font-medium text-slate-100">Game start</p>
@@ -299,6 +306,55 @@ export function StartEditor({
         />
         Stay throughout the game
       </label>
+      <p className="text-sm font-medium text-slate-100">Movement</p>
+      <Label htmlFor="movement-viz">Token movement</Label>
+      <select
+        id="movement-viz"
+        aria-label="Token movement"
+        className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+        value={movement.movementViz}
+        onChange={(e) => onConfigChange?.({ movementViz: e.target.value as GameConfig['movementViz'] })}
+      >
+        <option value="dice">Dice</option>
+        <option value="spinner">Spinner</option>
+      </select>
+      {movement.movementViz === 'dice' ? (
+        <>
+          <Label htmlFor="dice-count">Dice</Label>
+          <select
+            id="dice-count"
+            aria-label="Dice count"
+            className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+            value={movement.diceCount}
+            onChange={(e) => onConfigChange?.({ diceCount: Number(e.target.value) as 1 | 2 })}
+          >
+            <option value={1}>1 die</option>
+            <option value={2}>2 dice</option>
+          </select>
+        </>
+      ) : (
+        <>
+          <Label htmlFor="movement-spinner">Movement spinner</Label>
+          {spinners.length === 0 ? (
+            <p className="text-sm text-slate-400">Create a spinner on the Spinners tab.</p>
+          ) : (
+            <select
+              id="movement-spinner"
+              aria-label="Movement spinner"
+              className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+              value={movement.movementSpinnerId ?? ''}
+              onChange={(e) => onConfigChange?.({ movementSpinnerId: e.target.value || undefined })}
+            >
+              <option value="">None</option>
+              {spinners.map((spinner) => (
+                <option key={spinner.id} value={spinner.id}>
+                  {spinner.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </>
+      )}
       <p className="text-sm text-slate-400">
         After splash, players see Join Game: New game, Saved game, and Tutorial, plus Copy link and Play on this
         device. Saved game stays disabled until sessions persist. Copy link is local — seats do not sync yet.

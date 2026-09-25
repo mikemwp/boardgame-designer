@@ -28,5 +28,30 @@ describe('HudSpinner', () => {
   it('applies spinning class while the wheel is moving', () => {
     const { container } = render(<HudSpinner value={4} max={6} spinning rollId={3} />);
     expect(container.querySelector('.hud-spinner-wheel--spin')).not.toBeNull();
+    expect(screen.getByTestId('spinner-pointer')).toBeDefined();
+  });
+
+  it('renders a catalog spinner with template and pointer', () => {
+    render(
+      <HudSpinner
+        value={2}
+        max={6}
+        spinning={false}
+        rollId={4}
+        spinner={{
+          id: 'spinner-1',
+          name: 'Move',
+          split: 'equal',
+          template: 'wood',
+          segments: [
+            { id: 'a', label: '1' },
+            { id: 'b', label: '2' },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId('hud-spinner').getAttribute('data-template')).toBe('wood');
+    expect(screen.getByTestId('spinner-pointer')).toBeDefined();
+    expect(screen.getByLabelText('Spinner showing 2')).toBeDefined();
   });
 });

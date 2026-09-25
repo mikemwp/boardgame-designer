@@ -73,6 +73,21 @@ describe('sampleMovement', () => {
     expect(dice.faces).toEqual([1, 1]);
   });
 
+  it('uses a catalog spinner segment for movement', () => {
+    const spinner = {
+      id: 'spinner-1',
+      name: 'Move',
+      split: 'equal' as const,
+      segments: [
+        { id: 'a', label: '1' },
+        { id: 'b', label: '3' },
+      ],
+    };
+    const result = sampleMovement('spinner', 1, [1, 3], () => 0.99, spinner);
+    expect(result.value).toBe(3);
+    expect(result.faces).toEqual([3]);
+  });
+
   it('spinner one-range samples uniformly from allowed 1-6', () => {
     const result = sampleMovement('spinner', 1, [1, 2, 3, 4, 5, 6], () => 0.999);
     expect(result.value).toBe(6);

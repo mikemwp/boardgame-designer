@@ -93,6 +93,7 @@ import {
   removeSegment,
   renameSpinner,
   rewriteSpinnerRefs,
+  setSegmentCount,
   setSegmentLabel,
   setSegmentPercent,
   setSplit,
@@ -107,7 +108,8 @@ import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
 import { inferShape } from '@/lib/engine/shape';
 import { emptyGameStart } from '@/lib/engine/audio';
-import type { Card, GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef, VideoRef } from '@/lib/engine/types';
+import type { Card, GameConfig, GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef, VideoRef } from '@/lib/engine/types';
+import { defaultGameConfig } from '@/lib/engine/types';
 import type { GameStatus } from '@/lib/library/types';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
 import { formatDesignerLastSaved, formatDesignerStatus } from '@/lib/library/version';
@@ -137,6 +139,8 @@ export function LayoutDesigner({
   onToolChange,
   gameStart,
   onGameStartChange,
+  gameConfig,
+  onConfigChange,
   spinners,
   items,
   itemAssign,
@@ -178,6 +182,8 @@ export function LayoutDesigner({
   onToolChange: (tool: DesignerTool) => void;
   gameStart?: GameStart;
   onGameStartChange?: (start: GameStart) => void;
+  gameConfig?: GameConfig;
+  onConfigChange?: (patch: Partial<GameConfig>) => void;
   spinners?: SpinnerDef[];
   items?: InventoryItem[];
   itemAssign?: ItemAssign;
@@ -689,6 +695,52 @@ export function LayoutDesigner({
                   board,
                 });
               }}
+              onSegmentCount={(count) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: setSegmentCount(spinnerList, selectedSpinnerId, count),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onTemplate={(template) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: updateSpinner(spinnerList, selectedSpinnerId, { template }),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onImage={(image) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: updateSpinner(spinnerList, selectedSpinnerId, { image }),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              onAudio={(audio) => {
+                if (!selectedSpinnerId) return;
+                onCatalogChange?.({
+                  spinners: updateSpinner(spinnerList, selectedSpinnerId, { audio }),
+                  items: itemList,
+                  itemAssign: assignMode,
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                });
+              }}
+              gameId={gameId}
+              media={mediaStore}
             />
           ) : sideTab === 'players' ? (
             <PlayerEditor
@@ -736,6 +788,9 @@ export function LayoutDesigner({
               gameId={gameId ?? 'draft'}
               media={mediaStore}
               onChange={(next) => onGameStartChange?.(next)}
+              config={gameConfig ?? defaultGameConfig()}
+              spinners={spinnerList}
+              onConfigChange={onConfigChange}
             />
           ) : sideTab === 'tiles' ? (
             <CellInspector

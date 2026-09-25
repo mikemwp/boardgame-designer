@@ -13,7 +13,7 @@ import {
 import { createBoard, getFloor, type Board } from './board';
 import { initPlayerPasses, moveToken, setPlayerPassesLeft, type PlayerState } from './players';
 import { assignStartingItems, seedItemUses, useItem } from './inventory';
-import { sampleSegment } from './spinner';
+import { movementRangeForSpinner, sampleSegment } from './spinner';
 import { canSpendPass, createPassesLeft, spendPass } from './passes';
 import { movementRange, sampleMovement, type Rng } from './dice';
 import { applyAction, countsTowardReveal, dealFromPack, type CardState } from './cards';
@@ -282,7 +282,13 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
       if (!active) return state;
       const player = state.players.players.find((p) => p.id === active);
       if (!player) return state;
-      const { min, max } = movementRange(state.config.movementViz, state.config.diceCount);
+      const movementSpinner =
+        state.config.movementViz === 'spinner' && state.config.movementSpinnerId
+          ? state.spinners.find((entry) => entry.id === state.config.movementSpinnerId)
+          : undefined;
+      const { min, max } = movementSpinner
+        ? movementRangeForSpinner(movementSpinner)
+        : movementRange(state.config.movementViz, state.config.diceCount);
       const inside = state.insideRoom ? roomOf(state.board, state.insideRoom.roomId) : undefined;
       const moveBoard = inside
         ? createBoard([roomPlayFloor(inside)], [], state.board.rooms)
@@ -303,6 +309,7 @@ export function dispatch(state: GameState, cmd: GameCommand): GameState {
         state.config.diceCount,
         allowed,
         state.rng,
+        movementSpinner,
       );
       const lastRoll: LastRoll = {
         value,

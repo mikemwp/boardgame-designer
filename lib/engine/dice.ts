@@ -1,5 +1,6 @@
 import { sampleMoveValue } from './movement';
-import type { DiceCount, MovementViz } from './types';
+import { movementRangeForSpinner, sampleSpinnerMove } from './spinner';
+import type { DiceCount, MovementViz, SpinnerDef } from './types';
 
 export type Rng = () => number;
 export type { DiceCount };
@@ -47,7 +48,13 @@ export function sampleMovement(
   count: DiceCount,
   allowed: number[],
   rng: Rng = Math.random,
+  spinner?: SpinnerDef,
 ): DiceRollResult {
+  if (viz === 'spinner' && spinner) {
+    const { max } = movementRangeForSpinner(spinner);
+    const { value } = sampleSpinnerMove(spinner, allowed, rng);
+    return { value, faces: value > 0 ? [value] : [], sides: max };
+  }
   if (viz === 'spinner') {
     const { max } = movementRange(viz, count);
     const value = sampleMoveValue(allowed, rng);

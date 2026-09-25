@@ -27,6 +27,7 @@ export function createSpinner(list: SpinnerDef[], id: string): SpinnerDef[] {
     name: `Spinner ${n}`,
     split: 'equal',
     linked: false,
+    template: 'classic',
     segments: [
       { id: `${trimmed}-s1`, label: 'Segment 1' },
       { id: `${trimmed}-s2`, label: 'Segment 2' },
@@ -38,7 +39,7 @@ export function createSpinner(list: SpinnerDef[], id: string): SpinnerDef[] {
 export function updateSpinner(
   list: SpinnerDef[],
   id: string,
-  patch: Partial<Pick<SpinnerDef, 'name' | 'split' | 'segments' | 'linked'>>,
+  patch: Partial<Pick<SpinnerDef, 'name' | 'split' | 'segments' | 'linked' | 'template' | 'image' | 'audio'>>,
 ): SpinnerDef[] {
   return list.map((spinner) => {
     if (spinner.id !== id) return spinner;
@@ -51,6 +52,15 @@ export function updateSpinner(
     if (patch.split !== undefined) next.split = patch.split;
     if (patch.linked !== undefined) next.linked = patch.linked;
     if (patch.segments !== undefined) next.segments = patch.segments;
+    if (patch.template !== undefined) next.template = patch.template;
+    if ('image' in patch) {
+      if (patch.image) next.image = patch.image;
+      else delete next.image;
+    }
+    if ('audio' in patch) {
+      if (patch.audio) next.audio = patch.audio;
+      else delete next.audio;
+    }
     return next;
   });
 }
@@ -118,6 +128,23 @@ export function setSegmentPercent(
         segment.id === segmentId ? { ...segment, percent: value } : segment,
       ),
     };
+  });
+}
+
+export function setSegmentCount(list: SpinnerDef[], spinnerId: string, count: number): SpinnerDef[] {
+  const n = Math.max(2, Math.floor(count));
+  return list.map((spinner) => {
+    if (spinner.id !== spinnerId) return spinner;
+    if (spinner.segments.length === n) return spinner;
+    if (n < spinner.segments.length) {
+      return { ...spinner, segments: spinner.segments.slice(0, n) };
+    }
+    const extra = [...spinner.segments];
+    while (extra.length < n) {
+      const id = nextSegmentId(spinner.id, extra);
+      extra.push({ id, label: `Segment ${extra.length + 1}` });
+    }
+    return { ...spinner, segments: extra };
   });
 }
 

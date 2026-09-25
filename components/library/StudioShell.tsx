@@ -30,7 +30,7 @@ import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
 import { emptyGameStart } from '@/lib/engine/audio';
-import type { Card, GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
+import { defaultGameConfig, type Card, type GameConfig, type GameStart, type ImageRef, type InventoryItem, type ItemAssign, type SpinnerDef } from '@/lib/engine/types';
 import { cloneJson, fromStoredBootstrap, storedPackIds } from '@/lib/library/bootstrap';
 import { browserMediaStore } from '@/lib/library/media-store';
 import type { NewGameInput } from '@/lib/library/types';
@@ -46,8 +46,9 @@ function snapshotKey(
   items: InventoryItem[] = [],
   itemAssign: ItemAssign = 'random',
   packBacks: Record<string, ImageRef> = {},
+  config: GameConfig = defaultGameConfig(),
 ): string {
-  return JSON.stringify({ board, players, cards, packs, packBacks, gameStart, spinners, items, itemAssign });
+  return JSON.stringify({ board, players, cards, packs, packBacks, gameStart, spinners, items, itemAssign, config });
 }
 
 export function StudioShell(options: UseLibraryOptions = {}) {
@@ -81,6 +82,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [workingSpinners, setWorkingSpinners] = useState<SpinnerDef[]>([]);
   const [workingItems, setWorkingItems] = useState<InventoryItem[]>([]);
   const [workingItemAssign, setWorkingItemAssign] = useState<ItemAssign>('random');
+  const [workingConfig, setWorkingConfig] = useState<GameConfig>(defaultGameConfig());
   const [selectedFloorId, setSelectedFloorId] = useState<string>('');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [tool, setTool] = useState<DesignerTool>('select');
@@ -101,6 +103,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setWorkingSpinners([]);
       setWorkingItems([]);
       setWorkingItemAssign('random');
+      setWorkingConfig(defaultGameConfig());
       setDirty(false);
       savedKeyRef.current = '';
       return;
@@ -114,6 +117,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     const spinners = cloneJson(active.bootstrap.spinners ?? []);
     const items = cloneJson(active.bootstrap.items ?? []);
     const itemAssign = active.bootstrap.itemAssign ?? 'random';
+    const config = cloneJson({ ...defaultGameConfig(), ...active.bootstrap.config });
     setWorkingBoard(board);
     setWorkingPlayers(players);
     setWorkingCards(cards);
@@ -123,13 +127,14 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setWorkingSpinners(spinners);
     setWorkingItems(items);
     setWorkingItemAssign(itemAssign);
+    setWorkingConfig(config);
     setSelectedFloorId(board.floors[0]?.id ?? '');
     setSelectedCellId(null);
     setIssues([]);
     setMode('design');
     setSnapshot(null);
     setDirty(false);
-    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks);
+    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks, config);
   }, [active?.id]);
 
   const persistWorking = useCallback(
@@ -145,7 +150,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           cards,
           packs,
           packBacks,
-          config: snapshot?.config ?? active.bootstrap.config,
+          config: cloneJson(workingConfig),
           gameStart: cloneJson(workingGameStart),
           spinners: cloneJson(workingSpinners),
           items: cloneJson(workingItems),
@@ -164,6 +169,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           workingItems,
           workingItemAssign,
           packBacks,
+          workingConfig,
         );
         setDirty(false);
       }
@@ -179,6 +185,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       workingSpinners,
       workingItems,
       workingItemAssign,
+      workingConfig,
       snapshot,
       saveActive,
     ],
@@ -209,6 +216,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     workingSpinners,
     workingItems,
     workingItemAssign,
+    workingConfig,
     persistWorking,
   ]);
 
@@ -235,13 +243,32 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     items: InventoryItem[] = workingItems,
     itemAssign: ItemAssign = workingItemAssign,
     packBacks: Record<string, ImageRef> = workingPackBacks,
+    config: GameConfig = workingConfig,
   ) => {
     if (
-      snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks) !==
+      snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks, config) !==
       savedKeyRef.current
     ) {
       setDirty(true);
     }
+  };
+
+  const onConfigChange = (patch: Partial<GameConfig>) => {
+    const next = { ...workingConfig, ...patch };
+    setWorkingConfig(next);
+    if (active) markActiveEdited();
+    markDirtyIfChanged(
+      workingBoard,
+      workingPlayers,
+      workingCards,
+      workingPacks,
+      workingGameStart,
+      workingSpinners,
+      workingItems,
+      workingItemAssign,
+      workingPackBacks,
+      next,
+    );
   };
 
   const onGameStartChange = (next: GameStart) => {
@@ -479,6 +506,8 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onToolChange={setTool}
             gameStart={workingGameStart}
             onGameStartChange={onGameStartChange}
+            gameConfig={workingConfig}
+            onConfigChange={onConfigChange}
             spinners={workingSpinners}
             items={workingItems}
             itemAssign={workingItemAssign}
@@ -501,11 +530,15 @@ export function StudioShell(options: UseLibraryOptions = {}) {
               players: applyStartToPlayers(workingPlayers, workingBoard),
               cards: workingCards,
               config: {
-                ...(snapshot?.config ?? active.bootstrap.config),
+                ...workingConfig,
+                ...(snapshot?.config ?? {}),
                 movementViz: preferredMovementViz(
                   workingBoard,
-                  snapshot?.config.movementViz ?? active.bootstrap.config.movementViz,
+                  snapshot?.config.movementViz ?? workingConfig.movementViz,
                 ),
+                movementSpinnerId:
+                  snapshot?.config.movementSpinnerId ?? workingConfig.movementSpinnerId,
+                diceCount: snapshot?.config.diceCount ?? workingConfig.diceCount,
               },
               gameStart: workingGameStart,
               spinners: workingSpinners,

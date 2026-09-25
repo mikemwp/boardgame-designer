@@ -177,6 +177,13 @@ export function GameHud({
   );
 
   useEffect(() => {
+    if (game.config.movementViz !== 'spinner' || !game.lastRoll) return;
+    const spinner = game.spinners.find((entry) => entry.id === game.config.movementSpinnerId);
+    if (!spinner?.audio) return;
+    void playCue({ ownerId: spinner.id, audio: spinner.audio, target: 'tile' });
+  }, [game.lastRoll?.id, game.config.movementViz, game.config.movementSpinnerId, game.spinners, playCue]);
+
+  useEffect(() => {
     if (game.audioCueId === lastCueId.current) return;
     lastCueId.current = game.audioCueId;
     const land = game.lastAudioCues.filter((cue) => cue.target !== 'card');
@@ -390,6 +397,7 @@ export function GameHud({
           diceCount={game.config.diceCount}
           phase={phase}
           onTumbleComplete={onTumbleComplete}
+          spinner={game.spinners.find((entry) => entry.id === game.config.movementSpinnerId)}
         />
         {showLastRoll ? (
           <LastRoll lastRoll={game.lastRoll} movementViz={game.config.movementViz} />

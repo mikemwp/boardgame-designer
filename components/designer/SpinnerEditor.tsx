@@ -3,8 +3,11 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AudioField, MediaField } from '@/components/designer/AudioField';
 import { percentTotal, percentsValid } from '@/lib/designer/spinners';
-import type { SpinnerDef } from '@/lib/engine/types';
+import { SPINNER_TEMPLATES } from '@/lib/designer/spinner-templates';
+import type { AudioRef, ImageRef, SpinnerDef, SpinnerTemplateId } from '@/lib/engine/types';
+import type { MediaStore } from '@/lib/library/media-store';
 
 export function SpinnerEditor({
   spinners,
@@ -19,6 +22,12 @@ export function SpinnerEditor({
   onRemoveSegment,
   onSegmentLabel,
   onSegmentPercent,
+  onSegmentCount,
+  onTemplate,
+  onImage,
+  onAudio,
+  gameId,
+  media,
 }: {
   spinners: SpinnerDef[];
   selectedId: string | null;
@@ -32,6 +41,12 @@ export function SpinnerEditor({
   onRemoveSegment: (segmentId: string) => void;
   onSegmentLabel: (segmentId: string, label: string) => void;
   onSegmentPercent: (segmentId: string, percent: number) => void;
+  onSegmentCount?: (count: number) => void;
+  onTemplate?: (template: SpinnerTemplateId) => void;
+  onImage?: (image: ImageRef | undefined) => void;
+  onAudio?: (audio: AudioRef | undefined) => void;
+  gameId?: string;
+  media?: MediaStore;
 }) {
   const selected = spinners.find((spinner) => spinner.id === selectedId);
 
@@ -73,7 +88,50 @@ export function SpinnerEditor({
             value={selected.name}
             onChange={(e) => onRename(e.target.value)}
           />
-          <Label htmlFor="spinner-split">Segments</Label>
+          <Label htmlFor="spinner-template">Template</Label>
+          <select
+            id="spinner-template"
+            aria-label="Spinner template"
+            className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+            value={selected.template ?? 'classic'}
+            onChange={(e) => onTemplate?.(e.target.value as SpinnerTemplateId)}
+          >
+            {SPINNER_TEMPLATES.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.label}
+              </option>
+            ))}
+          </select>
+          {gameId && media ? (
+            <>
+              <MediaField
+                kind="image"
+                label="Image"
+                value={selected.image}
+                gameId={gameId}
+                media={media}
+                onChange={(image) => onImage?.(image as ImageRef | undefined)}
+                idPrefix={`spinner-${selected.id}`}
+              />
+              <AudioField
+                value={selected.audio}
+                gameId={gameId}
+                media={media}
+                onChange={(audio) => onAudio?.(audio)}
+                idPrefix={`spinner-${selected.id}`}
+              />
+            </>
+          ) : null}
+          <Label htmlFor="spinner-count">Segments</Label>
+          <Input
+            id="spinner-count"
+            aria-label="Segment count"
+            type="number"
+            min={2}
+            value={selected.segments.length}
+            onChange={(e) => onSegmentCount?.(Number(e.target.value))}
+          />
+          <Label htmlFor="spinner-split">Split</Label>
           <select
             id="spinner-split"
             aria-label="Segment split"

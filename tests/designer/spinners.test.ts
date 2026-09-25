@@ -9,6 +9,7 @@ import {
   removeSegment,
   renameSpinner,
   sampleSegment,
+  setSegmentCount,
   updateSpinner,
 } from '@/lib/designer/spinners';
 
@@ -21,6 +22,7 @@ describe('spinner catalog', () => {
       name: 'Spinner 1',
       split: 'equal',
       linked: false,
+      template: 'classic',
     });
     expect(created[0]?.segments).toHaveLength(2);
     const spin = sampleSegment(created[0]!, () => 0);
@@ -53,6 +55,14 @@ describe('spinner catalog', () => {
     const keep = list[0]!.segments.map((s) => s.id);
     list = removeSegment(list, 'spinner-1', keep[0]!);
     expect(list[0]?.segments.map((s) => s.id)).toEqual(keep);
+  });
+
+  it('sets template and segment count', () => {
+    const created = createSpinner([], 'spinner-1');
+    const counted = setSegmentCount(created, 'spinner-1', 4);
+    expect(counted[0]?.segments).toHaveLength(4);
+    const styled = updateSpinner(counted, 'spinner-1', { template: 'wood' });
+    expect(styled[0]?.template).toBe('wood');
   });
 
   it('renames and deletes a spinner', () => {

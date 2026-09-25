@@ -110,6 +110,8 @@ export interface GameStart {
   stayThroughout?: boolean;
 }
 
+export type SpinnerTemplateId = 'classic' | 'wood' | 'neon' | 'compass';
+
 export type SpinnerSplit = 'equal' | 'percent';
 
 export type ItemAssign = 'choose' | 'random';
@@ -126,6 +128,9 @@ export interface SpinnerDef {
   split: SpinnerSplit;
   segments: SpinnerSegment[];
   linked?: boolean;
+  template?: SpinnerTemplateId;
+  image?: ImageRef;
+  audio?: AudioRef;
 }
 
 export interface InventoryItem {
@@ -278,6 +283,7 @@ export interface GameConfig {
   diceCount: DiceCount;
   diceSides: number;
   movementViz: MovementViz;
+  movementSpinnerId?: string;
   maxPlayers?: number;
   maxFloors?: number;
 }
