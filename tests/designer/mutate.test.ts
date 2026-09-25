@@ -23,6 +23,7 @@ import {
   placeRoom,
   setDoorExit,
   renameFloor,
+  setCellDeal,
   setCellPack,
   setEndCell,
   setFloorHold,
@@ -168,6 +169,19 @@ describe('moveCell and eraseCell', () => {
       );
     }
     expect(board.stairs).toHaveLength(0);
+  });
+});
+
+describe('setCellDeal', () => {
+  it('stores Draw vs Card on a packed tile', () => {
+    const packed = setCellDeal(groundBoard(), 'ground', 'ground-c1', 'notes', 'card', 'notes-1');
+    const cell = packed.floors[0]?.cells.find((c) => c.id === 'ground-c1');
+    expect(cell).toMatchObject({ packId: 'notes', packMode: 'card', cardId: 'notes-1' });
+    const drawn = setCellDeal(packed, 'ground', 'ground-c1', 'notes', 'draw');
+    expect(drawn.floors[0]?.cells.find((c) => c.id === 'ground-c1')).toMatchObject({
+      packId: 'notes',
+      packMode: 'draw',
+    });
   });
 });
 

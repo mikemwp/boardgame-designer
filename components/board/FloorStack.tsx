@@ -145,6 +145,9 @@ export function FloorStack({
   const selectedMat = useMaterial({ ...PREVIEW_TILE_COLORS.selected, emissiveIntensity: 0.9 });
   const boardMat = useMaterial({ ...PREVIEW_TILE_COLORS.board, emissiveIntensity: 0.75 });
   const doorMat = useMaterial({ ...PREVIEW_TILE_COLORS.door, emissiveIntensity: 0.8 });
+  const endMat = useMaterial({ ...PREVIEW_TILE_COLORS.end, emissiveIntensity: 0.85 });
+  const packMat = useMaterial({ ...PREVIEW_TILE_COLORS.pack, emissiveIntensity: 0.8 });
+  const cardMat = useMaterial({ ...PREVIEW_TILE_COLORS.card, emissiveIntensity: 0.8 });
   const seamMat = useMaterial({ diffuse: '#1e293b', emissive: '#0f172a', emissiveIntensity: 1.2 });
   const faceMat = useMaterial({ diffuse: '#e7d3b0', emissive: '#a16207', emissiveIntensity: 0.2 });
   const floors = board.floors ?? [];
@@ -165,6 +168,12 @@ export function FloorStack({
               ? selectedMat
               : materialName === 'start'
                 ? startMat
+                : materialName === 'end'
+                  ? endMat
+                  : materialName === 'pack'
+                    ? packMat
+                    : materialName === 'card'
+                      ? cardMat
                 : materialName === 'hud'
                   ? hudMat
                   : materialName === 'stair'

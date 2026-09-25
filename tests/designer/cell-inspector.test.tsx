@@ -55,7 +55,7 @@ describe('CellInspector', () => {
       />,
     );
     expect(
-      screen.getByText('No packs in this draft. Create a pack in Packs, or import a CSV in Test.'),
+      screen.getByText('No packs in this draft. Create a pack in Packs, or import a CSV on Imports.'),
     ).toBeDefined();
   });
 

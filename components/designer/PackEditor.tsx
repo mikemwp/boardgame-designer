@@ -76,7 +76,24 @@ export function PackEditor({
   onCreateCard: () => void;
   onCopyCard?: (source: CopyCardSource) => void;
   onUpdateCard: (
-    patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId' | 'itemId' | 'image'>>,
+    patch: Partial<
+      Pick<
+        Card,
+        | 'title'
+        | 'body'
+        | 'cardType'
+        | 'moveSteps'
+        | 'continueLabel'
+        | 'turnLabel'
+        | 'timerSeconds'
+        | 'timerButtonLabel'
+        | 'extraButton'
+        | 'audio'
+        | 'spinnerId'
+        | 'itemId'
+        | 'image'
+      >
+    >,
   ) => void;
   onRemoveCard?: (cardId: string) => void;
   onDeleteCard: (cardId: string) => void;
@@ -261,21 +278,76 @@ export function PackEditor({
                 onChange={(e) => onUpdateCard({ body: e.target.value })}
                 className="min-h-20 w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-sm text-slate-50 outline-none"
               />
-              <Label htmlFor="card-timer">Timer seconds</Label>
-              <Input
-                id="card-timer"
-                type="number"
-                aria-label="Timer seconds"
-                value={selectedCard.timerSeconds ?? ''}
-                onChange={(e) => onUpdateCard({ timerSeconds: Number(e.target.value) })}
-              />
-              <Label htmlFor="card-extra-button">Extra button</Label>
-              <Input
-                id="card-extra-button"
-                aria-label="Extra button"
-                value={selectedCard.extraButton ?? ''}
-                onChange={(e) => onUpdateCard({ extraButton: e.target.value })}
-              />
+              <Label htmlFor="card-type">Card type</Label>
+              <select
+                id="card-type"
+                aria-label="Card type"
+                className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                value={selectedCard.cardType ?? ''}
+                onChange={(e) =>
+                  onUpdateCard({
+                    cardType: (e.target.value || undefined) as Card['cardType'],
+                  })
+                }
+              >
+                <option value="">None</option>
+                <option value="miss-a-turn">Miss a turn</option>
+                <option value="change-direction">Change direction</option>
+                <option value="change-direction-choice">Change direction choice</option>
+                <option value="go-back">Go back</option>
+                <option value="timer">Timer</option>
+              </select>
+              {selectedCard.cardType === 'change-direction'
+              || selectedCard.cardType === 'change-direction-choice'
+              || selectedCard.cardType === 'go-back' ? (
+                <>
+                  <Label htmlFor="card-move-steps">Move steps</Label>
+                  <Input
+                    id="card-move-steps"
+                    type="number"
+                    aria-label="Move steps"
+                    value={selectedCard.moveSteps ?? ''}
+                    onChange={(e) => onUpdateCard({ moveSteps: Number(e.target.value) })}
+                  />
+                </>
+              ) : null}
+              {selectedCard.cardType === 'change-direction-choice' ? (
+                <>
+                  <Label htmlFor="card-continue-label">Continue label</Label>
+                  <Input
+                    id="card-continue-label"
+                    aria-label="Continue label"
+                    value={selectedCard.continueLabel ?? 'Continue forward'}
+                    onChange={(e) => onUpdateCard({ continueLabel: e.target.value })}
+                  />
+                  <Label htmlFor="card-turn-label">Turn label</Label>
+                  <Input
+                    id="card-turn-label"
+                    aria-label="Turn label"
+                    value={selectedCard.turnLabel ?? 'Make turn'}
+                    onChange={(e) => onUpdateCard({ turnLabel: e.target.value })}
+                  />
+                </>
+              ) : null}
+              {selectedCard.cardType === 'timer' ? (
+                <>
+                  <Label htmlFor="card-timer">Timer seconds</Label>
+                  <Input
+                    id="card-timer"
+                    type="number"
+                    aria-label="Timer seconds"
+                    value={selectedCard.timerSeconds ?? ''}
+                    onChange={(e) => onUpdateCard({ timerSeconds: Number(e.target.value) })}
+                  />
+                  <Label htmlFor="card-timer-button">Start timer label</Label>
+                  <Input
+                    id="card-timer-button"
+                    aria-label="Start timer label"
+                    value={selectedCard.timerButtonLabel ?? 'Start timer'}
+                    onChange={(e) => onUpdateCard({ timerButtonLabel: e.target.value })}
+                  />
+                </>
+              ) : null}
               {items && items.length > 0 ? (
                 <>
                   <Label htmlFor="card-item">Item</Label>

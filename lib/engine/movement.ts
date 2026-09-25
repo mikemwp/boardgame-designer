@@ -2,7 +2,7 @@ import type { Board } from './board';
 import { getFloor, listLegalStairLandings } from './board';
 import type { Rng } from './dice';
 import type { HoldState } from './hold';
-import { isOffPathCell } from './layout';
+import { cellAt, isOffPathCell } from './layout';
 import { inferShape } from './shape';
 import { layoutNeighbors } from './shape-layout';
 import type { Cell, Floor, TokenPos } from './types';
@@ -205,6 +205,49 @@ export function sampleMoveValue(allowed: number[], rng: Rng): number {
   if (allowed.length === 0) return 0;
   const idx = Math.floor(rng() * allowed.length);
   return allowed[idx] ?? 0;
+}
+
+export function clockwiseNext(floor: { cells: Cell[]; shape?: Floor['shape'] }, cellId: string): Cell | undefined {
+  return walkSteps(floor, cellId, 1) ?? undefined;
+}
+
+export function rightNeighbor(floor: Floor, cell: Cell): Cell | undefined {
+  const next = clockwiseNext(floor, cell.id);
+  if (!next || cell.col === undefined || cell.row === undefined || next.col === undefined || next.row === undefined) {
+    return undefined;
+  }
+  const dc = next.col - cell.col;
+  const dr = next.row - cell.row;
+  return cellAt(floor, cell.col - dr, cell.row + dc);
+}
+
+export function isChangeDirectionLegal(floor: Floor, cell: Cell): boolean {
+  return Boolean(clockwiseNext(floor, cell.id) && rightNeighbor(floor, cell));
+}
+
+export function walkRightDetour(floor: Floor, cell: Cell, steps: number): Cell {
+  if (steps <= 0) return cell;
+  const first = rightNeighbor(floor, cell);
+  if (!first) return cell;
+  if (
+    steps === 1
+    || cell.col === undefined
+    || cell.row === undefined
+    || first.col === undefined
+    || first.row === undefined
+  ) {
+    return first;
+  }
+  const dc = first.col - cell.col;
+  const dr = first.row - cell.row;
+  let current = first;
+  for (let i = 1; i < steps; i += 1) {
+    if (current.col === undefined || current.row === undefined) break;
+    const next = cellAt(floor, current.col + dc, current.row + dr);
+    if (!next || next.kind === 'hud' || next.kind === 'board') break;
+    current = next;
+  }
+  return current;
 }
 
 export function sampleStairLanding(board: Board, fromFloorId: string, rng: Rng) {

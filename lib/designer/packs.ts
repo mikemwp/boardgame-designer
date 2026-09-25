@@ -233,7 +233,24 @@ export function addCard(cards: Card[], card: Card): Card[] {
 export function updateCard(
   cards: Card[],
   cardId: string,
-  patch: Partial<Pick<Card, 'title' | 'body' | 'timerSeconds' | 'extraButton' | 'audio' | 'spinnerId' | 'itemId' | 'image'>>,
+  patch: Partial<
+    Pick<
+      Card,
+      | 'title'
+      | 'body'
+      | 'cardType'
+      | 'moveSteps'
+      | 'continueLabel'
+      | 'turnLabel'
+      | 'timerSeconds'
+      | 'timerButtonLabel'
+      | 'extraButton'
+      | 'audio'
+      | 'spinnerId'
+      | 'itemId'
+      | 'image'
+    >
+  >,
 ): Card[] {
   if (patch.title !== undefined && patch.title.trim().length === 0) return cards;
   return cards.map((card) => {
@@ -244,6 +261,30 @@ export function updateCard(
       const body = patch.body.trim();
       if (body) next.body = body;
       else delete next.body;
+    }
+    if ('cardType' in patch) {
+      if (patch.cardType) next.cardType = patch.cardType;
+      else delete next.cardType;
+      if (patch.cardType === 'timer' && !next.timerButtonLabel) next.timerButtonLabel = 'Start timer';
+    }
+    if (patch.moveSteps !== undefined) {
+      if (Number.isNaN(patch.moveSteps) || patch.moveSteps <= 0) delete next.moveSteps;
+      else next.moveSteps = Math.floor(patch.moveSteps);
+    }
+    if (patch.continueLabel !== undefined) {
+      const label = patch.continueLabel.trim();
+      if (label) next.continueLabel = label;
+      else delete next.continueLabel;
+    }
+    if (patch.turnLabel !== undefined) {
+      const label = patch.turnLabel.trim();
+      if (label) next.turnLabel = label;
+      else delete next.turnLabel;
+    }
+    if (patch.timerButtonLabel !== undefined) {
+      const label = patch.timerButtonLabel.trim();
+      if (label) next.timerButtonLabel = label;
+      else delete next.timerButtonLabel;
     }
     if (patch.timerSeconds !== undefined) {
       if (Number.isNaN(patch.timerSeconds) || patch.timerSeconds <= 0) {

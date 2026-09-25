@@ -62,6 +62,15 @@ export function landingPackId(_floor: Floor, cell: Cell): string | undefined {
   return cell.packId;
 }
 
+export function landingDeal(cell: Cell): { packId: string; mode: 'draw' | 'card'; cardId?: string } | undefined {
+  if (cell.kind === 'stair' || !cell.packId) return undefined;
+  return {
+    packId: cell.packId,
+    mode: cell.packMode === 'card' ? 'card' : 'draw',
+    ...(cell.cardId ? { cardId: cell.cardId } : {}),
+  };
+}
+
 export const DEFAULT_COLUMNS = 8;
 export const DEFAULT_ROWS = 7;
 export const DEFAULT_HUD: HudRect = { col: 2, row: 2, width: 4, height: 4 };

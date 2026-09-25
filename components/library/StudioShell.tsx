@@ -35,6 +35,17 @@ import { cloneJson, fromStoredBootstrap, storedPackIds } from '@/lib/library/boo
 import { browserMediaStore } from '@/lib/library/media-store';
 import type { NewGameInput } from '@/lib/library/types';
 import { waitUntilPlayCanvasSlotFree } from '@/lib/view/playcanvas-lifecycle';
+import { downloadBlob } from '@/lib/library/download';
+import {
+  bundleFileName,
+  bundleToDocument,
+  packGameZip,
+  readImportFile,
+  toGameBundle,
+  writeImportedMedia,
+} from '@/lib/library/game-bundle';
+import { bytesToArrayBuffer } from '@/lib/library/zip';
+import type { GameBundle, GameDocument } from '@/lib/library/types';
 
 function snapshotKey(
   board: Board | null,
@@ -64,6 +75,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     markActiveEdited,
     deleteActive,
     publishActive,
+    importGame,
     library,
     updateLibrary,
   } = useLibrary({ ...options, media });
@@ -71,7 +83,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [newOpen, setNewOpen] = useState(false);
   const [openOpen, setOpenOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [dirtyPrompt, setDirtyPrompt] = useState<'new' | 'open' | null>(null);
+  const [dirtyPrompt, setDirtyPrompt] = useState<'new' | 'open' | 'import' | null>(null);
+  const pendingImportRef = useRef<{ bundle: GameBundle; media: Record<string, Uint8Array> } | null>(
+    null,
+  );
   const [mode, setMode] = useState<StudioMode>('design');
   const [workingBoard, setWorkingBoard] = useState<Board | null>(null);
   const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
@@ -138,7 +153,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setSnapshot(null);
     setDirty(false);
     savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks, config);
-  }, [active?.id]);
+  }, [active?.id, active?.updatedAt]);
 
   const persistWorking = useCallback(
     (options?: { touchUpdatedAt?: boolean; bump?: 'none' | 'save' }) => {
@@ -198,7 +213,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
 
   useEffect(() => {
     skipAutoSaveRef.current = true;
-  }, [active?.id]);
+  }, [active?.id, active?.updatedAt]);
 
   useEffect(() => {
     if (skipAutoSaveRef.current) {
@@ -345,6 +360,63 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     );
   };
 
+  const workingDocument = (): GameDocument | null => {
+    if (!active || !workingBoard || !workingPlayers) return null;
+    return {
+      ...active,
+      bootstrap: {
+        board: cloneJson(workingBoard),
+        players: cloneJson(workingPlayers),
+        cards: cloneJson(workingCards),
+        packs: listDraftPackIds(workingCards, workingPacks),
+        packBacks: cloneJson(workingPackBacks),
+        config: cloneJson(workingConfig),
+        gameStart: cloneJson(workingGameStart),
+        spinners: cloneJson(workingSpinners),
+        items: cloneJson(workingItems),
+        itemAssign: workingItemAssign,
+      },
+    };
+  };
+
+  const commitImport = (payload: { bundle: GameBundle; media: Record<string, Uint8Array> }) => {
+    const now = new Date().toISOString();
+    const doc = bundleToDocument(payload.bundle, now);
+    void writeImportedMedia(doc.id, payload.media, media).then(() => importGame(doc));
+  };
+
+  const onExportJson = () => {
+    const doc = workingDocument();
+    if (!doc) return;
+    downloadBlob(
+      `${bundleFileName(doc)}.json`,
+      new Blob([JSON.stringify(toGameBundle(doc), null, 2)], { type: 'application/json' }),
+    );
+  };
+
+  const onExportZip = () => {
+    const doc = workingDocument();
+    if (!doc) return;
+    void packGameZip(doc, media).then((bytes) => {
+      downloadBlob(
+        `${bundleFileName(doc)}.zip`,
+        new Blob([bytesToArrayBuffer(bytes)], { type: 'application/zip' }),
+      );
+    });
+  };
+
+  const onImportGameFile = (file: File) => {
+    void readImportFile(file).then((result) => {
+      if ('error' in result) return;
+      if (dirty && active?.id === result.bundle.id) {
+        pendingImportRef.current = result;
+        setDirtyPrompt('import');
+        return;
+      }
+      commitImport(result);
+    });
+  };
+
   const requestLeave = (kind: 'new' | 'open') => {
     if (dirty) {
       setDirtyPrompt(kind);
@@ -360,6 +432,11 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     if (save) persistWorking({ touchUpdatedAt: true, bump: 'save' });
     if (next === 'new') setNewOpen(true);
     if (next === 'open') setOpenOpen(true);
+    if (next === 'import') {
+      const pending = pendingImportRef.current;
+      pendingImportRef.current = null;
+      if (pending) commitImport(pending);
+    }
   };
 
   const onCreate = (input: NewGameInput) => {
@@ -507,6 +584,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onSelectFloor={setSelectedFloorId}
             onSelectCell={setSelectedCellId}
             onDesignerContextChange={setChromePlace}
+            onExportJson={onExportJson}
+            onExportZip={onExportZip}
+            onImportGame={onImportGameFile}
             onToolChange={setTool}
             gameStart={workingGameStart}
             onGameStartChange={onGameStartChange}
@@ -582,7 +662,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         open={dirtyPrompt !== null}
         gameName={active?.name ?? 'This game'}
         onOpenChange={(open) => {
-          if (!open) setDirtyPrompt(null);
+          if (!open) {
+            pendingImportRef.current = null;
+            setDirtyPrompt(null);
+          }
         }}
         onSave={() => finishDirtyPrompt(true)}
         onDiscard={() => finishDirtyPrompt(false)}

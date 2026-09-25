@@ -56,6 +56,7 @@ import {
   setCellAudio,
   setCellImage,
   setCellVideo,
+  setCellDeal,
   setCellPack,
   setCellSpinner,
   setCellItem,
@@ -101,6 +102,7 @@ import {
 } from '@/lib/designer/spinners';
 import { createItem, deleteItem, nextItemId, rewriteItemRefs, updateItem } from '@/lib/designer/items';
 import { ItemEditor } from '@/components/designer/ItemEditor';
+import { ImportExportPanel } from '@/components/designer/ImportExportPanel';
 import type { LayoutIssue } from '@/lib/designer/validate';
 import { createBoard, type Board } from '@/lib/engine/board';
 import { cellAt, listPackIds } from '@/lib/engine/layout';
@@ -118,7 +120,16 @@ import {
   LIBRARY_SAVE_LOCATION,
 } from '@/lib/library/version';
 
-export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'board' | 'spinners' | 'items' | 'players' | 'start';
+export type DesignerSideTab =
+  | 'levels'
+  | 'tiles'
+  | 'packs'
+  | 'board'
+  | 'spinners'
+  | 'items'
+  | 'players'
+  | 'start'
+  | 'imports';
 
 export type DesignerMetadata = {
   lastSaved?: string;
@@ -160,6 +171,10 @@ export function LayoutDesigner({
   onFloatPack,
   onFloatCard,
   onDesignerContextChange,
+  onImportCards,
+  onExportJson,
+  onExportZip,
+  onImportGame,
 }: {
   board: Board;
   cards: Card[];
@@ -183,6 +198,10 @@ export function LayoutDesigner({
   onFloatPack?: (pack: FloatingPack) => void;
   onFloatCard?: (card: Card) => void;
   onDesignerContextChange?: (next: { levelLabel: string; roomName?: string }) => void;
+  onImportCards?: (cards: Card[]) => void;
+  onExportJson?: () => void;
+  onExportZip?: () => void;
+  onImportGame?: (file: File) => void;
   onSelectFloor: (id: string) => void;
   onSelectCell: (id: string | null) => void;
   onToolChange: (tool: DesignerTool) => void;
@@ -211,6 +230,8 @@ export function LayoutDesigner({
   const mediaStore = media ?? fallbackMedia;
   const [sideTab, setSideTab] = useState<DesignerSideTab>('tiles');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewFloorId, setPreviewFloorId] = useState(selectedFloorId);
+  const [previewRoomId, setPreviewRoomId] = useState<string | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedSpinnerId, setSelectedSpinnerId] = useState<string | null>(null);
@@ -418,7 +439,11 @@ export function LayoutDesigner({
           <Button
             type="button"
             className="absolute right-0"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => {
+              setPreviewFloorId(floor.id);
+              setPreviewRoomId(viewingRoom ? selectedRoom?.id ?? null : null);
+              setPreviewOpen(true);
+            }}
           >
             Preview
           </Button>
@@ -553,9 +578,31 @@ export function LayoutDesigner({
           <button type="button" role="tab" aria-selected={sideTab === 'start'} className={tabClass('start')} onClick={() => setSideTab('start')}>
             Start
           </button>
+          <button type="button" role="tab" aria-selected={sideTab === 'imports'} className={tabClass('imports')} onClick={() => setSideTab('imports')}>
+            Imports
+          </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto" data-testid="tile-actions-pane">
-          {sideTab === 'items' ? (
+          {sideTab === 'imports' ? (
+            <ImportExportPanel
+              onImportCards={(incoming) => {
+                if (onImportCards) {
+                  onImportCards(incoming);
+                  return;
+                }
+                const nextCards = [...draftCards, ...incoming];
+                onDraftChange?.({
+                  cards: nextCards,
+                  packs: listDraftPackIds(nextCards, catalog),
+                  board,
+                  packBacks: backs,
+                });
+              }}
+              onExportJson={onExportJson ?? (() => {})}
+              onExportZip={onExportZip ?? (() => {})}
+              onImportGame={onImportGame ?? (() => {})}
+            />
+          ) : sideTab === 'items' ? (
             <ItemEditor
               items={itemList}
               selectedId={selectedItemId}
@@ -823,8 +870,13 @@ export function LayoutDesigner({
               packIds={listPackIds(cards, catalog)}
               onSetPack={(packId) => {
                 if (!selectedCellId) return;
-                commitCanvas(setCellPack(canvasBoard, canvasFloor.id, selectedCellId, packId));
+                commitCanvas(setCellDeal(canvasBoard, canvasFloor.id, selectedCellId, packId, 'draw'));
               }}
+              onSetDeal={(packId, mode, cardId) => {
+                if (!selectedCellId) return;
+                commitCanvas(setCellDeal(canvasBoard, canvasFloor.id, selectedCellId, packId, mode, cardId));
+              }}
+              cards={draftCards}
               onSetStart={() => {
                 if (!selectedCellId) return;
                 commitCanvas(setStartCell(canvasBoard, canvasFloor.id, selectedCellId));
@@ -1150,13 +1202,49 @@ export function LayoutDesigner({
           <DialogHeader>
             <DialogTitle>Preview</DialogTitle>
           </DialogHeader>
+          <div className="flex flex-wrap gap-2" data-testid="preview-switcher">
+            {board.floors.map((entry) => (
+              <Button
+                key={entry.id}
+                type="button"
+                variant={!previewRoomId && previewFloorId === entry.id ? 'secondary' : 'outline'}
+                onClick={() => {
+                  setPreviewFloorId(entry.id);
+                  setPreviewRoomId(null);
+                }}
+              >
+                {entry.label}
+              </Button>
+            ))}
+            {multiRooms.map((room) => (
+              <Button
+                key={room.id}
+                type="button"
+                variant={previewRoomId === room.id ? 'secondary' : 'outline'}
+                onClick={() => setPreviewRoomId(room.id)}
+              >
+                {room.name}
+              </Button>
+            ))}
+          </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            <FloorPreview
-              board={board}
-              floorId={floor.id}
-              selectedCellId={selectedCellId ?? undefined}
-              gameTitle={gameTitle}
-            />
+            {(() => {
+              const previewRoom = previewRoomId ? roomById(board, previewRoomId) : undefined;
+              const previewBoard =
+                previewRoom?.mode === 'multi'
+                  ? createBoard([roomAsFloor(previewRoom)], [], board.rooms)
+                  : board;
+              const previewId =
+                previewRoom?.mode === 'multi' ? previewRoom.id : previewFloorId;
+              return (
+                <FloorPreview
+                  board={previewBoard}
+                  floorId={previewId}
+                  selectedCellId={selectedCellId ?? undefined}
+                  gameTitle={gameTitle}
+                />
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>

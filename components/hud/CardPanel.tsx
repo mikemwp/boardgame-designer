@@ -35,7 +35,12 @@ export function CardPanel({
   const showPass = currentCard
     ? passActionAllowed(actionMode, passesEnabled, passesLeftByPack, currentCard.pack)
     : false;
-  const extraLabel = currentCard?.extraButton?.trim();
+  const extraLabel =
+    currentCard?.cardType === 'timer'
+      ? (currentCard.timerButtonLabel?.trim() || 'Start timer')
+      : currentCard?.extraButton?.trim();
+  const continueLabel = currentCard?.continueLabel?.trim() || 'Continue forward';
+  const turnLabel = currentCard?.turnLabel?.trim() || 'Make turn';
   if (!currentCard) return <p className="text-slate-400">No card drawn</p>;
   const back = cardBackImage(currentCard, packBack);
   return (
@@ -58,6 +63,20 @@ export function CardPanel({
         ) : null}
         {bodyVisible && extraLabel ? (
           <Button onClick={() => onExtra?.()}>{extraLabel}</Button>
+        ) : null}
+        {bodyVisible && currentCard.cardType === 'change-direction-choice' ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onDispatch({ type: 'CHOOSE_DIRECTION', choice: 'forward' })}
+            >
+              {continueLabel}
+            </Button>
+            <Button type="button" onClick={() => onDispatch({ type: 'CHOOSE_DIRECTION', choice: 'turn' })}>
+              {turnLabel}
+            </Button>
+          </div>
         ) : null}
         {currentCard.spinnerId ? (
           <Button

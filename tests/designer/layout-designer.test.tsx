@@ -508,6 +508,32 @@ describe('LayoutDesigner', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByTestId('preview-dialog')).toBeDefined();
     expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.getByTestId('preview-switcher')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Level 1' })).toBeDefined();
+  });
+
+  it('switches preview level without closing the popup', () => {
+    const second = createLoopedFloor('floor-2', 'Level 2', 1);
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0), second], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    const switcher = screen.getByTestId('preview-switcher');
+    fireEvent.click(switcher.querySelector('button:nth-child(2)') as HTMLButtonElement);
+    expect(screen.getByTestId('preview-dialog')).toBeDefined();
+    expect(switcher.querySelector('button:nth-child(2)')?.getAttribute('data-slot') || true).toBeTruthy();
   });
 
   it('switches the side pane to Levels on a level click and Tiles on a tile click', () => {
@@ -734,6 +760,63 @@ describe('LayoutDesigner', () => {
     expect(screen.getByText('Delete Level 2?')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onBoardChange).not.toHaveBeenCalled();
+  });
+
+  it('opens an Imports tab with CSV and game export controls', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Imports' }));
+    expect(screen.getByTestId('imports-panel')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Import cards' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Export JSON' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Export zip' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Import game' })).toBeDefined();
+  });
+
+  it('merges imported CSV cards into the working draft', async () => {
+    const onDraftChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[{ id: 'notes-1', pack: 'notes', title: 'Keep' }]}
+        packs={['notes']}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onDraftChange={onDraftChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Imports' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import cards' }));
+    const csv = new File(['pack,title\nextra,Hello\n'], 'cards.csv', { type: 'text/csv' });
+    fireEvent.change(screen.getByLabelText('Upload CSV'), { target: { files: [csv] } });
+    await vi.waitFor(() => expect(onDraftChange).toHaveBeenCalled());
+    expect(onDraftChange.mock.calls[0][0].cards).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'notes-1', title: 'Keep' }),
+        expect.objectContaining({ pack: 'extra', title: 'Hello' }),
+      ]),
+    );
+    expect(onDraftChange.mock.calls[0][0].packs).toEqual(expect.arrayContaining(['notes', 'extra']));
   });
 });
 

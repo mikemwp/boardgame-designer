@@ -10,7 +10,7 @@ import { tileActionKind } from '@/lib/designer/tile-chrome';
 import { roomById } from '@/lib/designer/rooms';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { AudioRef, Cell, DoorExit, HudWidget, ImageRef, InventoryItem, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
+import type { AudioRef, Card, Cell, DoorExit, HudWidget, ImageRef, InventoryItem, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
@@ -31,6 +31,8 @@ export function CellInspector({
   cellId,
   packIds,
   onSetPack,
+  onSetDeal,
+  cards,
   onSetStart: _onSetStart,
   onSetEnd: _onSetEnd,
   onAttachStair,
@@ -56,6 +58,8 @@ export function CellInspector({
   cellId: string | null;
   packIds: string[];
   onSetPack: (packId: string | undefined) => void;
+  onSetDeal?: (packId: string | undefined, mode?: 'draw' | 'card', cardId?: string) => void;
+  cards?: Card[];
   onSetStart: () => void;
   onSetEnd: () => void;
   onAttachStair: () => void;
@@ -206,7 +210,7 @@ export function CellInspector({
               ) : null}
               {packIds.length === 0 ? (
                 <p className="text-sm text-slate-400">
-                  No packs in this draft. Create a pack in Packs, or import a CSV in Test.
+                  No packs in this draft. Create a pack in Packs, or import a CSV on Imports.
                 </p>
               ) : (
                 <>
@@ -216,7 +220,11 @@ export function CellInspector({
                     aria-label="Pack"
                     className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
                     value={cell.packId ?? ''}
-                    onChange={(e) => onSetPack(e.target.value || undefined)}
+                    onChange={(e) => {
+                      const next = e.target.value || undefined;
+                      if (onSetDeal) onSetDeal(next, 'draw');
+                      else onSetPack(next);
+                    }}
                   >
                     <option value="">None</option>
                     {packIds.map((id) => (
@@ -225,6 +233,45 @@ export function CellInspector({
                       </option>
                     ))}
                   </select>
+                  {cell.packId ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant={(cell.packMode ?? 'draw') === 'draw' ? 'secondary' : 'outline'}
+                        onClick={() => onSetDeal?.(cell.packId, 'draw')}
+                      >
+                        Draw
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={cell.packMode === 'card' ? 'secondary' : 'outline'}
+                        onClick={() => onSetDeal?.(cell.packId, 'card', cell.cardId)}
+                      >
+                        Card
+                      </Button>
+                    </div>
+                  ) : null}
+                  {cell.packId && cell.packMode === 'card' ? (
+                    <>
+                      <Label htmlFor="cell-card">Card</Label>
+                      <select
+                        id="cell-card"
+                        aria-label="Attached card"
+                        className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                        value={cell.cardId ?? ''}
+                        onChange={(e) => onSetDeal?.(cell.packId, 'card', e.target.value || undefined)}
+                      >
+                        <option value="">Choose card</option>
+                        {(cards ?? [])
+                          .filter((card) => card.pack === cell.packId)
+                          .map((card) => (
+                            <option key={card.id} value={card.id}>
+                              {card.title}
+                            </option>
+                          ))}
+                      </select>
+                    </>
+                  ) : null}
                 </>
               )}
               {items && items.length > 0 && onSetItem ? (

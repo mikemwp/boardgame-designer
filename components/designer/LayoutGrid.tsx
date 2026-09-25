@@ -187,6 +187,9 @@ export function LayoutGrid({
           else if (cell?.kind === 'room') className += ' border-teal-400 bg-teal-800 text-teal-50';
           else if (cell?.kind === 'door') className += ' border-pink-400 bg-pink-800 text-pink-50';
           else if (cell?.kind === 'board') className += ' border-stone-400 bg-stone-700 text-stone-100';
+          else if (cell?.packId && cell.packMode === 'card')
+            className += ' border-amber-400 bg-amber-700 text-amber-50';
+          else if (cell?.packId) className += ' border-blue-400 bg-blue-800 text-blue-50';
           else if (cell) className += ' border-slate-500 bg-slate-600 text-slate-50';
           else className += ' border-slate-800 bg-slate-950 text-slate-500';
           if (selected) className += ' ring-2 ring-sky-400';

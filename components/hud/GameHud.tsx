@@ -9,7 +9,6 @@ import { FeatureToggles } from '@/components/hud/FeatureToggles';
 import { GameStartOverlay } from '@/components/hud/GameStartOverlay';
 import { HoldStatus } from '@/components/hud/HoldStatus';
 import { PassStatus } from '@/components/hud/PassStatus';
-import { ImportCardsDialog } from '@/components/hud/ImportCardsDialog';
 import { InventoryBar } from '@/components/hud/InventoryBar';
 import { ItemSetup } from '@/components/hud/ItemSetup';
 import { LastRoll } from '@/components/hud/LastRoll';
@@ -70,8 +69,7 @@ export function GameHud({
   packBacks?: Record<string, ImageRef>;
   playUrl?: string;
 }) {
-  const { game, dispatch, updateConfig, importCards } = useGameStore(bootstrap);
-  const [importOpen, setImportOpen] = useState(false);
+  const { game, dispatch, updateConfig } = useGameStore(bootstrap);
   const [fallbackMedia] = useState(() => memoryMediaStore());
   const mediaStore = media ?? fallbackMedia;
   const resolvedGameId = gameId ?? 'draft';
@@ -424,9 +422,6 @@ export function GameHud({
           >
             {spinner ? 'Spin' : 'Roll dice'}
           </Button>
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
-            Import cards
-          </Button>
           <Button type="button" variant="outline" onClick={toggleMute}>
             {muted ? 'Unmute' : 'Mute'}
           </Button>
@@ -469,11 +464,6 @@ export function GameHud({
           />
         );
       })()}
-      <ImportCardsDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        onImport={importCards}
-      />
     </div>
     </GameStartOverlay>
   );

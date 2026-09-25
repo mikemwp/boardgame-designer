@@ -82,7 +82,7 @@ describe('PackEditor', () => {
     const onUpdateCard = vi.fn();
     const onSelectCard = vi.fn();
 
-    render(
+    const { rerender } = render(
       <PackEditor
         {...noop}
         packs={['notes']}
@@ -104,10 +104,26 @@ describe('PackEditor', () => {
     expect(onUpdateCard).toHaveBeenCalledWith({ title: 'Door' });
     fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Knock' } });
     expect(onUpdateCard).toHaveBeenCalledWith({ body: 'Knock' });
+    fireEvent.change(screen.getByLabelText('Card type'), { target: { value: 'timer' } });
+    expect(onUpdateCard).toHaveBeenCalledWith({ cardType: 'timer' });
+    rerender(
+      <PackEditor
+        {...noop}
+        packs={['notes']}
+        cards={[{ id: 'notes-1', pack: 'notes', title: 'Card 1', body: '', cardType: 'timer' }]}
+        selectedPackId="notes"
+        selectedCardId="notes-1"
+        onCreateCard={onCreateCard}
+        onRemoveCard={onRemoveCard}
+        onDeleteCard={onDeleteCard}
+        onUpdateCard={onUpdateCard}
+        onSelectCard={onSelectCard}
+        gameId="g1"
+      />,
+    );
     fireEvent.change(screen.getByLabelText('Timer seconds'), { target: { value: '15' } });
     expect(onUpdateCard).toHaveBeenCalledWith({ timerSeconds: 15 });
-    fireEvent.change(screen.getByLabelText('Extra button'), { target: { value: 'Done' } });
-    expect(onUpdateCard).toHaveBeenCalledWith({ extraButton: 'Done' });
+    expect(screen.queryByLabelText('Extra button')).toBeNull();
     expect(screen.getByText('Card image')).toBeDefined();
     expect(screen.getByText('Audio')).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Delete card' })).toBeNull();

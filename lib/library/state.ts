@@ -155,6 +155,13 @@ export function deleteDraft(state: LibraryState, id: string): LibraryState {
   return { ...state, drafts, activeId: nextActive };
 }
 
+export function importGameDocument(state: LibraryState, doc: GameDocument): LibraryState {
+  const drafts = state.drafts.some((entry) => entry.id === doc.id)
+    ? state.drafts.map((entry) => (entry.id === doc.id ? doc : entry))
+    : [...state.drafts, doc];
+  return { ...state, drafts, activeId: doc.id };
+}
+
 export function listDrafts(state: LibraryState): GameDocument[] {
   return [...state.drafts].sort((a, b) => {
     if (a.updatedAt === b.updatedAt) return a.name.localeCompare(b.name);
@@ -208,6 +215,11 @@ function parseCard(value: unknown): Card | null {
     ...(typeof value.body === 'string' ? { body: value.body } : {}),
     ...(typeof value.timerSeconds === 'number' ? { timerSeconds: value.timerSeconds } : {}),
     ...(typeof value.extraButton === 'string' ? { extraButton: value.extraButton } : {}),
+    ...(typeof value.cardType === 'string' ? { cardType: value.cardType as Card['cardType'] } : {}),
+    ...(typeof value.moveSteps === 'number' ? { moveSteps: value.moveSteps } : {}),
+    ...(typeof value.continueLabel === 'string' ? { continueLabel: value.continueLabel } : {}),
+    ...(typeof value.turnLabel === 'string' ? { turnLabel: value.turnLabel } : {}),
+    ...(typeof value.timerButtonLabel === 'string' ? { timerButtonLabel: value.timerButtonLabel } : {}),
     ...(Array.isArray(value.tags) ? { tags: value.tags.filter((tag): tag is string => typeof tag === 'string') } : {}),
     ...(image ? { image } : {}),
   };

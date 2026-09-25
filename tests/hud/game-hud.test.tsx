@@ -61,6 +61,7 @@ describe('GameHud', () => {
     render(<GameHud bootstrap={climbSample} />);
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Climb stair' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Import cards' })).toBeNull();
     expect(screen.getByText('No roll yet')).toBeDefined();
     expect(screen.getByText('No card drawn')).toBeDefined();
   });

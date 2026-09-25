@@ -1,9 +1,15 @@
 export function cardNeedsHold(
-  card: { timerSeconds?: number; extraButton?: string } | null,
+  card: {
+    cardType?: string;
+    timerSeconds?: number;
+    extraButton?: string;
+    timerButtonLabel?: string;
+  } | null,
 ): boolean {
   if (!card) return false;
+  if (card.cardType === 'timer') return true;
   if ((card.timerSeconds ?? 0) > 0) return true;
-  return Boolean(card.extraButton?.trim());
+  return Boolean(card.extraButton?.trim() || card.timerButtonLabel?.trim());
 }
 
 export function isCardHoldActive(opts: {

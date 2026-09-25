@@ -7,6 +7,7 @@ import {
   createDocument,
   deleteDraft,
   getActive,
+  importGameDocument,
   listDrafts,
   publishDocument,
   saveDraft,
@@ -160,6 +161,18 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     });
   }, [now, storage]);
 
+  const importGame = useCallback(
+    (doc: GameDocument) => {
+      setState((current) => {
+        if (!current) return current;
+        const next = importGameDocument(current, doc);
+        writeLibrary(storage, next);
+        return next;
+      });
+    },
+    [storage],
+  );
+
   const deleteActive = useCallback(() => {
     setState((current) => {
       if (!current?.activeId) return current;
@@ -194,6 +207,7 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     markActiveEdited,
     publishActive,
     deleteActive,
+    importGame,
     persist,
     updateLibrary,
   };

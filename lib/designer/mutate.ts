@@ -434,6 +434,8 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
           if (entry.id !== cellId) return entry;
           const {
             packId: _pack,
+            packMode: _mode,
+            cardId: _card,
             spinnerId: _spinner,
             itemId: _item,
             stairId: _stair,
@@ -456,20 +458,40 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
   );
 }
 
-export function setCellPack(
+export function setCellDeal(
   board: Board,
   floorId: string,
   cellId: string,
   packId: string | undefined,
+  mode: 'draw' | 'card' = 'draw',
+  cardId?: string,
 ): Board {
   return mapFloor(board, floorId, (current) => ({
     ...current,
     cells: current.cells.map((cell) => {
       if (cell.id !== cellId) return cell;
       if (cell.kind === 'stair') return cell;
-      return { ...cell, packId };
+      if (!packId) {
+        const { packId: _pack, packMode: _mode, cardId: _card, ...rest } = cell;
+        return rest;
+      }
+      return {
+        ...cell,
+        packId,
+        packMode: mode,
+        ...(mode === 'card' && cardId ? { cardId } : { cardId: undefined }),
+      };
     }),
   }));
+}
+
+export function setCellPack(
+  board: Board,
+  floorId: string,
+  cellId: string,
+  packId: string | undefined,
+): Board {
+  return setCellDeal(board, floorId, cellId, packId, 'draw');
 }
 
 export function setStartCell(board: Board, floorId: string, cellId: string): Board {

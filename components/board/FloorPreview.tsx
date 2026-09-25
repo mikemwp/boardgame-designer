@@ -20,7 +20,9 @@ export function FloorPreview({
   selectedCellId?: string;
   gameTitle?: string;
 }) {
-  const preview = previewBoardForFloor(board, floorId);
+  const preview = board.floors.length === 1 && board.floors[0]?.id === floorId
+    ? board
+    : previewBoardForFloor(board, floorId);
   const floor = preview.floors[0];
   const bias = floor?.look?.cameraBias ?? 'top-down';
   const standIn = floor?.cells

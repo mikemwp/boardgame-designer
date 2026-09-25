@@ -7,6 +7,8 @@ export type { FloatingPack };
 
 export const LIBRARY_STORAGE_KEY = 'building-board.library.v1';
 export const LIBRARY_VERSION = 1 as const;
+export const GAME_BUNDLE_FORMAT = 'building-board.game';
+export const GAME_SCHEMA_VERSION = 1 as const;
 
 export type NewGameSource = 'climb' | 'empty' | 'copy';
 export type GameStatus = 'draft' | 'published';
@@ -42,6 +44,23 @@ export interface GameDocument {
   publishedAt?: string;
   published?: boolean;
   slug?: string;
+}
+
+export interface GameBundle {
+  format: typeof GAME_BUNDLE_FORMAT;
+  schemaVersion: typeof GAME_SCHEMA_VERSION;
+  id: string;
+  name: string;
+  version: string | null;
+  status: GameStatus;
+  createdAt: string;
+  updatedAt: string;
+  lastSaved: string;
+  source: NewGameSource;
+  publishedAt?: string;
+  published?: boolean;
+  slug?: string;
+  bootstrap: StoredBootstrap;
 }
 
 export interface LibraryState {

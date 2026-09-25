@@ -45,6 +45,17 @@ export function revealCard(state: CardState, packId: string): CardState {
   };
 }
 
+export function showAttachedCard(state: CardState, card: Card, actionMode: ActionMode): CardState {
+  const neither = actionMode === 'neither';
+  const needsAction = !neither && allowedActions(actionMode).length > 0;
+  return {
+    ...state,
+    currentCard: card,
+    bodyVisible: neither,
+    awaitingAction: needsAction,
+  };
+}
+
 export function dealFromPack(state: CardState, packId: string, actionMode: ActionMode): CardState {
   let deck = state.deck;
   if (state.currentCard) {

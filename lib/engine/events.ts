@@ -8,7 +8,8 @@ export type GameCommand =
   | { type: 'ENTER_ROOM' }
   | { type: 'PASS_ROOM' }
   | { type: 'LEAVE_ROOM' }
-  | { type: 'STAY_ROOM' };
+  | { type: 'STAY_ROOM' }
+  | { type: 'CHOOSE_DIRECTION'; choice: 'forward' | 'turn' };
 
 export type GameEvent =
   | { type: 'DICE_ROLLED'; value: number; sides: number }
@@ -19,4 +20,5 @@ export type GameEvent =
   | { type: 'SPINNER_LANDED'; spinnerId: string; label: string }
   | { type: 'INVENTORY_SET' }
   | { type: 'ITEM_USED'; itemId: string; usesLeft?: number }
-  | { type: 'ITEM_DESTROYED'; itemId: string };
+  | { type: 'ITEM_DESTROYED'; itemId: string }
+  | { type: 'TURN_SKIPPED'; playerId: string };

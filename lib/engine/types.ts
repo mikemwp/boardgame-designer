@@ -195,6 +195,8 @@ export interface Cell {
   index: number;
   kind?: CellKind;
   packId?: string;
+  packMode?: 'draw' | 'card';
+  cardId?: string;
   spinnerId?: string;
   itemId?: string;
   stairId?: string;
@@ -249,7 +251,15 @@ export interface Player {
   passesLeftByPack?: Record<string, number>;
   inventory?: string[];
   itemUses?: Record<string, number>;
+  skipTurns?: number;
 }
+
+export type CardTypeId =
+  | 'miss-a-turn'
+  | 'change-direction'
+  | 'change-direction-choice'
+  | 'go-back'
+  | 'timer';
 
 export interface Card {
   id: string;
@@ -257,7 +267,12 @@ export interface Card {
   title: string;
   body?: string;
   tags?: string[];
+  cardType?: CardTypeId;
+  moveSteps?: number;
+  continueLabel?: string;
+  turnLabel?: string;
   timerSeconds?: number;
+  timerButtonLabel?: string;
   extraButton?: string;
   audio?: AudioRef;
   spinnerId?: string;

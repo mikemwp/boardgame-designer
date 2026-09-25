@@ -643,3 +643,21 @@ describe('lastAudioCues', () => {
     expect(passed.lastAudioCues).toEqual(cues);
   });
 });
+
+describe('card types', () => {
+  it('miss-a-turn skips the next roll', () => {
+    const bootstrap = loopBootstrap({
+      cards: createCardState([
+        { id: 'climb-1', pack: 'climb', title: 'Skip', cardType: 'miss-a-turn' },
+      ]),
+    });
+    let game = createGame(bootstrap, { rng: () => 0 });
+    game = dispatch(game, { type: 'ROLL_DICE' });
+    expect(game.cards.currentCard?.id).toBe('climb-1');
+    game = dispatch(game, { type: 'REVEAL_CARD', packId: 'climb' });
+    expect(game.players.players[0]?.skipTurns).toBe(1);
+    const skipped = dispatch(game, { type: 'ROLL_DICE' });
+    expect(skipped.lastEvent).toEqual({ type: 'TURN_SKIPPED', playerId: 'p1' });
+    expect(skipped.players.players[0]?.token.cellId).toBe(game.players.players[0]?.token.cellId);
+  });
+});

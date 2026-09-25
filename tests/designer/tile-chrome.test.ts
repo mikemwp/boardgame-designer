@@ -16,6 +16,11 @@ describe('designerCellLabel', () => {
     expect(designerCellLabel({ kind: 'board' })).toBe('Board');
     expect(designerCellLabel({ kind: 'hud' })).toBe('HUD');
     expect(designerCellLabel({ kind: 'hud', hudWidget: 'dice' })).toBe('Dice');
+    expect(designerCellLabel({ kind: 'corridor', end: true })).toBe('End');
+    expect(designerCellLabel({ kind: 'corridor', packId: 'climb', packMode: 'draw' })).toBe('Pack');
+    expect(designerCellLabel({ kind: 'corridor', packId: 'climb', packMode: 'card', cardId: 'c1' })).toBe(
+      'Card',
+    );
     expect(designerCellLabel({ kind: 'corridor' })).toBe('');
   });
 });
@@ -29,9 +34,19 @@ describe('previewTileColor', () => {
     expect(previewTileColor({ kind: 'board' })).toEqual(PREVIEW_TILE_COLORS.board);
     expect(previewTileColor({ kind: 'hud' })).toEqual(PREVIEW_TILE_COLORS.hud);
     expect(previewTileColor({ kind: 'corridor' })).toEqual(PREVIEW_TILE_COLORS.corridor);
+    expect(previewTileColor({ kind: 'corridor', end: true })).toEqual(PREVIEW_TILE_COLORS.end);
+    expect(previewTileColor({ kind: 'corridor', packId: 'climb', packMode: 'draw' })).toEqual(
+      PREVIEW_TILE_COLORS.pack,
+    );
+    expect(previewTileColor({ kind: 'corridor', packId: 'climb', packMode: 'card' })).toEqual(
+      PREVIEW_TILE_COLORS.card,
+    );
     expect(previewTileLabel({ kind: 'stair', start: true })).toBeNull();
     expect(previewMaterialName({ kind: 'board' })).toBe('board');
     expect(previewMaterialName({ kind: 'door' })).toBe('door');
+    expect(previewMaterialName({ kind: 'corridor', end: true })).toBe('end');
+    expect(previewMaterialName({ kind: 'corridor', packId: 'p', packMode: 'draw' })).toBe('pack');
+    expect(previewMaterialName({ kind: 'corridor', packId: 'p', packMode: 'card' })).toBe('card');
     expect(previewMaterialName({ kind: 'corridor' })).toBe('corridor');
     expect(previewMaterialName({ kind: 'board' }, true)).toBe('selected');
   });

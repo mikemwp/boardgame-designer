@@ -2,8 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { StudioShell } from '@/components/library/StudioShell';
-import { getActive } from '@/lib/library/state';
+import { downloadBlob } from '@/lib/library/download';
+import { toGameBundle } from '@/lib/library/game-bundle';
+import { getActive, seedLibrary } from '@/lib/library/state';
 import { loadLibrary, memoryStorage } from '@/lib/library/storage';
+
+vi.mock('@/lib/library/download', () => ({
+  downloadBlob: vi.fn(),
+}));
 
 vi.mock('@/components/board/BoardScene', () => ({
   BoardScene: () => <div data-testid="board" />,
@@ -354,8 +360,9 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
     fireEvent.click(screen.getByRole('button', { name: 'New pack' }));
     fireEvent.click(screen.getByRole('button', { name: 'New card' }));
+    fireEvent.change(screen.getByLabelText('Card type'), { target: { value: 'timer' } });
     fireEvent.change(screen.getByLabelText('Timer seconds'), { target: { value: '9' } });
-    fireEvent.change(screen.getByLabelText('Extra button'), { target: { value: 'Done' } });
+    fireEvent.change(screen.getByLabelText('Start timer label'), { target: { value: 'Done' } });
     fireEvent.click(screen.getByRole('tab', { name: 'Levels' }));
     fireEvent.click(screen.getByLabelText('Level hold'));
     fireEvent.change(screen.getByLabelText('Quota for pack-1'), { target: { value: '2' } });
@@ -369,8 +376,9 @@ describe('StudioShell', () => {
     expect(floor?.holdEnabled).toBe(true);
     expect(floor?.holdQuotas).toEqual({ 'pack-1': 2 });
     expect(draft?.bootstrap.cards[0]).toMatchObject({
+      cardType: 'timer',
       timerSeconds: 9,
-      extraButton: 'Done',
+      timerButtonLabel: 'Done',
     });
   });
 
@@ -463,5 +471,52 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     await flushTestViewport();
     expect(screen.getByRole('button', { name: 'Spin' })).toBeDefined();
+  });
+
+  it('exports one game JSON with schemaVersion and the stable id', async () => {
+    renderStudio();
+    fireEvent.click(screen.getByRole('tab', { name: 'Imports' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export JSON' }));
+    expect(downloadBlob).toHaveBeenCalled();
+    const [filename, blob] = vi.mocked(downloadBlob).mock.calls[0]!;
+    expect(filename).toMatch(/\.json$/);
+    const json = JSON.parse(await blob.text());
+    expect(json.format).toBe('building-board.game');
+    expect(json.schemaVersion).toBe(1);
+    expect(json.id).toBe('seed-1');
+    expect(json).not.toHaveProperty('drafts');
+    expect(json).not.toHaveProperty('price');
+    expect(JSON.stringify(json)).not.toMatch(/base64|data:/i);
+  });
+
+  it('imports a JSON bundle by id as a local draft', async () => {
+    const storage = memoryStorage();
+    renderStudio(storage);
+    const incoming = toGameBundle({
+      ...seedLibrary('2026-09-25T12:00:00.000Z', 'incoming-1').drafts[0]!,
+      name: 'Imported Haunt',
+      version: '1.3',
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Imports' }));
+    const file = new File([JSON.stringify(incoming)], 'haunt.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Import game file'), { target: { files: [file] } });
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('library-game-title').textContent).toMatch(/Imported Haunt/),
+    );
+    const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(getActive(reloaded)?.id).toBe('incoming-1');
+    expect(getActive(reloaded)?.status).toBe('draft');
+    expect(getActive(reloaded)?.version).toBe('1.3');
+  });
+
+  it('prompts before replacing the dirty active game of the same id', async () => {
+    renderStudio();
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
+    const incoming = toGameBundle(seedLibrary('2026-09-25T12:00:00.000Z', 'seed-1').drafts[0]!);
+    fireEvent.click(screen.getByRole('tab', { name: 'Imports' }));
+    const file = new File([JSON.stringify(incoming)], 'climb.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Import game file'), { target: { files: [file] } });
+    await vi.waitFor(() => expect(screen.getByText('Save changes first?')).toBeDefined());
   });
 });
