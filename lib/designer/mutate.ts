@@ -44,6 +44,7 @@ function designerProps(
   | 'audio'
   | 'image'
   | 'video'
+  | 'face'
 > {
   return {
     kind: prev.kind,
@@ -57,6 +58,7 @@ function designerProps(
     audio: prev.audio,
     image: prev.image,
     video: prev.video,
+    face: prev.face,
   };
 }
 
@@ -434,6 +436,7 @@ export function clearCell(board: Board, floorId: string, cellId: string): Board 
             audio: _audio,
             image: _image,
             video: _video,
+            face: _face,
             ...rest
           } = entry;
           return { ...rest, kind: 'corridor' as const };

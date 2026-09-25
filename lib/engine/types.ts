@@ -130,6 +130,41 @@ export interface InventoryItem {
   starting?: boolean;
 }
 
+export type EdgeMaterial = 'wood' | 'metal' | 'plastic';
+export type PopupSpout = 'mesh' | 'surround' | 'tile';
+export type CameraBias = 'top-down' | 'token-side';
+export type CentreMeshKind = 'none' | 'castle';
+
+export interface BoardEdge {
+  material: EdgeMaterial;
+  thickness: number;
+  height: number;
+}
+
+export interface BoardSurround {
+  padding: number;
+  color?: string;
+  image?: ImageRef;
+}
+
+export interface CentreMesh {
+  kind: CentreMeshKind;
+  scale: number;
+  offsetX: number;
+  offsetZ: number;
+  yaw: number;
+  height: number;
+}
+
+export interface FloorLook {
+  image?: ImageRef;
+  edge?: BoardEdge;
+  surround?: BoardSurround;
+  centreMesh?: CentreMesh;
+  popupSpout?: PopupSpout;
+  cameraBias?: CameraBias;
+}
+
 export type RoomMode = 'single' | 'multi';
 
 export interface RoomDef {
@@ -159,6 +194,7 @@ export interface Cell {
   audio?: AudioRef;
   image?: ImageRef;
   video?: VideoRef;
+  face?: ImageRef;
 }
 
 export interface Stair {
@@ -180,6 +216,7 @@ export interface Floor {
   rows?: number;
   hud?: HudRect;
   shape?: BoardShape;
+  look?: FloorLook;
 }
 
 export interface TokenPos {

@@ -19,6 +19,7 @@ function isConfiguredCell(cell: Cell): boolean {
       extra.audio ||
       extra.image ||
       extra.video ||
+      extra.face ||
       extra.hudWidget ||
       extra.stairId ||
       extra.roomId ||
@@ -31,6 +32,9 @@ export { isVanillaRoom, resetRoom } from '@/lib/designer/rooms';
 
 export function isVanillaFloor(floor: Floor): boolean {
   if (floor.holdEnabled) return false;
+  if (floor.look?.image || floor.look?.surround?.image || floor.look?.centreMesh?.kind === 'castle') {
+    return false;
+  }
   const template = createLoopedFloor(floor.id, floor.label, floor.index, floor.shape ?? inferShape(floor));
   if (floor.cells.length !== template.cells.length) return false;
   const templateByPos = new Map<string, Cell>();
