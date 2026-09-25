@@ -60,15 +60,22 @@ import {
 import { roomAsFloor, replaceRoomFloor, roomById } from '@/lib/designer/rooms';
 import {
   addCard,
+  copyCard,
+  copyPack,
   createPack,
   deleteCard,
   deletePack,
   listDraftPackIds,
   nextCardId,
   nextPackId,
+  removeCard,
+  removePack,
   renamePack,
+  setPackBack,
   updateCard,
+  type FloatingPack,
 } from '@/lib/designer/packs';
+import type { CopyCardSource, CopyPackSource } from '@/lib/library/floating';
 import {
   addSegment,
   createSpinner,
@@ -108,6 +115,7 @@ export function LayoutDesigner({
   board,
   cards,
   packs,
+  packBacks,
   selectedFloorId,
   selectedCellId,
   tool,
@@ -126,6 +134,12 @@ export function LayoutDesigner({
   gameId,
   media,
   metadata,
+  copyPackSources,
+  copyCardSources,
+  resolveCopyPack,
+  resolveCopyCard,
+  onFloatPack,
+  onFloatCard,
 }: {
   board: Board;
   cards: Card[];
@@ -135,7 +149,19 @@ export function LayoutDesigner({
   tool: DesignerTool;
   issues: LayoutIssue[];
   onBoardChange: (board: Board) => void;
-  onDraftChange?: (next: { cards: Card[]; packs: string[]; board: Board }) => void;
+  onDraftChange?: (next: {
+    cards: Card[];
+    packs: string[];
+    board: Board;
+    packBacks?: Record<string, ImageRef>;
+  }) => void;
+  packBacks?: Record<string, ImageRef>;
+  copyPackSources?: CopyPackSource[];
+  copyCardSources?: CopyCardSource[];
+  resolveCopyPack?: (source: CopyPackSource) => { name: string; cards: Card[]; backImage?: ImageRef } | undefined;
+  resolveCopyCard?: (source: CopyCardSource) => Card | undefined;
+  onFloatPack?: (pack: FloatingPack) => void;
+  onFloatCard?: (card: Card) => void;
   onSelectFloor: (id: string) => void;
   onSelectCell: (id: string | null) => void;
   onToolChange: (tool: DesignerTool) => void;
@@ -169,6 +195,7 @@ export function LayoutDesigner({
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [roomConfirm, setRoomConfirm] = useState<'delete' | 'reset' | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
+  const backs = packBacks ?? {};
   const spinnerList = spinners ?? [];
   const itemList = items ?? [];
   const assignMode = itemAssign ?? 'random';
@@ -679,8 +706,11 @@ export function LayoutDesigner({
             <PackEditor
               packs={catalog}
               cards={draftCards}
+              packBacks={backs}
               selectedPackId={selectedPackId}
               selectedCardId={selectedCardId}
+              copyPackSources={copyPackSources}
+              copyCardSources={copyCardSources}
               onSelectPack={(id) => {
                 setSelectedPackId(id);
                 setSelectedCardId(null);
@@ -689,8 +719,29 @@ export function LayoutDesigner({
               onCreatePack={() => {
                 const id = nextPackId(catalog);
                 const nextPacks = createPack(catalog, id);
-                onDraftChange?.({ cards: draftCards, packs: nextPacks, board });
+                onDraftChange?.({ cards: draftCards, packs: nextPacks, board, packBacks: backs });
                 setSelectedPackId(id);
+                setSelectedCardId(null);
+              }}
+              onCopyPack={(source) => {
+                const payload = resolveCopyPack?.(source);
+                if (!payload) return;
+                const next = copyPack({
+                  packIds: catalog,
+                  cards: draftCards,
+                  board,
+                  packBacks: backs,
+                  source: payload,
+                });
+                onDraftChange?.({
+                  cards: next.cards,
+                  packs: next.packIds,
+                  board: next.board,
+                  packBacks: next.packBacks,
+                });
+                if (next.board !== board) onBoardChange(next.board);
+                const created = next.packIds.find((id) => !catalog.includes(id));
+                setSelectedPackId(created ?? selectedPackId);
                 setSelectedCardId(null);
               }}
               onRenamePack={(nextId) => {
@@ -699,22 +750,52 @@ export function LayoutDesigner({
                   packIds: catalog,
                   cards: draftCards,
                   board,
+                  packBacks: backs,
                   from: selectedPackId,
                   to: nextId,
                 });
-                onDraftChange?.(next);
+                onDraftChange?.({
+                  cards: next.cards,
+                  packs: next.packIds,
+                  board: next.board,
+                  packBacks: next.packBacks,
+                });
                 if (next.board !== board) onBoardChange(next.board);
                 setSelectedPackId(next.packIds.includes(nextId.trim()) ? nextId.trim() : selectedPackId);
               }}
-              onDeletePack={() => {
-                if (!selectedPackId) return;
+              onRemovePack={(packId) => {
+                const next = removePack({
+                  packIds: catalog,
+                  cards: draftCards,
+                  board,
+                  packBacks: backs,
+                  packId,
+                });
+                onFloatPack?.(next.floating);
+                onDraftChange?.({
+                  cards: next.cards,
+                  packs: next.packIds,
+                  board: next.board,
+                  packBacks: next.packBacks,
+                });
+                if (next.board !== board) onBoardChange(next.board);
+                setSelectedPackId(next.packIds[0] ?? null);
+                setSelectedCardId(null);
+              }}
+              onDeletePack={(packId) => {
                 const next = deletePack({
                   packIds: catalog,
                   cards: draftCards,
                   board,
-                  packId: selectedPackId,
+                  packBacks: backs,
+                  packId,
                 });
-                onDraftChange?.(next);
+                onDraftChange?.({
+                  cards: next.cards,
+                  packs: next.packIds,
+                  board: next.board,
+                  packBacks: next.packBacks,
+                });
                 if (next.board !== board) onBoardChange(next.board);
                 setSelectedPackId(next.packIds[0] ?? null);
                 setSelectedCardId(null);
@@ -731,8 +812,20 @@ export function LayoutDesigner({
                   cards: addCard(draftCards, card),
                   packs: catalog,
                   board,
+                  packBacks: backs,
                 });
                 setSelectedCardId(card.id);
+              }}
+              onCopyCard={(source) => {
+                if (!selectedPackId) return;
+                const payload = resolveCopyCard?.(source);
+                if (!payload) return;
+                onDraftChange?.({
+                  cards: copyCard(draftCards, selectedPackId, payload),
+                  packs: catalog,
+                  board,
+                  packBacks: backs,
+                });
               }}
               onUpdateCard={(patch) => {
                 if (!selectedCardId) return;
@@ -740,16 +833,37 @@ export function LayoutDesigner({
                   cards: updateCard(draftCards, selectedCardId, patch),
                   packs: catalog,
                   board,
+                  packBacks: backs,
                 });
               }}
-              onDeleteCard={() => {
-                if (!selectedCardId) return;
+              onRemoveCard={(cardId) => {
+                const next = removeCard(draftCards, cardId);
+                onFloatCard?.(next.floating);
                 onDraftChange?.({
-                  cards: deleteCard(draftCards, selectedCardId),
+                  cards: next.cards,
                   packs: catalog,
                   board,
+                  packBacks: backs,
                 });
                 setSelectedCardId(null);
+              }}
+              onDeleteCard={(cardId) => {
+                onDraftChange?.({
+                  cards: deleteCard(draftCards, cardId),
+                  packs: catalog,
+                  board,
+                  packBacks: backs,
+                });
+                setSelectedCardId(null);
+              }}
+              onSetPackBack={(image) => {
+                if (!selectedPackId) return;
+                onDraftChange?.({
+                  cards: draftCards,
+                  packs: catalog,
+                  board,
+                  packBacks: setPackBack(backs, selectedPackId, image),
+                });
               }}
               spinners={spinnerList}
               gameId={gameId}

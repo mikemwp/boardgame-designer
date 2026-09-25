@@ -10,7 +10,17 @@ import { NewGameDialog } from '@/components/library/NewGameDialog';
 import { OpenGameDialog } from '@/components/library/OpenGameDialog';
 import { UnsavedChangesDialog } from '@/components/library/UnsavedChangesDialog';
 import { preferredMovementViz } from '@/lib/designer/hud';
-import { listDraftPackIds } from '@/lib/designer/packs';
+import { cardsInPack, listDraftPackIds, type FloatingPack } from '@/lib/designer/packs';
+import {
+  addFloatingCard,
+  addFloatingPack,
+  floatingCardById,
+  floatingPackById,
+  listCopyCardSources,
+  listCopyPackSources,
+  type CopyCardSource,
+  type CopyPackSource,
+} from '@/lib/library/floating';
 import { canPublishPlay, validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
@@ -20,7 +30,7 @@ import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
 import type { PlayerState } from '@/lib/engine/players';
 import { emptyGameStart } from '@/lib/engine/audio';
-import type { Card, GameStart, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
+import type { Card, GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
 import { cloneJson, fromStoredBootstrap, storedPackIds } from '@/lib/library/bootstrap';
 import { browserMediaStore } from '@/lib/library/media-store';
 import type { NewGameInput } from '@/lib/library/types';
@@ -35,8 +45,9 @@ function snapshotKey(
   spinners: SpinnerDef[] = [],
   items: InventoryItem[] = [],
   itemAssign: ItemAssign = 'random',
+  packBacks: Record<string, ImageRef> = {},
 ): string {
-  return JSON.stringify({ board, players, cards, packs, gameStart, spinners, items, itemAssign });
+  return JSON.stringify({ board, players, cards, packs, packBacks, gameStart, spinners, items, itemAssign });
 }
 
 export function StudioShell(options: UseLibraryOptions = {}) {
@@ -52,6 +63,8 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     markActiveEdited,
     deleteActive,
     publishActive,
+    library,
+    updateLibrary,
   } = useLibrary({ ...options, media });
   const [snapshot, setSnapshot] = useState<GameState | null>(null);
   const [newOpen, setNewOpen] = useState(false);
@@ -63,6 +76,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [workingPlayers, setWorkingPlayers] = useState<PlayerState | null>(null);
   const [workingCards, setWorkingCards] = useState<Card[]>([]);
   const [workingPacks, setWorkingPacks] = useState<string[]>([]);
+  const [workingPackBacks, setWorkingPackBacks] = useState<Record<string, ImageRef>>({});
   const [workingGameStart, setWorkingGameStart] = useState<GameStart>(emptyGameStart());
   const [workingSpinners, setWorkingSpinners] = useState<SpinnerDef[]>([]);
   const [workingItems, setWorkingItems] = useState<InventoryItem[]>([]);
@@ -82,6 +96,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       setWorkingPlayers(null);
       setWorkingCards([]);
       setWorkingPacks([]);
+      setWorkingPackBacks({});
       setWorkingGameStart(emptyGameStart());
       setWorkingSpinners([]);
       setWorkingItems([]);
@@ -94,6 +109,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     const players = cloneJson(active.bootstrap.players);
     const cards = cloneJson(active.bootstrap.cards);
     const packs = storedPackIds(active.bootstrap);
+    const packBacks = cloneJson(active.bootstrap.packBacks ?? {});
     const gameStart = cloneJson(active.bootstrap.gameStart ?? emptyGameStart());
     const spinners = cloneJson(active.bootstrap.spinners ?? []);
     const items = cloneJson(active.bootstrap.items ?? []);
@@ -102,6 +118,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setWorkingPlayers(players);
     setWorkingCards(cards);
     setWorkingPacks(packs);
+    setWorkingPackBacks(packBacks);
     setWorkingGameStart(gameStart);
     setWorkingSpinners(spinners);
     setWorkingItems(items);
@@ -112,7 +129,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setMode('design');
     setSnapshot(null);
     setDirty(false);
-    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign);
+    savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks);
   }, [active?.id]);
 
   const persistWorking = useCallback(
@@ -120,12 +137,14 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       if (!active || !workingBoard || !workingPlayers) return;
       const cards = cloneJson(workingCards);
       const packs = listDraftPackIds(cards, workingPacks);
+      const packBacks = cloneJson(workingPackBacks);
       saveActive(
         {
           board: cloneJson(workingBoard),
           players: applyStartToPlayers(cloneJson(workingPlayers), workingBoard),
           cards,
           packs,
+          packBacks,
           config: snapshot?.config ?? active.bootstrap.config,
           gameStart: cloneJson(workingGameStart),
           spinners: cloneJson(workingSpinners),
@@ -144,6 +163,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
           workingSpinners,
           workingItems,
           workingItemAssign,
+          packBacks,
         );
         setDirty(false);
       }
@@ -154,6 +174,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       workingPlayers,
       workingCards,
       workingPacks,
+      workingPackBacks,
       workingGameStart,
       workingSpinners,
       workingItems,
@@ -183,6 +204,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     workingPlayers,
     workingCards,
     workingPacks,
+    workingPackBacks,
     workingGameStart,
     workingSpinners,
     workingItems,
@@ -212,9 +234,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     spinners: SpinnerDef[] = workingSpinners,
     items: InventoryItem[] = workingItems,
     itemAssign: ItemAssign = workingItemAssign,
+    packBacks: Record<string, ImageRef> = workingPackBacks,
   ) => {
     if (
-      snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign) !==
+      snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks) !==
       savedKeyRef.current
     ) {
       setDirty(true);
@@ -233,15 +256,23 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     markDirtyIfChanged(board, workingPlayers, workingCards, workingPacks);
   };
 
-  const onDraftChange = (next: { cards: Card[]; packs: string[]; board: Board }) => {
+  const onDraftChange = (next: {
+    cards: Card[];
+    packs: string[];
+    board: Board;
+    packBacks?: Record<string, ImageRef>;
+  }) => {
     setWorkingCards(next.cards);
     setWorkingPacks(next.packs);
+    if (next.packBacks) setWorkingPackBacks(next.packBacks);
+    const backs = next.packBacks ?? workingPackBacks;
     if (next.board !== workingBoard) {
       onBoardChange(next.board);
+      markDirtyIfChanged(next.board, workingPlayers, next.cards, next.packs, workingGameStart, workingSpinners, workingItems, workingItemAssign, backs);
       return;
     }
     if (active) markActiveEdited();
-    markDirtyIfChanged(next.board, workingPlayers, next.cards, next.packs);
+    markDirtyIfChanged(next.board, workingPlayers, next.cards, next.packs, workingGameStart, workingSpinners, workingItems, workingItemAssign, backs);
   };
 
   const onCatalogChange = (next: {
@@ -322,6 +353,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setWorkingPlayers(null);
     setWorkingCards([]);
     setWorkingPacks([]);
+    setWorkingPackBacks({});
     setWorkingGameStart(emptyGameStart());
     setWorkingSpinners([]);
     setWorkingItems([]);
@@ -411,12 +443,37 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             board={workingBoard}
             cards={workingCards}
             packs={workingPacks}
+            packBacks={workingPackBacks}
             selectedFloorId={selectedFloorId || workingBoard.floors[0]!.id}
             selectedCellId={selectedCellId}
             tool={tool}
             issues={issues}
             onBoardChange={onBoardChange}
             onDraftChange={onDraftChange}
+            copyPackSources={library && active ? listCopyPackSources(library, active.id) : []}
+            copyCardSources={library && active ? listCopyCardSources(library, active.id) : []}
+            resolveCopyPack={(source: CopyPackSource) => {
+              if (!library) return undefined;
+              if (source.kind === 'floating') {
+                const pack = floatingPackById(library, source.floatingId);
+                return pack ? { name: pack.name, cards: pack.cards, backImage: pack.backImage } : undefined;
+              }
+              const game = library.drafts.find((draft) => draft.id === source.gameId);
+              if (!game) return undefined;
+              return {
+                name: source.packName,
+                cards: cardsInPack(game.bootstrap.cards, source.packName),
+                backImage: game.bootstrap.packBacks?.[source.packName],
+              };
+            }}
+            resolveCopyCard={(source: CopyCardSource) => {
+              if (!library) return undefined;
+              if (source.kind === 'floating') return floatingCardById(library, source.cardId);
+              const game = library.drafts.find((draft) => draft.id === source.gameId);
+              return game?.bootstrap.cards.find((card) => card.id === source.cardId);
+            }}
+            onFloatPack={(pack: FloatingPack) => updateLibrary((current) => addFloatingPack(current, pack))}
+            onFloatCard={(card: Card) => updateLibrary((current) => addFloatingCard(current, card))}
             onSelectFloor={setSelectedFloorId}
             onSelectCell={setSelectedCellId}
             onToolChange={setTool}

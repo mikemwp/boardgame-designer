@@ -304,6 +304,33 @@ describe('StudioShell', () => {
     expect(getActive(reloaded)?.bootstrap.cards).toEqual([]);
   });
 
+  it('Remove pack persists a floating pack and Copy pack can take another game', () => {
+    const storage = memoryStorage();
+    renderStudio(storage, 'seed-1', '2026-09-25T08:00:00.000Z', () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy pack' }));
+    expect(screen.getByLabelText('Climb (sample) climb')).toBeDefined();
+    expect(screen.queryByLabelText('Sandbox pack-1')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Climb (sample) climb'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy into game' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    let reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(getActive(reloaded)?.bootstrap.packs).toEqual(['climb']);
+    expect(getActive(reloaded)?.bootstrap.cards.some((card) => card.pack === 'climb')).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove pack climb' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove pack' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
+    expect(getActive(reloaded)?.bootstrap.packs ?? []).toEqual([]);
+    expect(reloaded.floatingPacks?.[0]).toMatchObject({ name: 'climb' });
+    expect(reloaded.floatingPacks?.[0]?.cards.length).toBeGreaterThan(0);
+  });
+
   it('prompts to save before New when the board is dirty', () => {
     renderStudio();
     fireEvent.click(screen.getByTestId('slot-0-0'));

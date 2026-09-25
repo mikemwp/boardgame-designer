@@ -359,6 +359,50 @@ describe('LayoutDesigner', () => {
     expect(next.cards).toEqual([]);
   });
 
+  it('renames from Pack name, copies a floating pack, and floats on Remove', () => {
+    const onDraftChange = vi.fn();
+    const onFloatPack = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[{ id: 'notes-1', pack: 'notes', title: 'Clue' }]}
+        packs={['notes']}
+        selectedFloorId="ground"
+        selectedCellId="ground-c1"
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onDraftChange={onDraftChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        onFloatPack={onFloatPack}
+        copyPackSources={[{ kind: 'floating', floatingId: 'float-pack-1', packName: 'odds' }]}
+        resolveCopyPack={() => ({
+          name: 'odds',
+          cards: [{ id: 'odds-1', pack: 'odds', title: 'Even' }],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Packs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select pack notes' }));
+    fireEvent.change(screen.getByLabelText('Pack name'), { target: { value: 'clues' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename pack' }));
+    expect(onDraftChange).toHaveBeenCalled();
+    expect(onDraftChange.mock.calls.at(-1)?.[0].packs).toEqual(['clues']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy pack' }));
+    fireEvent.click(screen.getByLabelText('odds'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy into game' }));
+    expect(onDraftChange.mock.calls.at(-1)?.[0].packs).toEqual(['notes', 'odds']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove pack notes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove pack' }));
+    expect(onFloatPack).toHaveBeenCalledWith(expect.objectContaining({ name: 'notes' }));
+    expect(onDraftChange.mock.calls.at(-1)?.[0].packs).toEqual([]);
+  });
+
   it('sets a HUD cell to spinner from Tile Actions', () => {
     const onBoardChange = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);

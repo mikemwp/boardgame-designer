@@ -170,11 +170,24 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     });
   }, [media, storage]);
 
+  const updateLibrary = useCallback(
+    (fn: (current: LibraryState) => LibraryState) => {
+      setState((current) => {
+        if (!current) return current;
+        const next = fn(current);
+        writeLibrary(storage, next);
+        return next;
+      });
+    },
+    [storage],
+  );
+
   return {
     ready: state !== null,
     drafts: state ? listDrafts(state) : ([] as GameDocument[]),
     activeId: state?.activeId ?? null,
     active: state ? getActive(state) : undefined,
+    library: state,
     newGame,
     openGame,
     saveActive,
@@ -182,5 +195,6 @@ export function useLibrary(options: UseLibraryOptions = {}) {
     publishActive,
     deleteActive,
     persist,
+    updateLibrary,
   };
 }

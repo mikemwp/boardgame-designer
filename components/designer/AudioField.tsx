@@ -68,6 +68,7 @@ export function MediaField({
   media,
   onChange,
   idPrefix,
+  label,
 }: {
   kind: MediaKind;
   value?: MediaRef;
@@ -75,8 +76,10 @@ export function MediaField({
   media?: MediaStore;
   onChange: (next: MediaRef | undefined) => void;
   idPrefix: string;
+  label?: string;
 }) {
   const config = KIND_CONFIG[kind];
+  const fieldLabel = label ?? config.label;
   const store = media ?? memoryMediaStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLAudioElement>(null);
@@ -159,7 +162,7 @@ export function MediaField({
 
   return (
     <div className="flex flex-col gap-2" data-testid={`${idPrefix}-${kind}`}>
-      <Label htmlFor={`${idPrefix}-${kind}-url`}>{config.label}</Label>
+      <Label htmlFor={`${idPrefix}-${kind}-url`}>{fieldLabel}</Label>
       {!value ? (
         <p className="text-sm text-slate-400">{config.empty}</p>
       ) : (
@@ -167,7 +170,7 @@ export function MediaField({
       )}
       <Input
         id={`${idPrefix}-${kind}-url`}
-        aria-label={`${config.label} URL`}
+        aria-label={`${fieldLabel} URL`}
         placeholder="https://…"
         value={urlDraft}
         onChange={(e) => setUrlDraft(e.target.value)}
