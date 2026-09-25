@@ -4,6 +4,7 @@ import { LayoutDesigner } from '@/components/designer/LayoutDesigner';
 import { createBoard } from '@/lib/engine/board';
 import type { Board } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
+import { createSpinner } from '@/lib/designer/spinners';
 
 vi.mock('@/components/board/FloorPreview', () => ({
   FloorPreview: () => <div data-testid="floor-preview" />,
@@ -817,6 +818,111 @@ describe('LayoutDesigner', () => {
       ]),
     );
     expect(onDraftChange.mock.calls[0][0].packs).toEqual(expect.arrayContaining(['notes', 'extra']));
+  });
+
+  it('disables Spinners Preview when none is selected', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Spinners' }));
+    expect(screen.getByTestId('spinner-editor').querySelector('button')?.textContent).not.toBe('never');
+    expect(screen.getByTestId('spinner-editor').querySelector('[data-slot="button"]')?.closest('div'));
+    expect(
+      Array.from(screen.getByTestId('spinner-editor').querySelectorAll('button')).find(
+        (button) => button.textContent === 'Preview',
+      ),
+    ).toHaveProperty('disabled', true);
+  });
+
+  it('opens spinner Preview from the Spinners tab and switches spinner buttons', () => {
+    const onCatalogChange = vi.fn();
+    const first = createSpinner([], 'spinner-1');
+    const both = createSpinner(first, 'spinner-2');
+    both[1] = { ...both[1]!, name: 'Direction' };
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    const { rerender } = render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        spinners={first}
+        onCatalogChange={onCatalogChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Spinners' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select spinner Spinner 1' }));
+    const tabPreview = Array.from(screen.getByTestId('spinner-editor').querySelectorAll('button')).find(
+      (button) => button.textContent === 'Preview',
+    ) as HTMLButtonElement;
+    fireEvent.click(tabPreview);
+    expect(screen.getByTestId('preview-dialog')).toBeDefined();
+    expect(screen.queryByTestId('floor-preview')).toBeNull();
+    expect(screen.getByTestId('spinner-preview')).toBeDefined();
+    expect(screen.getByTestId('preview-switcher').textContent).toContain('Spinner 1');
+    expect(screen.getByTestId('preview-switcher').textContent).not.toMatch(/Level 1/);
+
+    rerender(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        spinners={both}
+        onCatalogChange={onCatalogChange}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('preview-switcher').querySelectorAll('button')[1] as HTMLButtonElement);
+    expect(screen.getByTestId('preview-dialog')).toBeDefined();
+    expect(screen.getByTestId('spinner-preview')).toBeDefined();
+    expect(screen.getByTestId('preview-switcher').textContent).toContain('Direction');
+  });
+
+  it('keeps board Preview on the tile-tool row with level buttons', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+        spinners={createSpinner([], 'spinner-1')}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(screen.getByTestId('floor-preview')).toBeDefined();
+    expect(screen.getByTestId('preview-switcher').textContent).toMatch(/Level 1/);
+    expect(screen.queryByTestId('spinner-preview')).toBeNull();
   });
 });
 

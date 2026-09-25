@@ -10,6 +10,7 @@ import { HoldEditor } from '@/components/designer/HoldEditor';
 import { LevelConfirmDialog } from '@/components/designer/LevelConfirmDialog';
 import { PlayerEditor } from '@/components/designer/PlayerEditor';
 import { SpinnerEditor } from '@/components/designer/SpinnerEditor';
+import { SpinnerPreview } from '@/components/designer/SpinnerPreview';
 import { isVanillaFloor, isVanillaRoom, resetFloor } from '@/lib/designer/level-size';
 import { LayoutGrid } from '@/components/designer/LayoutGrid';
 import { RoomTabs } from '@/components/designer/RoomTabs';
@@ -230,8 +231,10 @@ export function LayoutDesigner({
   const mediaStore = media ?? fallbackMedia;
   const [sideTab, setSideTab] = useState<DesignerSideTab>('tiles');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewKind, setPreviewKind] = useState<'board' | 'spinner'>('board');
   const [previewFloorId, setPreviewFloorId] = useState(selectedFloorId);
   const [previewRoomId, setPreviewRoomId] = useState<string | null>(null);
+  const [previewSpinnerId, setPreviewSpinnerId] = useState<string | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedSpinnerId, setSelectedSpinnerId] = useState<string | null>(null);
@@ -440,6 +443,7 @@ export function LayoutDesigner({
             type="button"
             className="absolute right-0"
             onClick={() => {
+              setPreviewKind('board');
               setPreviewFloorId(floor.id);
               setPreviewRoomId(viewingRoom ? selectedRoom?.id ?? null : null);
               setPreviewOpen(true);
@@ -808,6 +812,12 @@ export function LayoutDesigner({
                   packs: catalog,
                   board,
                 });
+              }}
+              onPreview={() => {
+                if (!selectedSpinnerId) return;
+                setPreviewKind('spinner');
+                setPreviewSpinnerId(selectedSpinnerId);
+                setPreviewOpen(true);
               }}
               gameId={gameId}
               media={mediaStore}
@@ -1203,48 +1213,77 @@ export function LayoutDesigner({
             <DialogTitle>Preview</DialogTitle>
           </DialogHeader>
           <div className="flex flex-wrap gap-2" data-testid="preview-switcher">
-            {board.floors.map((entry) => (
-              <Button
-                key={entry.id}
-                type="button"
-                variant={!previewRoomId && previewFloorId === entry.id ? 'secondary' : 'outline'}
-                onClick={() => {
-                  setPreviewFloorId(entry.id);
-                  setPreviewRoomId(null);
-                }}
-              >
-                {entry.label}
-              </Button>
-            ))}
-            {multiRooms.map((room) => (
-              <Button
-                key={room.id}
-                type="button"
-                variant={previewRoomId === room.id ? 'secondary' : 'outline'}
-                onClick={() => setPreviewRoomId(room.id)}
-              >
-                {room.name}
-              </Button>
-            ))}
+            {previewKind === 'spinner'
+              ? spinnerList.map((entry) => (
+                  <Button
+                    key={entry.id}
+                    type="button"
+                    variant={previewSpinnerId === entry.id ? 'secondary' : 'outline'}
+                    onClick={() => {
+                      setPreviewSpinnerId(entry.id);
+                      setSelectedSpinnerId(entry.id);
+                    }}
+                  >
+                    {entry.name}
+                  </Button>
+                ))
+              : (
+                  <>
+                    {board.floors.map((entry) => (
+                      <Button
+                        key={entry.id}
+                        type="button"
+                        variant={!previewRoomId && previewFloorId === entry.id ? 'secondary' : 'outline'}
+                        onClick={() => {
+                          setPreviewFloorId(entry.id);
+                          setPreviewRoomId(null);
+                        }}
+                      >
+                        {entry.label}
+                      </Button>
+                    ))}
+                    {multiRooms.map((room) => (
+                      <Button
+                        key={room.id}
+                        type="button"
+                        variant={previewRoomId === room.id ? 'secondary' : 'outline'}
+                        onClick={() => setPreviewRoomId(room.id)}
+                      >
+                        {room.name}
+                      </Button>
+                    ))}
+                  </>
+                )}
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            {(() => {
-              const previewRoom = previewRoomId ? roomById(board, previewRoomId) : undefined;
-              const previewBoard =
-                previewRoom?.mode === 'multi'
-                  ? createBoard([roomAsFloor(previewRoom)], [], board.rooms)
-                  : board;
-              const previewId =
-                previewRoom?.mode === 'multi' ? previewRoom.id : previewFloorId;
-              return (
-                <FloorPreview
-                  board={previewBoard}
-                  floorId={previewId}
-                  selectedCellId={selectedCellId ?? undefined}
-                  gameTitle={gameTitle}
-                />
-              );
-            })()}
+            {previewKind === 'spinner'
+              ? (() => {
+                  const previewSpinner =
+                    spinnerList.find((entry) => entry.id === previewSpinnerId) ??
+                    spinnerList.find((entry) => entry.id === selectedSpinnerId);
+                  return previewSpinner ? (
+                    <SpinnerPreview key={previewSpinner.id} spinner={previewSpinner} />
+                  ) : (
+                    <p className="p-4 text-sm text-slate-400">No spinner selected.</p>
+                  );
+                })()
+              : (() => {
+                  const previewRoom = previewRoomId ? roomById(board, previewRoomId) : undefined;
+                  const previewBoard =
+                    previewRoom?.mode === 'multi'
+                      ? createBoard([roomAsFloor(previewRoom)], [], board.rooms)
+                      : board;
+                  const previewId =
+                    previewRoom?.mode === 'multi' ? previewRoom.id : previewFloorId;
+                  return (
+                    <FloorPreview
+                      board={previewBoard}
+                      floorId={previewId}
+                      selectedCellId={selectedCellId ?? undefined}
+                      gameTitle={gameTitle}
+                    />
+                  );
+                })()}
           </div>
         </DialogContent>
       </Dialog>
