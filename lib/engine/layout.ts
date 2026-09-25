@@ -196,7 +196,7 @@ function loopCenter(cells: Cell[]): { x: number; z: number } | null {
   return { x: x / n, z: z / n };
 }
 
-/** True if from→to around center is clockwise on XZ when viewed from +Y. */
+/** True if from→to around center is clockwise on the top-down board (row 0 at top). */
 function isClockwiseTurn(
   center: { x: number; z: number },
   from: { x: number; z: number },
@@ -206,7 +206,7 @@ function isClockwiseTurn(
   const az = from.z - center.z;
   const bx = to.x - center.x;
   const bz = to.z - center.z;
-  return ax * bz - az * bx < 0;
+  return ax * bz - az * bx > 0;
 }
 
 function pickNextAlongLoop(cells: Cell[], current: Cell, candidates: Cell[]): Cell | undefined {

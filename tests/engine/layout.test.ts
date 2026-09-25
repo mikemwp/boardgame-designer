@@ -111,23 +111,23 @@ describe('orderCellsAlongLoop', () => {
     expect(ordered?.every((c, i) => c.index === i)).toBe(true);
   });
 
-  it('rewrites a counter-clockwise indexed ring so play walks clockwise from +Y', () => {
-    const ccw = [
+  it('rewrites an anti-clockwise indexed ring so play walks right along the top', () => {
+    const downLeft = [
       { id: 'a', index: 0, kind: 'corridor' as const, col: 0, row: 0 },
-      { id: 'b', index: 1, kind: 'corridor' as const, col: 1, row: 0 },
-      { id: 'c', index: 2, kind: 'corridor' as const, col: 2, row: 0 },
-      { id: 'd', index: 3, kind: 'corridor' as const, col: 2, row: 1 },
+      { id: 'h', index: 1, kind: 'corridor' as const, col: 0, row: 1 },
+      { id: 'g', index: 2, kind: 'corridor' as const, col: 0, row: 2 },
+      { id: 'f', index: 3, kind: 'corridor' as const, col: 1, row: 2 },
       { id: 'e', index: 4, kind: 'corridor' as const, col: 2, row: 2 },
-      { id: 'f', index: 5, kind: 'corridor' as const, col: 1, row: 2 },
-      { id: 'g', index: 6, kind: 'corridor' as const, col: 0, row: 2 },
-      { id: 'h', index: 7, kind: 'corridor' as const, col: 0, row: 1 },
+      { id: 'd', index: 5, kind: 'corridor' as const, col: 2, row: 1 },
+      { id: 'c', index: 6, kind: 'corridor' as const, col: 2, row: 0 },
+      { id: 'b', index: 7, kind: 'corridor' as const, col: 1, row: 0 },
     ];
-    expect(isClockwiseFromPlusY(cellsToXZ(ccw))).toBe(false);
-    const ordered = orderCellsAlongLoop(ccw);
+    expect(isClockwiseFromPlusY(cellsToXZ(downLeft))).toBe(false);
+    const ordered = orderCellsAlongLoop(downLeft);
     expect(ordered).not.toBeNull();
     expect(isClockwiseFromPlusY(cellsToXZ(ordered!))).toBe(true);
     expect(ordered?.[0]?.id).toBe('a');
-    expect(ordered?.[1]?.id).toBe('h');
+    expect(ordered?.[1]?.id).toBe('b');
   });
 
   it('returns null when a cell sticks off the loop', () => {

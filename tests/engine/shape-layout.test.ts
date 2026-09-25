@@ -40,6 +40,13 @@ describe('square layout', () => {
     expect(isClockwiseFromPlusY(xz)).toBe(true);
     expect(eachStepClockwiseFromPlusY(xz)).toBe(true);
   });
+
+  it('orders square ring slots clockwise on the top-down board (row 0 at top)', () => {
+    const layout = buildShapeLayout({ kind: 'square', tilesPerSide: 3 });
+    expect(layout.slots[0]).toMatchObject({ col: 0, row: 0 });
+    expect(layout.slots[1]).toMatchObject({ col: 1, row: 0 });
+    expect(isClockwiseFromPlusY(cellsToXZ(layout.slots))).toBe(true);
+  });
 });
 
 describe('rectangle layout', () => {

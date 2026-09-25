@@ -35,7 +35,8 @@ describe('LayoutGrid', () => {
     expect(screen.getAllByText('HUD').length).toBeGreaterThan(0);
     fireEvent.pointerDown(screen.getByTestId('slot-0-7'));
     fireEvent.pointerUp(screen.getByTestId('slot-1-1'));
-    expect(onMoveCell).toHaveBeenCalledWith('ground-c7', 1, 1);
+    const bottomLeft = floor.cells.find((cell) => cell.col === 0 && cell.row === 7);
+    expect(onMoveCell).toHaveBeenCalledWith(bottomLeft?.id, 1, 1);
   });
 
   it('labels a start tile with white Start text and a green border', () => {

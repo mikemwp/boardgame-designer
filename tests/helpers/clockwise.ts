@@ -1,4 +1,4 @@
-/** Signed area of a closed XZ polyline. Negative is clockwise from +Y. */
+/** Signed area of a closed XZ polyline (x = col, z = row). Positive is visual clockwise. */
 export function xzSignedArea(points: Array<{ x: number; z: number }>): number {
   let area = 0;
   for (let i = 0; i < points.length; i += 1) {
@@ -9,9 +9,9 @@ export function xzSignedArea(points: Array<{ x: number; z: number }>): number {
   return area;
 }
 
-/** Clockwise around the XZ board when the camera looks down from +Y. */
+/** Clockwise on the top-down board (row 0 at top, col increases right). */
 export function isClockwiseFromPlusY(points: Array<{ x: number; z: number }>): boolean {
-  return xzSignedArea(points) < 0;
+  return xzSignedArea(points) > 0;
 }
 
 export function eachStepClockwiseFromPlusY(points: Array<{ x: number; z: number }>): boolean {
@@ -25,7 +25,7 @@ export function eachStepClockwiseFromPlusY(points: Array<{ x: number; z: number 
     const az = a.z - cz;
     const bx = b.x - cx;
     const bz = b.z - cz;
-    if (ax * bz - az * bx >= 0) return false;
+    if (ax * bz - az * bx <= 0) return false;
   }
   return true;
 }

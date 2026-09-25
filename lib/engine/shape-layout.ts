@@ -88,12 +88,12 @@ function walkRectRing(
   const right = left + length - 1;
   const bottom = top + width - 1;
   const positions: Array<{ col: number; row: number }> = [];
-  // Clockwise on XZ when viewed from +Y (X right, Z up): down the left, across
-  // the bottom, up the right, back along the top.
-  for (let row = top; row < bottom; row += 1) positions.push({ col: left, row });
-  for (let col = left; col < right; col += 1) positions.push({ col, row: bottom });
-  for (let row = bottom; row > top; row -= 1) positions.push({ col: right, row });
-  for (let col = right; col > left; col -= 1) positions.push({ col, row: top });
+  // Visual clockwise on the top-down board (row 0 at top, col increases right):
+  // along the top, down the right, back along the bottom, up the left.
+  for (let col = left; col < right; col += 1) positions.push({ col, row: top });
+  for (let row = top; row < bottom; row += 1) positions.push({ col: right, row });
+  for (let col = right; col > left; col -= 1) positions.push({ col, row: bottom });
+  for (let row = bottom; row > top; row -= 1) positions.push({ col: left, row });
   return positions;
 }
 
