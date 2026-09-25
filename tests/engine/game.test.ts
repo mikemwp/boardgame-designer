@@ -644,6 +644,63 @@ describe('lastAudioCues', () => {
   });
 });
 
+describe('roll-again stairs', () => {
+  function heldRollAgainBootstrap(rollAgainCardId?: string): GameBootstrap {
+    return {
+      board: createBoard(
+        [
+          {
+            id: 'f1',
+            index: 0,
+            label: 'Held',
+            holdEnabled: true,
+            holdQuotas: { climb: 1 },
+            cells: [
+              { id: 'a', index: 0, kind: 'corridor' },
+              { id: 's', index: 1, kind: 'stair', stairId: 'up' },
+            ],
+          },
+          { id: 'f2', index: 1, label: 'Next', cells: [{ id: 'n', index: 0 }] },
+        ],
+        [{ id: 'up', fromFloorId: 'f1', toFloorId: 'f2', toCellId: 'n', legal: true, rollAgain: true, rollAgainCardId }],
+      ),
+      players: addPlayer(createPlayerState(), {
+        id: 'p1',
+        name: 'Climber',
+        token: { floorId: 'f1', cellId: 'a' },
+      }),
+      cards: createCardState([
+        { id: 'again-1', pack: 'notes', title: 'Again', cardType: 'roll-again' },
+      ]),
+      config: { holdEnabled: true, diceSides: 6, actionMode: 'both', diceEnabled: true },
+    };
+  }
+
+  it('stays on a held roll-again stair and shows the attached card', () => {
+    const game = createGame(heldRollAgainBootstrap('again-1'), { rng: () => 0 });
+    game.hold = { floorId: 'f1', quotas: { climb: 1 }, counts: {}, active: true };
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.players.players[0]?.token).toEqual({ floorId: 'f1', cellId: 's' });
+    expect(next.cards.currentCard).toMatchObject({ id: 'again-1', cardType: 'roll-again' });
+    expect(next.cards.bodyVisible).toBe(true);
+    expect(next.hold?.active).toBe(true);
+  });
+
+  it('shows a default roll-again card when the stair has no attached card', () => {
+    const game = createGame(heldRollAgainBootstrap(), { rng: () => 0 });
+    game.hold = { floorId: 'f1', quotas: { climb: 1 }, counts: {}, active: true };
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.cards.currentCard).toMatchObject({ id: 'roll-again-default', cardType: 'roll-again' });
+  });
+
+  it('still teleports when hold is off', () => {
+    const game = createGame(heldRollAgainBootstrap('again-1'), { holdEnabled: false, rng: () => 0 });
+    const next = dispatch(game, { type: 'ROLL_DICE' });
+    expect(next.players.players[0]?.token).toEqual({ floorId: 'f2', cellId: 'n' });
+    expect(next.cards.currentCard?.cardType).not.toBe('roll-again');
+  });
+});
+
 describe('card types', () => {
   it('miss-a-turn skips the next roll', () => {
     const bootstrap = loopBootstrap({

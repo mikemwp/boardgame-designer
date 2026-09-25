@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { allowedActions } from '@/lib/engine/cards';
 import { passActionAllowed } from '@/lib/engine/passes';
 import { cardBackImage } from '@/lib/designer/packs';
-import type { ActionMode, Card as CardType, ImageRef } from '@/lib/engine/types';
+import type { ActionMode, Card as CardType, ImageRef, MovementViz } from '@/lib/engine/types';
 import type { GameCommand } from '@/lib/engine/events';
 
 export function CardPanel({
@@ -19,6 +19,7 @@ export function CardPanel({
   onExtra,
   onDispatch,
   packBack,
+  movementViz = 'dice',
 }: {
   actionMode: ActionMode;
   currentCard: CardType | null;
@@ -30,6 +31,7 @@ export function CardPanel({
   onExtra?: () => void;
   onDispatch: (cmd: GameCommand) => void;
   packBack?: ImageRef;
+  movementViz?: MovementViz;
 }) {
   const actions = awaitingAction ? allowedActions(actionMode) : [];
   const showPass = currentCard
@@ -63,6 +65,11 @@ export function CardPanel({
         ) : null}
         {bodyVisible && extraLabel ? (
           <Button onClick={() => onExtra?.()}>{extraLabel}</Button>
+        ) : null}
+        {bodyVisible && currentCard.cardType === 'roll-again' ? (
+          <Button onClick={() => onExtra?.()}>
+            {movementViz === 'spinner' ? 'Spin again' : 'Roll again'}
+          </Button>
         ) : null}
         {bodyVisible && currentCard.cardType === 'change-direction-choice' ? (
           <div className="flex flex-wrap gap-2">

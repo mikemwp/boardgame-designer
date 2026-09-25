@@ -37,6 +37,11 @@ import {
   deleteRoom,
   eraseCell,
   linkStair,
+  setFloorFinal,
+  setStairDestinationFloor,
+  setStairLandingAt,
+  setStairLandingOnSlot,
+  setStairRollAgain,
   moveCell,
   moveCellToSlot,
   nextCellId,
@@ -242,6 +247,7 @@ export function LayoutDesigner({
   const [levelConfirm, setLevelConfirm] = useState<'delete' | 'reset' | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [roomConfirm, setRoomConfirm] = useState<'delete' | 'reset' | null>(null);
+  const [landingDestFloorId, setLandingDestFloorId] = useState<string | null>(null);
   const catalog = listDraftPackIds(cards, packs ?? []);
   const backs = packBacks ?? {};
   const spinnerList = spinners ?? [];
@@ -259,8 +265,25 @@ export function LayoutDesigner({
     });
   }, [floor, viewingRoom, selectedRoom?.name, onDesignerContextChange]);
   if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
-  const canvasFloor = viewingRoom && selectedRoom ? roomAsFloor(selectedRoom) : floor;
-  const canvasBoard = viewingRoom ? createBoard([canvasFloor], [], board.rooms) : board;
+  const originCell = selectedCellId
+    ? floor.cells.find((cell) => cell.id === selectedCellId)
+    : undefined;
+  const originStair =
+    originCell?.kind === 'stair' && originCell.stairId
+      ? board.stairs.find((stair) => stair.id === originCell.stairId)
+      : undefined;
+  const destFloorId =
+    landingDestFloorId ?? (originStair && !originStair.legal ? originStair.toFloorId || null : null);
+  const destFloor = destFloorId ? board.floors.find((entry) => entry.id === destFloorId) : undefined;
+  const pickingLanding = Boolean(destFloor && originStair);
+  const canvasFloor =
+    pickingLanding && destFloor
+      ? destFloor
+      : viewingRoom && selectedRoom
+        ? roomAsFloor(selectedRoom)
+        : floor;
+  const canvasBoard =
+    pickingLanding ? board : viewingRoom ? createBoard([canvasFloor], [], board.rooms) : board;
   const vanillaFloor = isVanillaFloor(floor);
   const multiRooms = (board.rooms ?? []).filter((room) => room.mode === 'multi');
   const roomForSize =
@@ -290,6 +313,14 @@ export function LayoutDesigner({
   };
 
   const activateCartesian = (col: number, row: number) => {
+    if (pickingLanding && originStair && destFloor) {
+      const next = setStairLandingAt(board, originStair.id, destFloor.id, col, row);
+      onBoardChange(next);
+      if (next.stairs.find((stair) => stair.id === originStair.id)?.legal) {
+        setLandingDestFloorId(null);
+      }
+      return;
+    }
     const existing = cellAt(canvasFloor, col, row);
     if (tool === 'erase') {
       if (existing) {
@@ -363,6 +394,14 @@ export function LayoutDesigner({
   };
 
   const activatePolar = (slotId: string) => {
+    if (pickingLanding && originStair && destFloor) {
+      const next = setStairLandingOnSlot(board, originStair.id, destFloor.id, slotId);
+      onBoardChange(next);
+      if (next.stairs.find((stair) => stair.id === originStair.id)?.legal) {
+        setLandingDestFloorId(null);
+      }
+      return;
+    }
     const layout = buildShapeLayout(floor.shape!);
     const slot = layout.slots.find((s) => s.id === slotId);
     if (!slot) return;
@@ -415,8 +454,11 @@ export function LayoutDesigner({
           data-testid="designer-toolbar"
         >
           <DesignerPalette
-            tool={tool}
-            onToolChange={onToolChange}
+            tool={pickingLanding ? 'stair' : tool}
+            onToolChange={(next) => {
+              if (pickingLanding) return;
+              onToolChange(next);
+            }}
             viewingRoom={viewingRoom}
             onFill={() => commitCanvas(fillFreeWithBoard(canvasBoard, canvasFloor.id))}
             onClear={() => {
@@ -452,10 +494,14 @@ export function LayoutDesigner({
             Preview
           </Button>
         </div>
-        <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <div
+          className="min-h-0 min-w-0 flex-1 overflow-hidden"
+          data-testid="designer-canvas-floor"
+          data-floor-id={canvasFloor.id}
+        >
           <LayoutGrid
             floor={canvasFloor}
-            selectedCellId={selectedCellId ?? undefined}
+            selectedCellId={pickingLanding ? undefined : selectedCellId ?? undefined}
             onSlotActivate={activateCartesian}
             onMoveCell={(cellId, col, row) =>
               commitCanvas(moveCell(canvasBoard, canvasFloor.id, cellId, col, row))
@@ -854,7 +900,14 @@ export function LayoutDesigner({
             <HoldEditor
               floor={floor}
               packIds={catalog}
-              onChange={(patch) => onBoardChange(setFloorHold(board, floor.id, patch))}
+              onChange={(patch) => {
+                if ('final' in patch) {
+                  onBoardChange(setFloorFinal(board, floor.id, Boolean(patch.final)));
+                }
+                if ('holdEnabled' in patch || patch.holdQuotas) {
+                  onBoardChange(setFloorHold(board, floor.id, patch));
+                }
+              }}
               onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
               gameId={gameId ?? 'draft'}
               media={mediaStore}
@@ -874,8 +927,8 @@ export function LayoutDesigner({
             />
           ) : sideTab === 'tiles' ? (
             <CellInspector
-              board={viewingRoom ? canvasBoard : board}
-              floorId={canvasFloor.id}
+              board={pickingLanding ? board : viewingRoom ? canvasBoard : board}
+              floorId={pickingLanding && originStair ? originStair.fromFloorId : canvasFloor.id}
               cellId={selectedCellId}
               packIds={listPackIds(cards, catalog)}
               onSetPack={(packId) => {
@@ -903,6 +956,19 @@ export function LayoutDesigner({
                 const cell = floor.cells.find((c) => c.id === selectedCellId);
                 if (!cell?.stairId) return;
                 onBoardChange(linkStair(board, cell.stairId, toFloorId, toCellId));
+              }}
+              onChooseDestFloor={(toFloorId) => {
+                const cell = floor.cells.find((c) => c.id === selectedCellId);
+                if (!cell?.stairId) return;
+                setSelectedRoomId(null);
+                setLandingDestFloorId(toFloorId || null);
+                onBoardChange(setStairDestinationFloor(board, cell.stairId, toFloorId));
+              }}
+              landingPickActive={pickingLanding}
+              onSetRollAgain={(patch) => {
+                const cell = floor.cells.find((c) => c.id === selectedCellId);
+                if (!cell?.stairId) return;
+                onBoardChange(setStairRollAgain(board, cell.stairId, patch, draftCards));
               }}
               onClearStair={() => {
                 if (!selectedCellId || viewingRoom) return;

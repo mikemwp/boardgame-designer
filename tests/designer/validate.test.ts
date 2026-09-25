@@ -10,6 +10,7 @@ import {
   eraseCell,
   placeCorridor,
   setEndCell,
+  setFloorFinal,
   setRoomMode,
   setStartCell,
 } from '@/lib/designer/mutate';
@@ -116,8 +117,29 @@ describe('validateLayout', () => {
   it('does not require an end tile for test play', () => {
     let board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     board = setStartCell(board, 'ground', 'ground-c0');
+    expect(validateLayout(board)).toEqual([]);
+    expect(validateLayout(board).some((i) => i.code === 'missing-end')).toBe(false);
     board = setEndCell(board, 'ground', 'ground-c1');
     expect(validateLayout(board)).toEqual([]);
+    expect(validateLayout(board).some((i) => i.code === 'missing-end')).toBe(false);
+  });
+
+  it('skips the closed loop on a Final level but still blocks dangling stairs', () => {
+    let board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
+    board = setStartCell(board, 'ground', 'ground-c0');
+    board = placeCorridor(board, 'ground', 1, 1, 'ground-c99');
+    expect(validateLayout(board).some((i) => i.code === 'non-loop')).toBe(true);
+    expect(canTestPlay(board)).toBe(false);
+
+    const flagged = setFloorFinal(board, 'ground', true);
+    expect(validateLayout(flagged).some((i) => i.code === 'non-loop' || i.code === 'broken-spoke')).toBe(
+      false,
+    );
+    expect(canTestPlay(flagged)).toBe(true);
+
+    const dangling = attachStair(flagged, 'ground', 'ground-c3');
+    expect(validateLayout(dangling).some((i) => i.code === 'dangling-stair')).toBe(true);
+    expect(canTestPlay(dangling)).toBe(false);
   });
 
   it('canPublishPlay matches canTestPlay', () => {

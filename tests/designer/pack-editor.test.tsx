@@ -106,6 +106,8 @@ describe('PackEditor', () => {
     expect(onUpdateCard).toHaveBeenCalledWith({ body: 'Knock' });
     fireEvent.change(screen.getByLabelText('Card type'), { target: { value: 'timer' } });
     expect(onUpdateCard).toHaveBeenCalledWith({ cardType: 'timer' });
+    fireEvent.change(screen.getByLabelText('Card type'), { target: { value: 'roll-again' } });
+    expect(onUpdateCard).toHaveBeenCalledWith({ cardType: 'roll-again' });
     rerender(
       <PackEditor
         {...noop}

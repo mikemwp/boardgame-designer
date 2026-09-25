@@ -1,4 +1,24 @@
-import type { ActionMode, Card } from './types';
+import type { ActionMode, Card, MovementViz } from './types';
+
+export const ROLL_AGAIN_DEFAULT_ID = 'roll-again-default';
+
+export function defaultRollAgainCard(movementViz: MovementViz = 'dice'): Card {
+  return {
+    id: ROLL_AGAIN_DEFAULT_ID,
+    pack: '',
+    title: movementViz === 'spinner' ? 'Spin again' : 'Roll again',
+    cardType: 'roll-again',
+  };
+}
+
+export function showRollAgainCard(state: CardState, card: Card): CardState {
+  return {
+    ...state,
+    currentCard: card,
+    bodyVisible: true,
+    awaitingAction: false,
+  };
+}
 
 export interface CardState {
   deck: Card[];

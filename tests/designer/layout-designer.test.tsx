@@ -4,6 +4,7 @@ import { LayoutDesigner } from '@/components/designer/LayoutDesigner';
 import { createBoard } from '@/lib/engine/board';
 import type { Board } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
+import { addFloor, attachStair } from '@/lib/designer/mutate';
 import { createSpinner } from '@/lib/designer/spinners';
 
 vi.mock('@/components/board/FloorPreview', () => ({
@@ -923,6 +924,70 @@ describe('LayoutDesigner', () => {
     expect(screen.getByTestId('floor-preview')).toBeDefined();
     expect(screen.getByTestId('preview-switcher').textContent).toMatch(/Level 1/);
     expect(screen.queryByTestId('spinner-preview')).toBeNull();
+  });
+
+  it('picks a stair landing by clicking the destination level canvas', () => {
+    const onBoardChange = vi.fn();
+    const onToolChange = vi.fn();
+    let board = addFloor(createBoard([createLoopedFloor('ground', 'Level 1', 0)], []), 'floor-1', 'Level 2');
+    board = attachStair(board, 'ground', 'ground-c3');
+    const destTile = board.floors[1]!.cells.find((c) => (c.kind === 'corridor' || !c.kind) && c.col === 0 && c.row === 0)!;
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[{ id: 'again-1', pack: 'notes', title: 'Again', cardType: 'roll-again' }]}
+        selectedFloorId="ground"
+        selectedCellId="ground-c3"
+        tool="stair"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={onToolChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
+    expect(screen.getByText('Stair tiles never hold packs.')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Destination level'), { target: { value: 'floor-1' } });
+    const destChosen = onBoardChange.mock.calls.at(-1)?.[0] as Board;
+    expect(destChosen.stairs[0]).toMatchObject({ toFloorId: 'floor-1', toCellId: '', legal: false });
+    expect(screen.getByTestId('designer-canvas-floor').getAttribute('data-floor-id')).toBe('floor-1');
+    expect(screen.getByText('Click a tile on this level to set the landing.')).toBeDefined();
+    expect(screen.queryByLabelText('Landing tile')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    expect(onToolChange).not.toHaveBeenCalledWith('select');
+
+    fireEvent.click(screen.getByTestId(`slot-${destTile.col}-${destTile.row}`));
+    const linked = onBoardChange.mock.calls.at(-1)?.[0] as Board;
+    expect(linked.stairs[0]).toMatchObject({
+      toFloorId: 'floor-1',
+      toCellId: destTile.id,
+      legal: true,
+    });
+    expect(linked.floors[1]?.cells.find((c) => c.id === destTile.id)?.kind).not.toBe('stair');
+  });
+
+  it('flags the selected level as Final from the Levels tab', () => {
+    const onBoardChange = vi.fn();
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={onBoardChange}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Levels' }));
+    fireEvent.click(screen.getByLabelText('Final'));
+    expect((onBoardChange.mock.calls[0][0] as Board).floors[0]?.final).toBe(true);
   });
 });
 

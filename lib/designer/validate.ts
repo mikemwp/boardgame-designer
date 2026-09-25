@@ -150,8 +150,10 @@ export function validateLayout(board: Board): LayoutIssue[] {
       });
       continue;
     }
-    const loopIssue = validateFloorLoop(floor);
-    if (loopIssue) issues.push(loopIssue);
+    if (!floor.final) {
+      const loopIssue = validateFloorLoop(floor);
+      if (loopIssue) issues.push(loopIssue);
+    }
     for (const cell of floor.cells) {
       if (cell.kind === 'stair') {
         const stair = board.stairs.find((s) => s.id === cell.stairId);

@@ -438,6 +438,7 @@ export function GameHud({
           onExtra={() => setCardHoldReleased(true)}
           onDispatch={dispatch}
           packBack={visibleCard ? packBacks?.[visibleCard.pack] : undefined}
+          movementViz={game.config.movementViz}
         />
       </aside>
       {(() => {

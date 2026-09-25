@@ -64,4 +64,12 @@ describe('HoldEditor', () => {
     expect(screen.getByTestId('level-tab-name').textContent).toBe('Level 1');
     expect(screen.getByLabelText('Selected level name')).toBeDefined();
   });
+
+  it('flags the level as Final', () => {
+    const onChange = vi.fn();
+    const floor = createLoopedFloor('ground', 'Level 1', 0);
+    render(<HoldEditor floor={floor} packIds={[]} onChange={onChange} />);
+    fireEvent.click(screen.getByLabelText('Final'));
+    expect(onChange).toHaveBeenCalledWith({ final: true });
+  });
 });

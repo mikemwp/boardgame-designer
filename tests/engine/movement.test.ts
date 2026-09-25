@@ -153,6 +153,16 @@ describe('allowedMoveValues', () => {
     expect(allowed).not.toContain(3);
   });
 
+  it('allows landing on a roll-again stair while hold is active', () => {
+    const held = createBoard(
+      loopBoard.floors,
+      [{ id: 'up', fromFloorId: 'lobby', toFloorId: 'f1', toCellId: 'f1c0', legal: true, rollAgain: true }],
+    );
+    const hold = createHoldState('lobby', { climb: 1 });
+    const allowed = allowedMoveValues(held, { floorId: 'lobby', cellId: 'l0' }, 6, hold, true);
+    expect(allowed).toContain(3);
+  });
+
   it('allows landing on the stair when hold is off', () => {
     const allowed = allowedMoveValues(
       loopBoard,

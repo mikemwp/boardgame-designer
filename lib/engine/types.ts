@@ -222,6 +222,8 @@ export interface Stair {
   toFloorId: string;
   toCellId: string;
   legal: boolean;
+  rollAgain?: boolean;
+  rollAgainCardId?: string;
 }
 
 export interface Floor {
@@ -237,6 +239,7 @@ export interface Floor {
   shape?: BoardShape;
   look?: FloorLook;
   background?: ImageRef;
+  final?: boolean;
 }
 
 export interface TokenPos {
@@ -259,7 +262,8 @@ export type CardTypeId =
   | 'change-direction'
   | 'change-direction-choice'
   | 'go-back'
-  | 'timer';
+  | 'timer'
+  | 'roll-again';
 
 export interface Card {
   id: string;

@@ -175,6 +175,7 @@ export function isIllegalLanding(
   if (!stair) return false;
   if (!stair.legal) return true;
   const exitsFloor = stair.toFloorId !== fromFloorId;
+  if (stair.rollAgain) return false;
   return Boolean(
     exitsFloor && holdEnabled && hold?.active && hold.floorId === fromFloorId,
   );

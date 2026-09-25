@@ -296,6 +296,7 @@ export function PackEditor({
                 <option value="change-direction-choice">Change direction choice</option>
                 <option value="go-back">Go back</option>
                 <option value="timer">Timer</option>
+                <option value="roll-again">Roll again</option>
               </select>
               {selectedCard.cardType === 'change-direction'
               || selectedCard.cardType === 'change-direction-choice'

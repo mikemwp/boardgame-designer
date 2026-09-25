@@ -84,6 +84,33 @@ describe('CardPanel', () => {
     expect(onDispatch).toHaveBeenCalledWith({ type: 'SPIN_OUTCOME', spinnerId: 'spinner-1' });
   });
 
+  it('shows Roll again or Spin again from movement viz', () => {
+    const onExtra = vi.fn();
+    const { rerender } = render(
+      <CardPanel
+        actionMode="neither"
+        currentCard={{ id: '1', pack: 'notes', title: 'Again', cardType: 'roll-again' }}
+        bodyVisible
+        movementViz="dice"
+        onExtra={onExtra}
+        onDispatch={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Roll again' }));
+    expect(onExtra).toHaveBeenCalled();
+    rerender(
+      <CardPanel
+        actionMode="neither"
+        currentCard={{ id: '1', pack: 'notes', title: 'Again', cardType: 'roll-again' }}
+        bodyVisible
+        movementViz="spinner"
+        onExtra={onExtra}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Spin again' })).toBeDefined();
+  });
+
   it('shows extra button and timer after the body is visible', () => {
     const onExtra = vi.fn();
     render(

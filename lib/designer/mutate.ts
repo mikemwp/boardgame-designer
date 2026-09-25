@@ -7,7 +7,7 @@ import {
 } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
-import type { AudioRef, BoardShape, Cell, Floor, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
+import type { AudioRef, BoardShape, Card, Cell, Floor, HudWidget, ImageRef, VideoRef } from '@/lib/engine/types';
 import { isVanillaFloor } from '@/lib/designer/level-size';
 import { dropRoomsOnFloor } from '@/lib/designer/rooms';
 
@@ -608,6 +608,139 @@ export function linkStair(
         : stair,
     ),
     board.rooms,
+  );
+}
+
+export function setStairDestinationFloor(board: Board, stairId: string, toFloorId: string): Board {
+  if (!board.stairs.some((stair) => stair.id === stairId)) return board;
+  if (toFloorId && !board.floors.some((floor) => floor.id === toFloorId)) return board;
+  return createBoard(
+    board.floors,
+    board.stairs.map((stair) =>
+      stair.id === stairId
+        ? { ...stair, toFloorId, toCellId: '', legal: false }
+        : stair,
+    ),
+    board.rooms,
+  );
+}
+
+function convertLandingToTile(board: Board, floorId: string, col: number, row: number): { board: Board; cellId: string } | null {
+  const floor = board.floors.find((entry) => entry.id === floorId);
+  if (!floor || !inBounds(floor, col, row)) return null;
+  const existing = cellAt(floor, col, row);
+  if (existing?.kind === 'room') return null;
+  if (!existing) {
+    const cellId = nextCellId(floor);
+    return { board: placeCorridor(board, floorId, col, row, cellId), cellId };
+  }
+  if (existing.kind === 'hud' || existing.kind === 'board') {
+    return {
+      board: mapFloor(board, floorId, (current) => ({
+        ...current,
+        cells: current.cells.map((cell) => {
+          if (cell.id !== existing.id) return cell;
+          const { hudWidget: _widget, ...rest } = cell;
+          return { ...rest, kind: 'corridor' as const };
+        }),
+      })),
+      cellId: existing.id,
+    };
+  }
+  return { board, cellId: existing.id };
+}
+
+export function setStairLandingAt(
+  board: Board,
+  stairId: string,
+  floorId: string,
+  col: number,
+  row: number,
+): Board {
+  if (!board.stairs.some((stair) => stair.id === stairId)) return board;
+  const prepared = convertLandingToTile(board, floorId, col, row);
+  if (!prepared) return board;
+  return linkStair(prepared.board, stairId, floorId, prepared.cellId);
+}
+
+export function setStairLandingOnSlot(
+  board: Board,
+  stairId: string,
+  floorId: string,
+  slotId: string,
+): Board {
+  const floor = board.floors.find((entry) => entry.id === floorId);
+  if (!floor?.shape || !board.stairs.some((stair) => stair.id === stairId)) return board;
+  const layout = buildShapeLayout(floor.shape);
+  const slot = layout.slots.find((entry) => entry.id === slotId);
+  if (!slot) return board;
+  const existing = floor.cells.find((cell) => cellOccupiesSlot(cell, slot));
+  if (existing?.kind === 'room') return board;
+  let next = board;
+  let cellId = existing?.id;
+  if (!existing) {
+    cellId = nextCellId(floor);
+    next = placeCorridorOnSlot(board, floorId, slotId, cellId);
+  } else if (existing.kind === 'hud' || existing.kind === 'board') {
+    next = mapFloor(board, floorId, (current) => ({
+      ...current,
+      cells: current.cells.map((cell) => {
+        if (cell.id !== existing.id) return cell;
+        const { hudWidget: _widget, ...rest } = cell;
+        return { ...rest, kind: 'corridor' as const };
+      }),
+    }));
+  }
+  if (!cellId) return board;
+  return linkStair(next, stairId, floorId, cellId);
+}
+
+export function setStairRollAgain(
+  board: Board,
+  stairId: string,
+  patch: { rollAgain?: boolean; rollAgainCardId?: string },
+  cards: Card[] = [],
+): Board {
+  if (!board.stairs.some((stair) => stair.id === stairId)) return board;
+  return createBoard(
+    board.floors,
+    board.stairs.map((stair) => {
+      if (stair.id !== stairId) return stair;
+      const next = { ...stair };
+      if (patch.rollAgain === false) {
+        delete next.rollAgain;
+        delete next.rollAgainCardId;
+        return next;
+      }
+      if (patch.rollAgain === true) next.rollAgain = true;
+      if ('rollAgainCardId' in patch) {
+        const card = cards.find((entry) => entry.id === patch.rollAgainCardId);
+        if (patch.rollAgainCardId && card?.cardType === 'roll-again') {
+          next.rollAgain = true;
+          next.rollAgainCardId = patch.rollAgainCardId;
+        } else {
+          delete next.rollAgainCardId;
+        }
+      }
+      return next;
+    }),
+    board.rooms,
+  );
+}
+
+export function setFloorFinal(board: Board, floorId: string, final: boolean): Board {
+  if (!board.floors.some((floor) => floor.id === floorId)) return board;
+  return nextBoard(
+    board,
+    board.floors.map((floor) => {
+      if (floor.id !== floorId) return floor;
+      if (!final) {
+        const next = { ...floor };
+        delete next.final;
+        return next;
+      }
+      return { ...floor, final: true };
+    }),
   );
 }
 

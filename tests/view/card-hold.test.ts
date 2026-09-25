@@ -7,6 +7,7 @@ describe('card hold', () => {
     expect(cardNeedsHold({ title: 'A', pack: 'p', id: '1', timerSeconds: 5 })).toBe(true);
     expect(cardNeedsHold({ title: 'A', pack: 'p', id: '1', extraButton: 'Done' })).toBe(true);
     expect(cardNeedsHold({ title: 'A', pack: 'p', id: '1', extraButton: '  ' })).toBe(false);
+    expect(cardNeedsHold({ title: 'A', pack: 'p', id: '1', cardType: 'roll-again' })).toBe(true);
   });
 
   it('is active only after the body is visible and before release', () => {

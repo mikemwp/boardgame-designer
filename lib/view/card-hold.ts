@@ -7,7 +7,7 @@ export function cardNeedsHold(
   } | null,
 ): boolean {
   if (!card) return false;
-  if (card.cardType === 'timer') return true;
+  if (card.cardType === 'timer' || card.cardType === 'roll-again') return true;
   if ((card.timerSeconds ?? 0) > 0) return true;
   return Boolean(card.extraButton?.trim() || card.timerButtonLabel?.trim());
 }

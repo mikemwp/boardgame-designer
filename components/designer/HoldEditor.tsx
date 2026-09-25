@@ -18,7 +18,7 @@ export function HoldEditor({
 }: {
   floor: Floor;
   packIds: string[];
-  onChange: (patch: { holdEnabled?: boolean; holdQuotas?: Record<string, number> }) => void;
+  onChange: (patch: { holdEnabled?: boolean; holdQuotas?: Record<string, number>; final?: boolean }) => void;
   onRename?: (label: string) => void;
   gameId?: string;
   media?: MediaStore;
@@ -51,6 +51,17 @@ export function HoldEditor({
           render={<button type="button" />}
           checked={holdOn}
           onCheckedChange={(checked) => onChange({ holdEnabled: checked })}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-4">
+        <Label htmlFor="level-final">Final</Label>
+        <Switch
+          id="level-final"
+          nativeButton
+          aria-label="Final"
+          render={<button type="button" />}
+          checked={Boolean(floor.final)}
+          onCheckedChange={(checked) => onChange({ final: checked })}
         />
       </div>
       {holdOn && packIds.length === 0 ? (

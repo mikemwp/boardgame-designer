@@ -5,6 +5,7 @@ import { AudioField, MediaField } from '@/components/designer/AudioField';
 import { LevelConfirmDialog } from '@/components/designer/LevelConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { HUD_WIDGETS, hudWidgetOf } from '@/lib/designer/hud';
 import { tileActionKind } from '@/lib/designer/tile-chrome';
 import { roomById } from '@/lib/designer/rooms';
@@ -37,6 +38,9 @@ export function CellInspector({
   onSetEnd: _onSetEnd,
   onAttachStair,
   onLinkStair,
+  onChooseDestFloor,
+  onSetRollAgain,
+  landingPickActive,
   onClearStair,
   onClear,
   onSetHudWidget,
@@ -64,6 +68,9 @@ export function CellInspector({
   onSetEnd: () => void;
   onAttachStair: () => void;
   onLinkStair: (toFloorId: string, toCellId: string) => void;
+  onChooseDestFloor?: (toFloorId: string) => void;
+  onSetRollAgain?: (patch: { rollAgain?: boolean; rollAgainCardId?: string }) => void;
+  landingPickActive?: boolean;
   onClearStair: () => void;
   onClear?: () => void;
   onSetHudWidget?: (widget: HudWidget) => void;
@@ -141,9 +148,7 @@ export function CellInspector({
                 className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
                 value={stair?.toFloorId ?? ''}
                 onChange={(e) => {
-                  const dest = board.floors.find((f) => f.id === e.target.value);
-                  const landing = dest?.cells[0]?.id;
-                  if (dest && landing) onLinkStair(dest.id, landing);
+                  onChooseDestFloor?.(e.target.value);
                 }}
               >
                 <option value="">Choose floor</option>
@@ -153,25 +158,48 @@ export function CellInspector({
                   </option>
                 ))}
               </select>
-              <Label htmlFor="dest-cell">Landing tile</Label>
-              <select
-                id="dest-cell"
-                aria-label="Landing tile"
-                className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
-                value={stair?.toCellId ?? ''}
-                onChange={(e) => {
-                  if (stair?.toFloorId) onLinkStair(stair.toFloorId, e.target.value);
-                }}
-              >
-                <option value="">Choose tile</option>
-                {board.floors
-                  .find((f) => f.id === (stair?.toFloorId || board.floors.find((x) => x.id !== floorId)?.id))
-                  ?.cells.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.id}
-                    </option>
-                  ))}
-              </select>
+              {(landingPickActive || (stair?.toFloorId && !stair.legal)) ? (
+                <p className="text-sm text-slate-400">Click a tile on this level to set the landing.</p>
+              ) : null}
+              <div className="flex flex-col gap-2" data-testid="stair-roll-again">
+                <p className="text-sm font-medium text-slate-100">Roll again</p>
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor="stair-roll-again">Roll again</Label>
+                  <Switch
+                    id="stair-roll-again"
+                    nativeButton
+                    aria-label="Roll again"
+                    render={<button type="button" />}
+                    checked={Boolean(stair?.rollAgain)}
+                    onCheckedChange={(checked) => onSetRollAgain?.({ rollAgain: checked })}
+                  />
+                </div>
+                {stair?.rollAgain ? (
+                  <>
+                    <Label htmlFor="stair-roll-again-card">Roll again card</Label>
+                    <select
+                      id="stair-roll-again-card"
+                      aria-label="Roll again card"
+                      className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                      value={stair.rollAgainCardId ?? ''}
+                      onChange={(e) =>
+                        onSetRollAgain?.({
+                          rollAgainCardId: e.target.value || undefined,
+                        })
+                      }
+                    >
+                      <option value="">Default roll / spin again</option>
+                      {(cards ?? [])
+                        .filter((card) => card.cardType === 'roll-again')
+                        .map((card) => (
+                          <option key={card.id} value={card.id}>
+                            {card.title}
+                          </option>
+                        ))}
+                    </select>
+                  </>
+                ) : null}
+              </div>
             </>
           ) : (
             <>

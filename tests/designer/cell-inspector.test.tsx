@@ -135,8 +135,9 @@ describe('CellInspector', () => {
     expect(onClear).toHaveBeenCalled();
   });
 
-  it('links a dangling stair to another level', () => {
+  it('chooses a destination level without listing landing tile ids', () => {
     const onLinkStair = vi.fn();
+    const onChooseDestFloor = vi.fn();
     const two = addFloor(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'floor-1', 'Floor 1');
     const board = attachStair(two, 'ground', 'ground-c3');
     render(
@@ -150,13 +151,66 @@ describe('CellInspector', () => {
         onSetEnd={() => {}}
         onAttachStair={() => {}}
         onLinkStair={onLinkStair}
+        onChooseDestFloor={onChooseDestFloor}
         onClearStair={() => {}}
       />,
     );
     expect(screen.getByText('Stair tiles never hold packs.')).toBeDefined();
     fireEvent.change(screen.getByLabelText('Destination level'), { target: { value: 'floor-1' } });
-    fireEvent.change(screen.getByLabelText('Landing tile'), { target: { value: 'floor-1-c0' } });
-    expect(onLinkStair).toHaveBeenCalledWith('floor-1', 'floor-1-c0');
+    expect(onChooseDestFloor).toHaveBeenCalledWith('floor-1');
+    expect(onLinkStair).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Landing tile')).toBeNull();
+  });
+
+  it('toggles stair Roll again and attaches only a roll-again card', () => {
+    const onSetRollAgain = vi.fn();
+    const two = addFloor(createBoard([createLoopedFloor('ground', 'Ground', 0)], []), 'floor-1', 'Floor 1');
+    const attached = attachStair(two, 'ground', 'ground-c3');
+    const cards = [
+      { id: 'again-1', pack: 'notes', title: 'Again', cardType: 'roll-again' as const },
+      { id: 'miss-1', pack: 'notes', title: 'Skip', cardType: 'miss-a-turn' as const },
+    ];
+    const { rerender } = render(
+      <CellInspector
+        board={attached}
+        floorId="ground"
+        cellId="ground-c3"
+        packIds={['notes']}
+        cards={cards}
+        onSetPack={() => {}}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        onSetRollAgain={onSetRollAgain}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('Roll again'));
+    expect(onSetRollAgain).toHaveBeenCalledWith({ rollAgain: true });
+    const enabled = {
+      ...attached,
+      stairs: attached.stairs.map((stair) => ({ ...stair, rollAgain: true })),
+    };
+    rerender(
+      <CellInspector
+        board={enabled}
+        floorId="ground"
+        cellId="ground-c3"
+        packIds={['notes']}
+        cards={cards}
+        onSetPack={() => {}}
+        onSetStart={() => {}}
+        onSetEnd={() => {}}
+        onAttachStair={() => {}}
+        onLinkStair={() => {}}
+        onClearStair={() => {}}
+        onSetRollAgain={onSetRollAgain}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Roll again card'), { target: { value: 'again-1' } });
+    expect(onSetRollAgain).toHaveBeenCalledWith({ rollAgainCardId: 'again-1' });
+    expect(screen.queryByRole('option', { name: 'Skip' })).toBeNull();
   });
 
   it('shows Audio on a corridor and not on HUD', () => {

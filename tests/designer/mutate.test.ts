@@ -9,6 +9,10 @@ import {
   deleteFloor,
   eraseCell,
   linkStair,
+  setFloorFinal,
+  setStairDestinationFloor,
+  setStairLandingAt,
+  setStairRollAgain,
   moveCell,
   moveCellToSlot,
   nextCellId,
@@ -258,6 +262,105 @@ describe('stairs', () => {
     const attached = attachStair(groundBoard(), 'ground', 'ground-c3');
     const packed = setCellPack(attached, 'ground', 'ground-c3', 'climb');
     expect(packed.floors[0]?.cells.find((c) => c.id === 'ground-c3')?.packId).toBeUndefined();
+  });
+
+  it('chooses a destination level without auto-linking the first tile', () => {
+    const two = addFloor(groundBoard(), 'floor-1', 'Floor 1');
+    const attached = attachStair(two, 'ground', 'ground-c3');
+    const stairId = attached.floors[0]!.cells.find((c) => c.id === 'ground-c3')!.stairId!;
+    const dest = setStairDestinationFloor(attached, stairId, 'floor-1');
+    expect(dest.stairs[0]).toMatchObject({
+      toFloorId: 'floor-1',
+      toCellId: '',
+      legal: false,
+    });
+    const cleared = setStairDestinationFloor(dest, stairId, '');
+    expect(cleared.stairs[0]).toMatchObject({
+      toFloorId: '',
+      toCellId: '',
+      legal: false,
+    });
+  });
+
+  it('links a landing click: corridor stays a tile, empty/HUD/Board convert, rooms refuse', () => {
+    let board = addFloor(groundBoard(), 'floor-1', 'Floor 1');
+    board = attachStair(board, 'ground', 'ground-c3');
+    const stairId = board.floors[0]!.cells.find((c) => c.id === 'ground-c3')!.stairId!;
+    const destFloor = board.floors.find((f) => f.id === 'floor-1')!;
+    const destTile = destFloor.cells.find((c) => c.kind === 'corridor' || !c.kind)!;
+    const destHud = destFloor.cells.find((c) => c.kind === 'hud')!;
+    board = setStairDestinationFloor(board, stairId, 'floor-1');
+
+    const onTile = setStairLandingAt(board, stairId, 'floor-1', destTile.col!, destTile.row!);
+    expect(onTile.stairs[0]).toMatchObject({
+      toFloorId: 'floor-1',
+      toCellId: destTile.id,
+      legal: true,
+    });
+    expect(onTile.floors[1]?.cells.find((c) => c.id === destTile.id)?.kind).not.toBe('stair');
+    expect(onTile.floors[1]?.cells.find((c) => c.id === destTile.id)?.kind).not.toBe('hud');
+
+    const empty = setStairLandingAt(board, stairId, 'floor-1', 1, 1);
+    const emptyCell = empty.floors[1]?.cells.find((c) => c.col === 1 && c.row === 1);
+    expect(emptyCell?.kind).toBe('corridor');
+    expect(empty.stairs[0]).toMatchObject({ toCellId: emptyCell?.id, legal: true });
+
+    const hudBoard = setHudWidget(board, 'floor-1', destHud.id, 'dice');
+    const onHud = setStairLandingAt(hudBoard, stairId, 'floor-1', destHud.col!, destHud.row!);
+    const hudCell = onHud.floors[1]?.cells.find((c) => c.id === destHud.id);
+    expect(hudCell?.kind).toBe('corridor');
+    expect(hudCell?.hudWidget).toBeUndefined();
+    expect(onHud.stairs[0]?.legal).toBe(true);
+
+    let withBoard = placeBoard(
+      eraseCell(board, 'floor-1', destHud.id),
+      'floor-1',
+      destHud.col!,
+      destHud.row!,
+      destHud.id,
+    );
+    const onBoard = setStairLandingAt(withBoard, stairId, 'floor-1', destHud.col!, destHud.row!);
+    expect(onBoard.floors[1]?.cells.find((c) => c.id === destHud.id)?.kind).toBe('corridor');
+    expect(onBoard.stairs[0]?.legal).toBe(true);
+
+    const roomed = attachRoom(board, 'floor-1', destTile.id);
+    const onRoom = setStairLandingAt(roomed, stairId, 'floor-1', destTile.col!, destTile.row!);
+    expect(onRoom).toBe(roomed);
+    expect(onRoom.stairs[0]?.legal).toBe(false);
+
+    const returnStair = attachStair(board, 'floor-1', destTile.id);
+    const destStair = returnStair.floors[1]!.cells.find((c) => c.id === destTile.id)!;
+    const onStair = setStairLandingAt(returnStair, stairId, 'floor-1', destStair.col!, destStair.row!);
+    expect(onStair.floors[1]?.cells.find((c) => c.id === destTile.id)?.kind).toBe('stair');
+    expect(onStair.stairs.find((s) => s.id === stairId)).toMatchObject({
+      toCellId: destTile.id,
+      legal: true,
+    });
+  });
+
+  it('stores roll-again only with a roll-again card', () => {
+    const two = addFloor(groundBoard(), 'floor-1', 'Floor 1');
+    const attached = attachStair(two, 'ground', 'ground-c3');
+    const stairId = attached.floors[0]!.cells.find((c) => c.id === 'ground-c3')!.stairId!;
+    const cards = [
+      { id: 'again-1', pack: 'notes', title: 'Again', cardType: 'roll-again' as const },
+      { id: 'miss-1', pack: 'notes', title: 'Skip', cardType: 'miss-a-turn' as const },
+    ];
+    const on = setStairRollAgain(attached, stairId, { rollAgain: true, rollAgainCardId: 'again-1' }, cards);
+    expect(on.stairs[0]).toMatchObject({ rollAgain: true, rollAgainCardId: 'again-1' });
+    const refused = setStairRollAgain(attached, stairId, { rollAgain: true, rollAgainCardId: 'miss-1' }, cards);
+    expect(refused.stairs[0]?.rollAgainCardId).toBeUndefined();
+    const off = setStairRollAgain(on, stairId, { rollAgain: false }, cards);
+    expect(off.stairs[0]?.rollAgain).toBeFalsy();
+    expect(off.stairs[0]?.rollAgainCardId).toBeUndefined();
+  });
+});
+
+describe('setFloorFinal', () => {
+  it('flags a level as Final', () => {
+    const next = setFloorFinal(groundBoard(), 'ground', true);
+    expect(next.floors[0]?.final).toBe(true);
+    expect(setFloorFinal(next, 'ground', false).floors[0]?.final).toBeFalsy();
   });
 });
 

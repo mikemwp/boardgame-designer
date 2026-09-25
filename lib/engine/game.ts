@@ -16,7 +16,15 @@ import { assignStartingItems, seedItemUses, useItem } from './inventory';
 import { movementRangeForSpinner, sampleSegment, segmentMoveValue } from './spinner';
 import { canSpendPass, createPassesLeft, spendPass } from './passes';
 import { movementRange, sampleMovement, type Rng } from './dice';
-import { applyAction, countsTowardReveal, dealFromPack, showAttachedCard, type CardState } from './cards';
+import {
+  applyAction,
+  countsTowardReveal,
+  dealFromPack,
+  defaultRollAgainCard,
+  showAttachedCard,
+  showRollAgainCard,
+  type CardState,
+} from './cards';
 import { canExitHold, createHoldState, recordHoldReveal, type HoldState } from './hold';
 import { landingDeal } from './layout';
 import { allowedMoveValues, isChangeDirectionLegal, walkRightDetour, walkSteps } from './movement';
@@ -280,14 +288,32 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
     const heldExit = Boolean(
       state.config.holdEnabled && state.hold?.active && state.hold.floorId === landing.floorId,
     );
+    const levelHeld = Boolean(
+      heldExit && floor.holdEnabled && stair?.rollAgain,
+    );
     if (!stair || !stair.legal || heldExit) {
-      return withCues(
-        {
-          ...state,
-          lastEvent: { type: 'TOKEN_MOVED', playerId, floorId: landing.floorId, cellId: landing.cellId },
-        },
-        landCues,
-      );
+      const stayed = {
+        ...state,
+        lastEvent: { type: 'TOKEN_MOVED' as const, playerId, floorId: landing.floorId, cellId: landing.cellId },
+      };
+      if (levelHeld && stair) {
+        const attached = stair.rollAgainCardId
+          ? state.cards.deck.find(
+              (card) => card.id === stair.rollAgainCardId && card.cardType === 'roll-again',
+            )
+          : undefined;
+        return withCues(
+          {
+            ...stayed,
+            cards: showRollAgainCard(
+              state.cards,
+              attached ?? defaultRollAgainCard(state.config.movementViz),
+            ),
+          },
+          landCues,
+        );
+      }
+      return withCues(stayed, landCues);
     }
     const dest: TokenPos = { floorId: stair.toFloorId, cellId: stair.toCellId };
     const players = moveToken(state.players, playerId, dest);
