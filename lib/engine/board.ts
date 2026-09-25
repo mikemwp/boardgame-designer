@@ -35,3 +35,13 @@ export function listLegalStairLandings(board: Board, fromFloorId: string): Stair
     .filter((s) => s.fromFloorId === fromFloorId && s.legal)
     .map((s) => ({ stairId: s.id, toFloorId: s.toFloorId, toCellId: s.toCellId }));
 }
+
+export function landingCellIdsOnFloor(board: Board, floorId: string): string[] {
+  return [
+    ...new Set(
+      board.stairs
+        .filter((stair) => stair.legal && stair.toFloorId === floorId && stair.toCellId)
+        .map((stair) => stair.toCellId),
+    ),
+  ];
+}

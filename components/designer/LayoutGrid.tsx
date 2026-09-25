@@ -46,6 +46,7 @@ function polarPathD(polygon: Array<{ x: number; z: number }>): string {
 export function LayoutGrid({
   floor,
   selectedCellId,
+  landingCellIds = [],
   onSlotActivate,
   onMoveCell,
   onSlotActivateId,
@@ -53,6 +54,7 @@ export function LayoutGrid({
 }: {
   floor: Floor;
   selectedCellId?: string;
+  landingCellIds?: string[];
   onSlotActivate: (col: number, row: number) => void;
   onMoveCell: (cellId: string, col: number, row: number) => void;
   onSlotActivateId?: (slotId: string) => void;
@@ -61,6 +63,7 @@ export function LayoutGrid({
   const dragId = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(MAX_TILE_PX);
+  const landingIds = new Set(landingCellIds);
   const shape = inferShape(floor);
   const isPolar = shape.kind === 'circle' || shape.kind === 'hub-spoke' || shape.kind === 'hub-spoke-wheel';
   const columns = floor.columns ?? DEFAULT_COLUMNS;
@@ -109,6 +112,7 @@ export function LayoutGrid({
           {layout.slots.map((slot) => {
             const cell = cellInSlot(floor, slot);
             const selected = cell?.id === selectedCellId;
+            const landing = Boolean(cell && landingIds.has(cell.id));
             let fill = 'rgb(2 6 23)';
             if (cell?.kind === 'stair') fill = 'rgb(180 83 9)';
             else if (cell?.kind === 'room') fill = 'rgb(15 118 110)';
@@ -124,13 +128,15 @@ export function LayoutGrid({
                 stroke={
                   selected
                     ? 'rgb(56 189 248)'
-                    : cell?.start
-                      ? 'rgb(52 211 153)'
-                      : cell?.end
-                        ? 'rgb(244 63 94)'
-                        : 'rgb(30 41 59)'
+                    : landing
+                      ? 'rgb(249 115 22)'
+                      : cell?.start
+                        ? 'rgb(52 211 153)'
+                        : cell?.end
+                          ? 'rgb(244 63 94)'
+                          : 'rgb(30 41 59)'
                 }
-                strokeWidth={selected ? 0.08 : cell?.start || cell?.end ? 0.06 : 0.04}
+                strokeWidth={selected || landing ? 0.08 : cell?.start || cell?.end ? 0.06 : 0.04}
                 aria-label={cell ? cell.id : `Empty ${slot.id}`}
                 onPointerDown={() => {
                   if (cell) dragId.current = cell.id;
@@ -181,6 +187,7 @@ export function LayoutGrid({
         {slots.map(({ col, row }) => {
           const cell = cellAt(floor, col, row);
           const selected = cell?.id === selectedCellId;
+          const landing = Boolean(cell && landingIds.has(cell.id));
           let className = 'rounded border text-[10px] md:text-xs';
           if (cell?.kind === 'hud') className += ' border-violet-400 bg-violet-900 text-violet-100';
           else if (cell?.kind === 'stair') className += ' border-amber-500 bg-amber-700 text-amber-50';
@@ -195,6 +202,7 @@ export function LayoutGrid({
           if (selected) className += ' ring-2 ring-sky-400';
           if (cell?.start) className += ' outline outline-1 outline-emerald-400 text-white';
           if (cell?.end) className += ' outline outline-1 outline-rose-400';
+          if (landing) className += ' outline outline-2 outline-orange-500';
           const ariaLabel = cell ? cell.id : `Empty ${col},${row}`;
           return (
             <button

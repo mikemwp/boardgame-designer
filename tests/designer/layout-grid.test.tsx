@@ -110,6 +110,26 @@ describe('LayoutGrid', () => {
     expect(bounds.maxX - bounds.minX).toBeGreaterThan(6);
   });
 
+  it('draws an orange border on a stair landing without extra text', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const landing = floor.cells.find((c) => c.col === 0 && c.row === 0)!;
+    render(
+      <LayoutGrid
+        floor={floor}
+        landingCellIds={[landing.id]}
+        onSlotActivate={() => {}}
+        onMoveCell={() => {}}
+      />,
+    );
+    const slot = screen.getByTestId(`slot-${landing.col}-${landing.row}`);
+    expect(slot.className).toMatch(/outline-orange-500/);
+    expect(slot.textContent).toBe('');
+    const other = floor.cells.find((c) => c.col === 1 && c.row === 0)!;
+    expect(screen.getByTestId(`slot-${other.col}-${other.row}`).className).not.toMatch(
+      /outline-orange-500/,
+    );
+  });
+
   it('labels a dice HUD widget Dice', () => {
     const floor = createLoopedFloor('ground', 'Ground', 0);
     const hud = floor.cells.find((c) => c.kind === 'hud')!;

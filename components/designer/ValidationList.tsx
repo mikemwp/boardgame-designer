@@ -6,7 +6,7 @@ export function ValidationList({ issues }: { issues: LayoutIssue[] }) {
   if (issues.length === 0) return null;
   return (
     <div
-      className="rounded-lg border border-amber-800 bg-amber-950/40 p-3 text-sm text-amber-100"
+      className="shrink-0 rounded-lg border border-amber-800 bg-amber-950/40 p-3 text-sm text-amber-100"
       data-testid="layout-issues"
     >
       <p className="font-medium">Test is blocked</p>

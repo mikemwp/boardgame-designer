@@ -11,6 +11,7 @@ export function LibraryBar({
   activeName,
   canSave,
   canTest,
+  testBlockedReason,
   mode,
   onNew,
   onSave,
@@ -26,6 +27,7 @@ export function LibraryBar({
   activeName: string;
   canSave: boolean;
   canTest: boolean;
+  testBlockedReason?: string;
   mode: StudioMode;
   onNew: () => void;
   onSave: () => void;
@@ -90,6 +92,7 @@ export function LibraryBar({
           className={hoverClass}
           aria-pressed={mode === 'test'}
           disabled={!canTest}
+          title={!canTest ? testBlockedReason : undefined}
           onClick={onTest}
         >
           Test

@@ -13,6 +13,7 @@ export const PREVIEW_TILE_COLORS = {
   pack: { diffuse: '#2563eb', emissive: '#1d4ed8' },
   card: { diffuse: '#d97706', emissive: '#b45309' },
   selected: { diffuse: '#38bdf8', emissive: '#0369a1' },
+  landing: { diffuse: '#f97316', emissive: '#ea580c' },
 } as const;
 
 export type TileChromeCell = Pick<Cell, 'kind' | 'start' | 'end' | 'hudWidget' | 'packId'> & {

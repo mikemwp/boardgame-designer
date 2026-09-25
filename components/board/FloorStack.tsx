@@ -132,10 +132,12 @@ export function FloorStack({
   board,
   usePhysics = false,
   selectedCellId,
+  landingCellIds = [],
 }: {
   board: Board;
   usePhysics?: boolean;
   selectedCellId?: string;
+  landingCellIds?: string[];
 }) {
   const corridorMat = useMaterial({ ...PREVIEW_TILE_COLORS.corridor, emissiveIntensity: 0.9 });
   const stairMat = useMaterial({ ...PREVIEW_TILE_COLORS.stair, emissiveIntensity: 0.8 });
@@ -150,6 +152,8 @@ export function FloorStack({
   const cardMat = useMaterial({ ...PREVIEW_TILE_COLORS.card, emissiveIntensity: 0.8 });
   const seamMat = useMaterial({ diffuse: '#1e293b', emissive: '#0f172a', emissiveIntensity: 1.2 });
   const faceMat = useMaterial({ diffuse: '#e7d3b0', emissive: '#a16207', emissiveIntensity: 0.2 });
+  const landingMat = useMaterial({ ...PREVIEW_TILE_COLORS.landing, emissiveIntensity: 0.95 });
+  const landingIds = new Set(landingCellIds);
   const floors = board.floors ?? [];
 
   return (
@@ -161,6 +165,7 @@ export function FloorStack({
         return floor.cells.map((cell, cellIndex) => {
           const pos = cellToWorld(floor.index, cell, floor.hud, floor);
           const selected = cell.id === selectedCellId;
+          const landing = landingIds.has(cell.id);
           const textured = !polar && usesBoardTexture(cell, look);
           const materialName = previewMaterialName(cell, selected);
           const kindMat =
@@ -223,6 +228,15 @@ export function FloorStack({
                   scale={[1.02, 0.04, 1.02]}
                 >
                   <Render type="box" material={rimMat} />
+                </Entity>
+              ) : null}
+              {landing ? (
+                <Entity
+                  name={`${cell.id}-landing`}
+                  position={[pos.x, pos.y + 0.14, pos.z]}
+                  scale={[1.08, 0.05, 1.08]}
+                >
+                  <Render type="box" material={landingMat} />
                 </Entity>
               ) : null}
               {seams.map((seam, edgeIndex) => (

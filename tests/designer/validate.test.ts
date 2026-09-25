@@ -13,6 +13,7 @@ import {
   setFloorFinal,
   setRoomMode,
   setStartCell,
+  setStairLandingAt,
 } from '@/lib/designer/mutate';
 import { canPublishPlay, canTestPlay, validateLayout } from '@/lib/designer/validate';
 
@@ -140,6 +141,36 @@ describe('validateLayout', () => {
     const dangling = attachStair(flagged, 'ground', 'ground-c3');
     expect(validateLayout(dangling).some((i) => i.code === 'dangling-stair')).toBe(true);
     expect(canTestPlay(dangling)).toBe(false);
+  });
+
+  it('allows Test on a new board with Start and no stairs', () => {
+    const board = setStartCell(emptyBootstrap().board, 'ground', 'ground-c0');
+    expect(board.stairs).toHaveLength(0);
+    expect(validateLayout(board).some((issue) => issue.code === 'dangling-stair')).toBe(false);
+    expect(validateLayout(board)).toEqual([]);
+    expect(canTestPlay(board)).toBe(true);
+  });
+
+  it('allows Test when a stair is linked and blocks with a message when it is not', () => {
+    let board = setStartCell(emptyBootstrap().board, 'ground', 'ground-c0');
+    board = addFloor(board, 'floor-1', 'Level 2');
+    board = attachStair(board, 'ground', 'ground-c3');
+    const unlinked = validateLayout(board);
+    expect(unlinked.some((issue) => issue.code === 'dangling-stair')).toBe(true);
+    expect(unlinked.find((issue) => issue.code === 'dangling-stair')?.message).toBe(
+      'Level 1: stair has no destination.',
+    );
+    expect(canTestPlay(board)).toBe(false);
+
+    const dest = board.floors[1]!.cells.find((cell) => cell.col === 0 && cell.row === 0)!;
+    board = setStairLandingAt(board, board.stairs[0]!.id, 'floor-1', dest.col!, dest.row!);
+    expect(board.stairs[0]).toMatchObject({
+      toFloorId: 'floor-1',
+      toCellId: dest.id,
+      legal: true,
+    });
+    expect(validateLayout(board).some((issue) => issue.code === 'dangling-stair')).toBe(false);
+    expect(canTestPlay(board)).toBe(true);
   });
 
   it('canPublishPlay matches canTestPlay', () => {

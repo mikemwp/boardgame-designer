@@ -31,16 +31,30 @@ async function flushTestViewport() {
   });
 }
 
-function renderStudio(storage = memoryStorage(), id = 'seed-1', now = NOW, createId = () => 'n1') {
+function renderStudio(
+  storage = memoryStorage(),
+  id = 'seed-1',
+  now: string | (() => string) = NOW,
+  createId = () => 'n1',
+) {
+  const nowFn = typeof now === 'function' ? now : () => now;
   const initialState = loadLibrary(storage, { now: NOW, id: 'seed-1' });
   return render(
     <StudioShell
       storage={storage}
       initialState={initialState}
-      now={() => now}
+      now={nowFn}
       createId={createId}
     />,
   );
+}
+
+function advancingNow(start = '2026-09-21T13:00:00.000Z') {
+  let tick = Date.parse(start);
+  return () => {
+    tick += 1000;
+    return new Date(tick).toISOString();
+  };
 }
 
 describe('StudioShell', () => {
@@ -104,7 +118,10 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Stair' }));
     fireEvent.click(screen.getByTestId('slot-1-0'));
-    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Test' }).getAttribute('title')).toContain(
+      'stair has no destination',
+    );
     expect(screen.getByTestId('layout-issues').textContent).toContain('stair has no destination');
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -121,15 +138,54 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
     expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Test' }).getAttribute('title')).toContain(
+      'Mark a start tile',
+    );
     expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', false);
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    await flushTestViewport();
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
+    expect(screen.queryByText('Passes left: climb 1')).toBeNull();
+  });
+
+  it('enters Test on a new game with Start after save bumps updatedAt', async () => {
+    renderStudio(memoryStorage(), 'seed-1', advancingNow(), () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     fireEvent.click(screen.getByTestId('slot-0-0'));
     fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     await flushTestViewport();
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
-    expect(screen.queryByText('Passes left: climb 1')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('enters Test when a stair is linked across two levels', async () => {
+    renderStudio(memoryStorage(), 'seed-1', advancingNow(), () => 'empty-1');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(screen.getByLabelText('Empty board'));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add level' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Level 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stair' }));
+    fireEvent.click(screen.getByTestId('slot-1-0'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
+    fireEvent.change(screen.getByLabelText('Destination level'), { target: { value: 'floor-1' } });
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    expect(screen.queryByTestId('layout-issues')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    await flushTestViewport();
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeDefined();
   });
 
   it('Open switches back to Climb and Design can return to the grid', async () => {
@@ -405,7 +461,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
     expect(screen.queryByText('Sandbox (Published) v1')).toBeNull();
     expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
     expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
   });
 

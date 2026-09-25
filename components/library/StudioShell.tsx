@@ -21,7 +21,7 @@ import {
   type CopyCardSource,
   type CopyPackSource,
 } from '@/lib/library/floating';
-import { canPublishPlay, validateLayout, type LayoutIssue } from '@/lib/designer/validate';
+import { canPublishPlay, canTestPlay, validateLayout } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
 import { documentStatus, formatDesignerChromeTitle, LIBRARY_SAVE_LOCATION } from '@/lib/library/version';
@@ -101,7 +101,6 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [selectedFloorId, setSelectedFloorId] = useState<string>('');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [tool, setTool] = useState<DesignerTool>('select');
-  const [issues, setIssues] = useState<LayoutIssue[]>([]);
   const [testNonce, setTestNonce] = useState(0);
   const [testViewportReady, setTestViewportReady] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -148,12 +147,11 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     setWorkingConfig(config);
     setSelectedFloorId(board.floors[0]?.id ?? '');
     setSelectedCellId(null);
-    setIssues([]);
     setMode('design');
     setSnapshot(null);
     setDirty(false);
     savedKeyRef.current = snapshotKey(board, players, cards, packs, gameStart, spinners, items, itemAssign, packBacks, config);
-  }, [active?.id, active?.updatedAt]);
+  }, [active?.id]);
 
   const persistWorking = useCallback(
     (options?: { touchUpdatedAt?: boolean; bump?: 'none' | 'save' }) => {
@@ -476,9 +474,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
 
   const onPublish = () => {
     if (!workingBoard) return;
-    const nextIssues = validateLayout(workingBoard);
-    setIssues(nextIssues);
-    if (nextIssues.length > 0) {
+    if (validateLayout(workingBoard).length > 0) {
       setMode('design');
       return;
     }
@@ -488,9 +484,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
 
   const onTest = () => {
     if (!workingBoard) return;
-    const nextIssues = validateLayout(workingBoard);
-    setIssues(nextIssues);
-    if (nextIssues.length > 0) {
+    if (validateLayout(workingBoard).length > 0) {
       setMode('design');
       return;
     }
@@ -516,6 +510,10 @@ export function StudioShell(options: UseLibraryOptions = {}) {
     };
   }, [mode, testNonce]);
 
+  const layoutIssues = workingBoard ? validateLayout(workingBoard) : [];
+  const canTest = Boolean(active && workingBoard && canTestPlay(workingBoard));
+  const testBlockedReason = layoutIssues.map((issue) => issue.message).join(' ');
+
   if (!ready) {
     return <p className="text-slate-400">Loading library…</p>;
   }
@@ -527,7 +525,8 @@ export function StudioShell(options: UseLibraryOptions = {}) {
         <LibraryBar
           activeName={formatDesignerChromeTitle(active?.name, chromePlace.levelLabel, chromePlace.roomName)}
           canSave={Boolean(active)}
-          canTest={Boolean(active)}
+          canTest={canTest}
+          testBlockedReason={testBlockedReason || undefined}
           canPublish={Boolean(active && workingBoard && canPublishPlay(workingBoard))}
           mode={mode}
           onNew={() => requestLeave('new')}
@@ -554,7 +553,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             selectedFloorId={selectedFloorId || workingBoard.floors[0]!.id}
             selectedCellId={selectedCellId}
             tool={tool}
-            issues={issues}
+            issues={layoutIssues}
             onBoardChange={onBoardChange}
             onDraftChange={onDraftChange}
             copyPackSources={library && active ? listCopyPackSources(library, active.id) : []}

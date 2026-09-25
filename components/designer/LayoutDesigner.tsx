@@ -110,7 +110,7 @@ import { createItem, deleteItem, nextItemId, rewriteItemRefs, updateItem } from 
 import { ItemEditor } from '@/components/designer/ItemEditor';
 import { ImportExportPanel } from '@/components/designer/ImportExportPanel';
 import type { LayoutIssue } from '@/lib/designer/validate';
-import { createBoard, type Board } from '@/lib/engine/board';
+import { createBoard, landingCellIdsOnFloor, type Board } from '@/lib/engine/board';
 import { cellAt, listPackIds } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
 import { buildShapeLayout } from '@/lib/engine/shape-layout';
@@ -501,6 +501,7 @@ export function LayoutDesigner({
         >
           <LayoutGrid
             floor={canvasFloor}
+            landingCellIds={landingCellIdsOnFloor(board, canvasFloor.id)}
             selectedCellId={pickingLanding ? undefined : selectedCellId ?? undefined}
             onSlotActivate={activateCartesian}
             onMoveCell={(cellId, col, row) =>
@@ -1346,6 +1347,7 @@ export function LayoutDesigner({
                       board={previewBoard}
                       floorId={previewId}
                       selectedCellId={selectedCellId ?? undefined}
+                      landingCellIds={landingCellIdsOnFloor(board, previewId)}
                       gameTitle={gameTitle}
                     />
                   );

@@ -13,11 +13,13 @@ export function FloorPreview({
   board,
   floorId,
   selectedCellId,
+  landingCellIds,
   gameTitle,
 }: {
   board: Board;
   floorId: string;
   selectedCellId?: string;
+  landingCellIds?: string[];
   gameTitle?: string;
 }) {
   const preview = board.floors.length === 1 && board.floors[0]?.id === floorId
@@ -54,7 +56,7 @@ export function FloorPreview({
         <Entity name="fill" position={[2, 5, 3]}>
           <Light type="omni" intensity={0.8} />
         </Entity>
-        <FloorStack board={preview} selectedCellId={selectedCellId} />
+        <FloorStack board={preview} selectedCellId={selectedCellId} landingCellIds={landingCellIds} />
       </PlayCanvasViewport>
     </div>
   );

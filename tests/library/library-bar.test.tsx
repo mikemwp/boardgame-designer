@@ -63,6 +63,29 @@ describe('LibraryBar', () => {
     expect(screen.queryByText('No game')).toBeNull();
   });
 
+  it('shows why Test is disabled', () => {
+    render(
+      <LibraryBar
+        activeName="Sandbox (draft)"
+        canSave
+        canTest={false}
+        testBlockedReason="Level 1: stair has no destination."
+        mode="design"
+        onNew={() => {}}
+        onSave={() => {}}
+        onOpen={() => {}}
+        onDesign={() => {}}
+        onTest={() => {}}
+        onDelete={() => {}}
+        canDelete
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Test' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Test' }).getAttribute('title')).toBe(
+      'Level 1: stair has no destination.',
+    );
+  });
+
   it('uses the same outline style for Save as the other library buttons', () => {
     render(
       <LibraryBar

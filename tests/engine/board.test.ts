@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBoard, listIllegalStairLandings } from '@/lib/engine/board';
+import { createBoard, landingCellIdsOnFloor, listIllegalStairLandings } from '@/lib/engine/board';
 
 const floors = [
   { id: 'f0', index: 0, label: 'Lobby', cells: [{ id: 'c0', index: 0 }] },
@@ -23,5 +23,15 @@ describe('createBoard', () => {
     expect(listIllegalStairLandings(board, 'f0')).toEqual([
       { stairId: 's1', toFloorId: 'f1', toCellId: 'c1' },
     ]);
+  });
+
+  it('lists only the chosen legal landing on the destination floor', () => {
+    const board = createBoard(floors, [
+      { id: 's1', fromFloorId: 'f0', toFloorId: 'f1', toCellId: 'c1', legal: true },
+      { id: 's2', fromFloorId: 'f0', toFloorId: 'f1', toCellId: 'missing', legal: false },
+    ]);
+    expect(landingCellIdsOnFloor(board, 'f1')).toEqual(['c1']);
+    expect(landingCellIdsOnFloor(board, 'f0')).toEqual([]);
+    expect(landingCellIdsOnFloor(createBoard(floors, []), 'f1')).toEqual([]);
   });
 });
