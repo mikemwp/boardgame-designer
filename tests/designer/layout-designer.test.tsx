@@ -63,8 +63,12 @@ describe('LayoutDesigner', () => {
     expect(bottom.contains(screen.getByLabelText('Level name'))).toBe(true);
     expect(screen.getByTestId('board-shape-fields').className).toMatch(/justify-end/);
     expect(screen.getByTestId('designer-bottom-row-blank')).toBeDefined();
-    expect(screen.getByTestId('designer-saved-location').textContent).toBe('This device');
-    expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
+    expect(screen.getByTestId('designer-saved-location').textContent).toMatch(
+      /localStorage.*building-board\.library\.v1/,
+    );
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Preview' }))).toBe(true);
+    expect(screen.getByTestId('designer-bottom-row-meta').textContent).not.toMatch(/Preview/);
+    expect(screen.getByTestId('designer-status').className).toMatch(/text-center|justify-center/);
     expect(screen.getByTestId('designer-palette').className).toMatch(/flex-nowrap/);
     expect(screen.getByTestId('board-shape-fields').className).toMatch(/flex-nowrap/);
     expect(screen.queryByTestId('room-shape-fields')).toBeNull();
@@ -504,6 +508,31 @@ describe('LayoutDesigner', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByTestId('preview-dialog')).toBeDefined();
     expect(screen.getByTestId('floor-preview')).toBeDefined();
+  });
+
+  it('switches the side pane to Levels on a level click and Tiles on a tile click', () => {
+    const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    render(
+      <LayoutDesigner
+        board={board}
+        cards={[]}
+        selectedFloorId="ground"
+        selectedCellId={null}
+        tool="select"
+        issues={[]}
+        onBoardChange={() => {}}
+        onSelectFloor={() => {}}
+        onSelectCell={() => {}}
+        onToolChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Levels' }));
+    expect(screen.getByTestId('hold-editor')).toBeDefined();
+    fireEvent.click(screen.getByTestId('slot-0-0'));
+    expect(screen.getByTestId('tile-actions')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Add level' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Level 1' }));
+    expect(screen.getByTestId('hold-editor')).toBeDefined();
   });
 
   it('opens the Start tab and adds a splash', () => {

@@ -58,7 +58,6 @@ export function HoldEditor({
       ) : null}
       {onBackgroundChange && gameId && media ? (
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-slate-100">Level background</p>
           <MediaField
             kind="image"
             value={floor.background}

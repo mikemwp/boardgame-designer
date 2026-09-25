@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FloorPreview } from '@/components/board/FloorPreview';
 import { BoardShapeFields } from '@/components/designer/BoardShapeFields';
 import { CellInspector } from '@/components/designer/CellInspector';
@@ -112,7 +112,11 @@ import type { Card, GameConfig, GameStart, ImageRef, InventoryItem, ItemAssign, 
 import { defaultGameConfig } from '@/lib/engine/types';
 import type { GameStatus } from '@/lib/library/types';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
-import { formatDesignerLastSaved, formatDesignerStatus } from '@/lib/library/version';
+import {
+  formatDesignerLastSaved,
+  formatDesignerStatus,
+  LIBRARY_SAVE_LOCATION,
+} from '@/lib/library/version';
 
 export type DesignerSideTab = 'levels' | 'tiles' | 'packs' | 'board' | 'spinners' | 'items' | 'players' | 'start';
 
@@ -155,6 +159,7 @@ export function LayoutDesigner({
   resolveCopyCard,
   onFloatPack,
   onFloatCard,
+  onDesignerContextChange,
 }: {
   board: Board;
   cards: Card[];
@@ -177,6 +182,7 @@ export function LayoutDesigner({
   resolveCopyCard?: (source: CopyCardSource) => Card | undefined;
   onFloatPack?: (pack: FloatingPack) => void;
   onFloatCard?: (card: Card) => void;
+  onDesignerContextChange?: (next: { levelLabel: string; roomName?: string }) => void;
   onSelectFloor: (id: string) => void;
   onSelectCell: (id: string | null) => void;
   onToolChange: (tool: DesignerTool) => void;
@@ -219,9 +225,16 @@ export function LayoutDesigner({
   const assignMode = itemAssign ?? 'random';
   const draftCards = cards;
   const floor = board.floors.find((f) => f.id === selectedFloorId) ?? board.floors[0];
-  if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
   const selectedRoom = roomById(board, selectedRoomId ?? undefined);
   const viewingRoom = Boolean(selectedRoom && selectedRoom.mode === 'multi');
+  useEffect(() => {
+    if (!floor) return;
+    onDesignerContextChange?.({
+      levelLabel: floor.label,
+      roomName: viewingRoom ? selectedRoom?.name : undefined,
+    });
+  }, [floor, viewingRoom, selectedRoom?.name, onDesignerContextChange]);
+  if (!floor) return <p className="text-slate-400">This draft has no levels.</p>;
   const canvasFloor = viewingRoom && selectedRoom ? roomAsFloor(selectedRoom) : floor;
   const canvasBoard = viewingRoom ? createBoard([canvasFloor], [], board.rooms) : board;
   const vanillaFloor = isVanillaFloor(floor);
@@ -247,6 +260,11 @@ export function LayoutDesigner({
   const shapeKind = inferShape(canvasFloor).kind;
   const isPolar = shapeKind === 'circle' || shapeKind === 'hub-spoke' || shapeKind === 'hub-spoke-wheel';
 
+  const selectTile = (id: string | null) => {
+    onSelectCell(id);
+    if (id) setSideTab('tiles');
+  };
+
   const activateCartesian = (col: number, row: number) => {
     const existing = cellAt(canvasFloor, col, row);
     if (tool === 'erase') {
@@ -258,66 +276,66 @@ export function LayoutDesigner({
     }
     if (tool === 'corridor') {
       if (existing) {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       const id = nextCellId(canvasFloor);
       commitCanvas(placeCorridor(canvasBoard, canvasFloor.id, col, row, id));
-      onSelectCell(id);
+      selectTile(id);
       return;
     }
     if (tool === 'hud') {
       if (existing) {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       const id = nextCellId(canvasFloor);
       commitCanvas(placeHud(canvasBoard, canvasFloor.id, col, row, id));
-      onSelectCell(id);
+      selectTile(id);
       return;
     }
     if (tool === 'board') {
       if (existing) {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       const id = nextCellId(canvasFloor);
       commitCanvas(placeBoard(canvasBoard, canvasFloor.id, col, row, id));
-      onSelectCell(id);
+      selectTile(id);
       return;
     }
     if (tool === 'door') {
       if (!viewingRoom || !existing) return;
       if (existing.kind === 'door') {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       commitCanvas(attachDoor(canvasBoard, canvasFloor.id, existing.id));
-      onSelectCell(existing.id);
+      selectTile(existing.id);
       return;
     }
     if (tool === 'room') {
       if (viewingRoom) return;
       if (!existing) return;
       if (existing.kind === 'room') {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       onBoardChange(attachRoom(board, floor.id, existing.id));
-      onSelectCell(existing.id);
+      selectTile(existing.id);
       return;
     }
     if (tool === 'stair') {
       if (viewingRoom || !existing) return;
       if (existing.kind === 'stair') {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       onBoardChange(attachStair(board, floor.id, existing.id));
-      onSelectCell(existing.id);
+      selectTile(existing.id);
       return;
     }
-    onSelectCell(existing?.id ?? null);
+    selectTile(existing?.id ?? null);
   };
 
   const activatePolar = (slotId: string) => {
@@ -339,25 +357,25 @@ export function LayoutDesigner({
     }
     if (tool === 'corridor') {
       if (existing) {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       const id = nextCellId(floor);
       onBoardChange(placeCorridorOnSlot(board, floor.id, slotId, id));
-      onSelectCell(id);
+      selectTile(id);
       return;
     }
     if (tool === 'stair') {
       if (!existing) return;
       if (existing.kind === 'stair') {
-        onSelectCell(existing.id);
+        selectTile(existing.id);
         return;
       }
       onBoardChange(attachStair(board, floor.id, existing.id));
-      onSelectCell(existing.id);
+      selectTile(existing.id);
       return;
     }
-    onSelectCell(existing?.id ?? null);
+    selectTile(existing?.id ?? null);
   };
 
   const tabClass = (id: DesignerSideTab) =>
@@ -369,7 +387,7 @@ export function LayoutDesigner({
     <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[2fr_1fr]">
       <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
         <div
-          className="flex min-w-0 flex-nowrap items-end justify-center"
+          className="relative flex min-w-0 flex-nowrap items-end justify-center"
           data-testid="designer-toolbar"
         >
           <DesignerPalette
@@ -397,6 +415,13 @@ export function LayoutDesigner({
             endDisabled={!playableSelected}
             className="justify-center"
           />
+          <Button
+            type="button"
+            className="absolute right-0"
+            onClick={() => setPreviewOpen(true)}
+          >
+            Preview
+          </Button>
         </div>
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <LayoutGrid
@@ -430,6 +455,7 @@ export function LayoutDesigner({
                 setSelectedRoomId(null);
                 onSelectFloor(id);
                 onSelectCell(null);
+                setSideTab('levels');
               }}
               onAdd={() => {
                 const id = nextFloorId(board);
@@ -488,19 +514,16 @@ export function LayoutDesigner({
             ) : null}
           </div>
           <div
-            className="flex flex-wrap items-center justify-between gap-2 py-2"
+            className="grid grid-cols-3 items-center gap-2 py-2 text-sm text-slate-300"
             data-testid="designer-bottom-row-meta"
           >
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300">
-              <span data-testid="designer-last-saved">{formatDesignerLastSaved(metadata?.lastSaved)}</span>
-              <span data-testid="designer-status">
-                {formatDesignerStatus(metadata?.status ?? 'draft', metadata?.version)}
-              </span>
-              <span data-testid="designer-saved-location">{metadata?.savedLocation ?? 'This device'}</span>
-            </div>
-            <Button type="button" onClick={() => setPreviewOpen(true)}>
-              Preview
-            </Button>
+            <span data-testid="designer-last-saved">{formatDesignerLastSaved(metadata?.lastSaved)}</span>
+            <span className="text-center" data-testid="designer-status">
+              {formatDesignerStatus(metadata?.status ?? 'draft', metadata?.version)}
+            </span>
+            <span className="text-right" data-testid="designer-saved-location">
+              {metadata?.savedLocation ?? LIBRARY_SAVE_LOCATION}
+            </span>
           </div>
         </div>
       </div>

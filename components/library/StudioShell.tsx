@@ -24,7 +24,7 @@ import {
 import { canPublishPlay, validateLayout, type LayoutIssue } from '@/lib/designer/validate';
 import { useLibrary, type UseLibraryOptions } from '@/hooks/use-library';
 import { isPublished } from '@/lib/library/state';
-import { documentStatus, formatGameTitle } from '@/lib/library/version';
+import { documentStatus, formatDesignerChromeTitle, LIBRARY_SAVE_LOCATION } from '@/lib/library/version';
 import type { Board } from '@/lib/engine/board';
 import type { GameState } from '@/lib/engine/game';
 import { applyStartToPlayers, ensureBoardLayout } from '@/lib/engine/layout';
@@ -90,6 +90,9 @@ export function StudioShell(options: UseLibraryOptions = {}) {
   const [testNonce, setTestNonce] = useState(0);
   const [testViewportReady, setTestViewportReady] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [chromePlace, setChromePlace] = useState<{ levelLabel: string; roomName?: string }>({
+    levelLabel: '',
+  });
   const savedKeyRef = useRef('');
 
   useEffect(() => {
@@ -445,7 +448,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
       <div className="mb-2 flex shrink-0 items-center gap-3" data-testid="studio-header">
         <h1 className="shrink-0 text-2xl font-semibold text-slate-50">Building Board Template</h1>
         <LibraryBar
-          activeName={formatGameTitle(active)}
+          activeName={formatDesignerChromeTitle(active?.name, chromePlace.levelLabel, chromePlace.roomName)}
           canSave={Boolean(active)}
           canTest={Boolean(active)}
           canPublish={Boolean(active && workingBoard && canPublishPlay(workingBoard))}
@@ -503,6 +506,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             onFloatCard={(card: Card) => updateLibrary((current) => addFloatingCard(current, card))}
             onSelectFloor={setSelectedFloorId}
             onSelectCell={setSelectedCellId}
+            onDesignerContextChange={setChromePlace}
             onToolChange={setTool}
             gameStart={workingGameStart}
             onGameStartChange={onGameStartChange}
@@ -519,7 +523,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
               lastSaved: active.lastSaved,
               status: documentStatus(active),
               version: active.version,
-              savedLocation: 'This device',
+              savedLocation: LIBRARY_SAVE_LOCATION,
             }}
           />
         ) : testViewportReady ? (

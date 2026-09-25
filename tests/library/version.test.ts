@@ -4,7 +4,9 @@ import { createDocument, publishDocument, saveDraft } from '@/lib/library/state'
 import { emptyBootstrap } from '@/lib/samples/empty';
 import {
   bumpMinorVersion,
+  formatDesignerChromeTitle,
   formatGameTitle,
+  LIBRARY_SAVE_LOCATION,
   markEditedAfterPublish,
 } from '@/lib/library/version';
 import type { GameDocument, LibraryState } from '@/lib/library/types';
@@ -43,6 +45,22 @@ describe('formatGameTitle', () => {
 
   it('returns an empty title when there is no game', () => {
     expect(formatGameTitle(undefined)).toBe('');
+  });
+});
+
+describe('formatDesignerChromeTitle', () => {
+  it('shows the game name and current level without draft or Published', () => {
+    expect(formatDesignerChromeTitle('Climb (sample)', 'Lobby')).toBe('Climb (sample) · Lobby');
+    expect(formatDesignerChromeTitle('Climb (sample)', 'Lobby', 'Room 1')).toBe(
+      'Climb (sample) · Room 1',
+    );
+    expect(formatDesignerChromeTitle('Sandbox')).toBe('Sandbox');
+    expect(formatDesignerChromeTitle(undefined)).toBe('');
+    expect(formatDesignerChromeTitle('Climb (sample)', 'Lobby')).not.toMatch(/draft|Published/i);
+  });
+
+  it('names the browser localStorage key as the save location', () => {
+    expect(LIBRARY_SAVE_LOCATION).toBe('Browser localStorage (building-board.library.v1)');
   });
 });
 

@@ -60,14 +60,14 @@ describe('StudioShell', () => {
     expect(markupDuringRender).not.toContain('data-testid="studio-shell"');
 
     expect(screen.getByTestId('studio-shell')).toBeDefined();
-    expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Climb (sample) · Lobby');
     expect(screen.getByText('Building Board Template')).toBeDefined();
     expect(screen.queryByText('Studio — drafts stay on this device')).toBeNull();
   });
 
   it('opens in Design on Climb and Test reveals Roll dice', async () => {
     renderStudio();
-    expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Climb (sample) · Lobby');
     expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     expect(screen.queryByTestId('floor-preview')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull();
@@ -113,7 +113,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByLabelText('Empty board'));
     fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
     expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
@@ -169,7 +169,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByLabelText('Empty board'));
     fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
     expect(reloaded.activeId).toBe('empty-1');
     expect(getActive(reloaded)?.name).toBe('Sandbox');
@@ -192,11 +192,11 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByLabelText('Empty board'));
     fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.getByText(/Delete Sandbox/i)).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
-    expect(screen.getByText('Climb (sample) (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Climb (sample) · Lobby');
     expect(screen.queryByText('Sandbox (draft)')).toBeNull();
   });
 
@@ -226,7 +226,7 @@ describe('StudioShell', () => {
     fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Sandbox' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
     expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     expect(screen.queryByText('Climb (sample) (draft)')).toBeNull();
 
@@ -378,7 +378,8 @@ describe('StudioShell', () => {
     const storage = memoryStorage();
     renderStudio(storage, 'seed-1', '2026-09-22T21:00:00.000Z');
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
-    expect(screen.getByText('Climb (sample) (Published) v1')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Climb (sample) · Lobby');
+    expect(screen.getByTestId('designer-status').textContent).toMatch(/Published v1/);
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveProperty('disabled', true);
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
     expect(reloaded.drafts[0]?.status).toBe('published');
@@ -395,7 +396,7 @@ describe('StudioShell', () => {
     expect(screen.getByRole('button', { name: 'Publish' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
     expect(screen.queryByText('Sandbox (Published) v1')).toBeNull();
-    expect(screen.getByText('Sandbox (draft)')).toBeDefined();
+    expect(screen.getByTestId('library-game-title').textContent).toBe('Sandbox · Level 1');
     fireEvent.click(screen.getByRole('button', { name: 'Test' }));
     expect(screen.getByTestId('layout-issues').textContent).toContain('Mark a start tile');
   });
@@ -405,9 +406,9 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
     fireEvent.click(screen.getByTestId('slot-0-0'));
     fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
-    expect(screen.getByText('Climb (sample) (draft) v1.1')).toBeDefined();
+    expect(screen.getByTestId('designer-status').textContent).toMatch(/draft v1\.1/);
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
-    expect(screen.getByText('Climb (sample) (Published) v1.1')).toBeDefined();
+    expect(screen.getByTestId('designer-status').textContent).toMatch(/Published v1\.1/);
   });
 
   it('Save then Open restores a splash caption', () => {

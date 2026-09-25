@@ -28,6 +28,21 @@ describe('HoldEditor', () => {
     expect(screen.getByText('Create a pack in Packs to set reveal quotas.')).toBeDefined();
   });
 
+  it('shows Level background only once', () => {
+    const floor = createLoopedFloor('ground', 'Level 1', 0);
+    render(
+      <HoldEditor
+        floor={floor}
+        packIds={[]}
+        onChange={() => {}}
+        gameId="g1"
+        media={memoryMediaStore()}
+        onBackgroundChange={() => {}}
+      />,
+    );
+    expect(screen.getAllByText('Level background')).toHaveLength(1);
+  });
+
   it('shows a level background inherit hint', () => {
     const floor = createLoopedFloor('ground', 'Level 1', 0);
     render(

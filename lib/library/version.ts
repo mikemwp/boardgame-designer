@@ -1,4 +1,7 @@
+import { LIBRARY_STORAGE_KEY } from '@/lib/library/types';
 import type { GameDocument, GameStatus } from '@/lib/library/types';
+
+export const LIBRARY_SAVE_LOCATION = `Browser localStorage (${LIBRARY_STORAGE_KEY})`;
 
 export function bumpMinorVersion(version: string): string {
   const [majorRaw, minorRaw] = version.split('.');
@@ -20,6 +23,16 @@ export function formatGameTitle(doc: GameDocument | undefined): string {
   if (!doc.version) return `${doc.name} (draft)`;
   if (status === 'published') return `${doc.name} (Published) v${doc.version}`;
   return `${doc.name} (draft) v${doc.version}`;
+}
+
+export function formatDesignerChromeTitle(
+  gameName: string | undefined,
+  levelName?: string,
+  roomName?: string,
+): string {
+  if (!gameName) return '';
+  const place = roomName?.trim() || levelName?.trim();
+  return place ? `${gameName} · ${place}` : gameName;
 }
 
 export function formatDesignerStatus(status: GameStatus, version?: string | null): string {
