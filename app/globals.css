@@ -192,46 +192,14 @@
   transform: translateX(-50%);
 }
 
-.hud-spinner-wheel {
+.hud-spinner-canvas {
   width: 180px;
   height: 180px;
-  border-radius: 9999px;
-  border: 4px solid #94a3b8;
-  background: conic-gradient(from -15deg, #1e293b, #334155, #1e293b);
   position: relative;
-  transition: transform 200ms ease-out;
 }
 
-.hud-spinner-wheel--spin {
-  animation: hud-spinner-spin 1.4s cubic-bezier(0.12, 0.7, 0.2, 1);
-}
-
-.hud-spinner--wood .hud-spinner-wheel {
-  border-color: #b45309;
-}
-
-.hud-spinner--neon .hud-spinner-wheel {
-  border-color: #22d3ee;
-}
-
-.hud-spinner--compass .hud-spinner-wheel {
-  border-color: #f8fafc;
-}
-
-@keyframes hud-spinner-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(1440deg); }
-}
-
-.hud-spinner-tick {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  width: 20px;
-  margin-left: -10px;
-  text-align: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  transform-origin: 10px 82px;
+.hud-spinner-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

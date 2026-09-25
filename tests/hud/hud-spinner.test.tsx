@@ -1,7 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { HudSpinner } from '@/components/hud/HudSpinner';
 import { spinnerLandingDegrees, spinnerMax } from '@/lib/view/hud-spinner';
+
+const spinToItem = vi.fn();
+const remove = vi.fn();
+
+vi.mock('spin-wheel', () => ({
+  Wheel: class {
+    image: unknown = null;
+    constructor(public el: HTMLElement, _props: { isInteractive?: boolean }) {
+      el.dataset.wheelMounted = 'true';
+    }
+    spinToItem(...args: unknown[]) {
+      spinToItem(...args);
+    }
+    remove() {
+      remove();
+    }
+  },
+}));
 
 describe('spinner math', () => {
   it('treats sides 12 as a 1-12 wheel, not 2d6', () => {
@@ -15,6 +33,11 @@ describe('spinner math', () => {
 });
 
 describe('HudSpinner', () => {
+  beforeEach(() => {
+    spinToItem.mockClear();
+    remove.mockClear();
+  });
+
   it('labels a 1-12 result', () => {
     render(<HudSpinner value={7} max={12} spinning={false} rollId={1} />);
     expect(screen.getByLabelText('Spinner showing 7 of 12')).toBeDefined();
@@ -25,18 +48,21 @@ describe('HudSpinner', () => {
     expect(screen.getByLabelText('Spinner showing 3 of 6')).toBeDefined();
   });
 
-  it('applies spinning class while the wheel is moving', () => {
-    const { container } = render(<HudSpinner value={4} max={6} spinning rollId={3} />);
-    expect(container.querySelector('.hud-spinner-wheel--spin')).not.toBeNull();
+  it('mounts a canvas wheel with flick off and spins to the engine index', () => {
+    render(<HudSpinner value={7} max={12} spinning rollId={3} />);
+    expect(screen.getByTestId('hud-spinner').getAttribute('data-interactive')).toBe('false');
+    expect(screen.getByTestId('hud-spinner-canvas')).toBeDefined();
     expect(screen.getByTestId('spinner-pointer')).toBeDefined();
+    expect(spinToItem).toHaveBeenCalled();
+    expect(spinToItem.mock.calls[0]?.[0]).toBe(6);
   });
 
-  it('renders a catalog spinner with template and pointer', () => {
+  it('keeps isInteractive off for a catalog spinner in Test/Play', () => {
     render(
       <HudSpinner
         value={2}
         max={6}
-        spinning={false}
+        spinning
         rollId={4}
         spinner={{
           id: 'spinner-1',
@@ -51,7 +77,9 @@ describe('HudSpinner', () => {
       />,
     );
     expect(screen.getByTestId('hud-spinner').getAttribute('data-template')).toBe('wood');
+    expect(screen.getByTestId('hud-spinner').getAttribute('data-interactive')).toBe('false');
     expect(screen.getByTestId('spinner-pointer')).toBeDefined();
     expect(screen.getByLabelText('Spinner showing 2')).toBeDefined();
+    expect(spinToItem.mock.calls[0]?.[0]).toBe(1);
   });
 });

@@ -4,6 +4,16 @@ import { MovementStage } from '@/components/hud/MovementStage';
 import { HUD_DICE_TUMBLE_MS } from '@/lib/view/hud-dice';
 import { HUD_SPINNER_MS } from '@/lib/view/hud-spinner';
 
+vi.mock('spin-wheel', () => ({
+  Wheel: class {
+    constructor(el: HTMLElement) {
+      el.dataset.wheelMounted = 'true';
+    }
+    spinToItem() {}
+    remove() {}
+  },
+}));
+
 describe('MovementStage', () => {
   beforeEach(() => {
     vi.useFakeTimers();

@@ -1,15 +1,23 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { Wheel } from 'spin-wheel';
 import { spinnerTemplateOf } from '@/lib/designer/spinner-templates';
 import type { SpinnerDef } from '@/lib/engine/types';
+import { spinnerSegmentIndex } from '@/lib/view/hud-spinner';
 import {
-  catalogSpinnerLandingDegrees,
-  spinnerLandingDegrees,
-  spinnerSegmentIndex,
-  spinnerWeights,
-} from '@/lib/view/hud-spinner';
+  spinToItemArgs,
+  wheelItemsFromMax,
+  wheelItemsFromSpinner,
+  wheelProps,
+} from '@/lib/view/spin-wheel-adapter';
 
-const SLICE_COLORS = ['#334155', '#1e293b', '#475569', '#0f172a', '#64748b', '#1e3a5f'];
+const TEMPLATE_BORDER: Record<string, string> = {
+  classic: '#94a3b8',
+  wood: '#b45309',
+  neon: '#22d3ee',
+  compass: '#f8fafc',
+};
 
 export function HudSpinner({
   value,
@@ -17,36 +25,77 @@ export function HudSpinner({
   spinning,
   rollId,
   spinner,
+  isInteractive = false,
+  onTick,
+  onRest,
 }: {
   value: number;
   max: 6 | 12;
   spinning: boolean;
   rollId: number;
   spinner?: SpinnerDef;
+  isInteractive?: boolean;
+  onTick?: (index: number) => void;
+  onRest?: (index: number) => void;
 }) {
   const template = spinnerTemplateOf(spinner?.template);
   const segmentIndex = spinner ? spinnerSegmentIndex(spinner, value) : value - 1;
-  const degrees = spinner
-    ? catalogSpinnerLandingDegrees(spinner, segmentIndex)
-    : spinnerLandingDegrees(value, max);
   const label = spinner
     ? `Spinner showing ${spinner.segments[segmentIndex]?.label ?? value}`
     : `Spinner showing ${value} of ${max}`;
-  const ticks = spinner
-    ? spinner.segments.map((segment) => segment.label)
-    : Array.from({ length: max }, (_, i) => String(i + 1));
-  const weights = spinner ? spinnerWeights(spinner) : ticks.map(() => 1);
-  const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
-  let cursor = 0;
-  const gradient = ticks
-    .map((_, i) => {
-      const start = (cursor / total) * 360;
-      cursor += weights[i] ?? 1;
-      const end = (cursor / total) * 360;
-      const color = SLICE_COLORS[i % SLICE_COLORS.length]!;
-      return `${color} ${start}deg ${end}deg`;
-    })
-    .join(', ');
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const wheelRef = useRef<Wheel | null>(null);
+  const tickRef = useRef(onTick);
+  const restRef = useRef(onRest);
+  tickRef.current = onTick;
+  restRef.current = onRest;
+
+  const itemsKey = JSON.stringify(spinner ? wheelItemsFromSpinner(spinner) : wheelItemsFromMax(max));
+  const imageSrc = spinner?.image?.src;
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const nextItems = spinner ? wheelItemsFromSpinner(spinner) : wheelItemsFromMax(max);
+    const props = {
+      ...wheelProps({ items: nextItems, isInteractive }),
+      borderColor: TEMPLATE_BORDER[template.id] ?? TEMPLATE_BORDER.classic,
+      onCurrentIndexChange: (event: { currentIndex: number }) => {
+        tickRef.current?.(event.currentIndex);
+      },
+      onRest: (event: { currentIndex: number }) => {
+        restRef.current?.(event.currentIndex);
+      },
+    };
+    const wheel = new Wheel(el, props);
+    wheelRef.current = wheel;
+    if (imageSrc) {
+      const img = new window.Image();
+      img.onload = () => {
+        wheel.image = img;
+      };
+      img.src = imageSrc;
+    }
+    return () => {
+      wheel.remove();
+      if (wheelRef.current === wheel) wheelRef.current = null;
+    };
+  }, [itemsKey, isInteractive, imageSrc, template.id, max, spinner]);
+
+  useEffect(() => {
+    if (!spinning) return;
+    const wheel = wheelRef.current;
+    if (!wheel) return;
+    const args = spinToItemArgs(spinner, value, max);
+    wheel.spinToItem(
+      args.itemIndex,
+      args.duration,
+      args.spinToCenter,
+      args.numberOfRevolutions,
+      args.direction,
+      args.easingFunction,
+    );
+  }, [spinning, rollId, value, max, spinner]);
 
   return (
     <div
@@ -54,38 +103,12 @@ export function HudSpinner({
       data-testid="hud-spinner"
       data-template={template.id}
       data-roll-id={rollId}
+      data-interactive={isInteractive ? 'true' : 'false'}
       role="img"
       aria-label={label}
     >
       <div className="hud-spinner-pointer" data-testid="spinner-pointer" />
-      <div
-        className={spinning ? 'hud-spinner-wheel hud-spinner-wheel--spin' : 'hud-spinner-wheel'}
-        style={{
-          ...(spinning
-            ? {
-                animationDuration: `${template.durationMs}ms`,
-                animationTimingFunction: template.easing,
-              }
-            : { transform: `rotate(${degrees}deg)` }),
-          background: spinner?.image?.src
-            ? `url(${spinner.image.src}) center / cover`
-            : `conic-gradient(from -90deg, ${gradient})`,
-        }}
-      >
-        {ticks.map((tick, i) => {
-          const start = weights.slice(0, i).reduce((sum, weight) => sum + weight, 0);
-          const angle = ((start + (weights[i] ?? 1) / 2) / total) * 360;
-          return (
-            <span
-              key={`${tick}-${i}`}
-              className="hud-spinner-tick"
-              style={{ transform: `rotate(${angle}deg)` }}
-            >
-              {tick}
-            </span>
-          );
-        })}
-      </div>
+      <div ref={canvasRef} className="hud-spinner-canvas" data-testid="hud-spinner-canvas" />
     </div>
   );
 }
