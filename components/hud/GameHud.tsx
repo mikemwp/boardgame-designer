@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BoardScene } from '@/components/board/BoardScene';
 import { Button } from '@/components/ui/button';
 import { CardPanel } from '@/components/hud/CardPanel';
+import { LandMediaPopup } from '@/components/hud/LandMediaPopup';
 import { FeatureToggles } from '@/components/hud/FeatureToggles';
 import { GameStartOverlay } from '@/components/hud/GameStartOverlay';
 import { HoldStatus } from '@/components/hud/HoldStatus';
@@ -22,7 +23,8 @@ import { startingItems } from '@/lib/engine/inventory';
 import type { AudioCue } from '@/lib/engine/audio';
 import { isOnRoomEntrance, roomPlayFloor, type GameBootstrap, type GameState } from '@/lib/engine/game';
 import { createBoard } from '@/lib/engine/board';
-import type { GameStart } from '@/lib/engine/types';
+import type { GameStart, ImageRef } from '@/lib/engine/types';
+import { landMediaOf, landPopupSpout, shouldShowLandMedia } from '@/lib/view/land-media';
 import { memoryMediaStore, type MediaStore } from '@/lib/library/media-store';
 import {
   createAudioPlayer,
@@ -55,6 +57,7 @@ export function GameHud({
   gameId,
   media,
   gameTitle,
+  packBacks,
 }: {
   bootstrap: GameBootstrap;
   onStateChange?: (game: GameState) => void;
@@ -62,6 +65,7 @@ export function GameHud({
   gameId?: string;
   media?: MediaStore;
   gameTitle?: string;
+  packBacks?: Record<string, ImageRef>;
 }) {
   const { game, dispatch, updateConfig, importCards } = useGameStore(bootstrap);
   const [importOpen, setImportOpen] = useState(false);
@@ -91,6 +95,7 @@ export function GameHud({
   const [phase, setPhase] = useState<MovementPhase>('idle');
   const [inventoryConfirmed, setInventoryConfirmed] = useState(game.itemAssign !== 'choose');
   const [cardHoldReleased, setCardHoldReleased] = useState(false);
+  const [landDismissed, setLandDismissed] = useState<string | null>(null);
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
   const seenRollId = useRef(0);
   const holdFloor = game.board.floors.find((f) => f.id === game.hold?.floorId);
@@ -137,6 +142,11 @@ export function GameHud({
   const inside = game.insideRoom
     ? (game.board.rooms ?? []).find((room) => room.id === game.insideRoom?.roomId)
     : undefined;
+  const tokenKey = activePlayer ? `${activePlayer.token.floorId}:${activePlayer.token.cellId}` : null;
+  useEffect(() => {
+    setLandDismissed(null);
+  }, [tokenKey]);
+
   const playGame: GameState = inside && game.insideRoom
     ? {
         ...game,
@@ -388,8 +398,33 @@ export function GameHud({
           timerLabel={timerRemaining != null ? formatCardTimer(timerRemaining) : undefined}
           onExtra={() => setCardHoldReleased(true)}
           onDispatch={dispatch}
+          packBack={visibleCard ? packBacks?.[visibleCard.pack] : undefined}
         />
       </aside>
+      {(() => {
+        const tokenFloor = playGame.board.floors.find((entry) => entry.id === activePlayer?.token.floorId);
+        const tokenCell = tokenFloor?.cells.find((cell) => cell.id === activePlayer?.token.cellId);
+        const land = landMediaOf(tokenCell);
+        if (
+          !land ||
+          !shouldShowLandMedia({
+            tokenSliding,
+            awaitingRoom: Boolean(game.awaitingRoom),
+            cell: tokenCell,
+          }) ||
+          landDismissed === tokenCell?.id
+        ) {
+          return null;
+        }
+        return (
+          <LandMediaPopup
+            image={land.image}
+            video={land.video}
+            spout={landPopupSpout(tokenFloor?.look)}
+            onClose={() => setLandDismissed(tokenCell?.id ?? null)}
+          />
+        );
+      })()}
       <ImportCardsDialog
         open={importOpen}
         onOpenChange={setImportOpen}

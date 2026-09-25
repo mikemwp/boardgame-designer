@@ -100,5 +100,17 @@ describe('CardPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onExtra).toHaveBeenCalled();
   });
+
+  it('shows the resolved card back, not a 3D face', () => {
+    render(
+      <CardPanel
+        actionMode="both"
+        currentCard={{ id: '1', pack: 'climb', title: 'Rung' }}
+        packBack={{ id: 'pb', name: 'pack-back.png', source: 'url', src: 'https://ex/pack-back.png' }}
+        onDispatch={() => {}}
+      />,
+    );
+    expect(screen.getByAltText('Card back')).toBeDefined();
+  });
 });
 

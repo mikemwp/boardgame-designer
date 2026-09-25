@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { allowedActions } from '@/lib/engine/cards';
 import { passActionAllowed } from '@/lib/engine/passes';
-import type { ActionMode, Card as CardType } from '@/lib/engine/types';
+import { cardBackImage } from '@/lib/designer/packs';
+import type { ActionMode, Card as CardType, ImageRef } from '@/lib/engine/types';
 import type { GameCommand } from '@/lib/engine/events';
 
 export function CardPanel({
@@ -17,6 +18,7 @@ export function CardPanel({
   timerLabel,
   onExtra,
   onDispatch,
+  packBack,
 }: {
   actionMode: ActionMode;
   currentCard: CardType | null;
@@ -27,6 +29,7 @@ export function CardPanel({
   timerLabel?: string;
   onExtra?: () => void;
   onDispatch: (cmd: GameCommand) => void;
+  packBack?: ImageRef;
 }) {
   const actions = awaitingAction ? allowedActions(actionMode) : [];
   const showPass = currentCard
@@ -34,10 +37,19 @@ export function CardPanel({
     : false;
   const extraLabel = currentCard?.extraButton?.trim();
   if (!currentCard) return <p className="text-slate-400">No card drawn</p>;
+  const back = cardBackImage(currentCard, packBack);
   return (
     <Card>
       <CardHeader><CardTitle>{currentCard.title}</CardTitle></CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {back ? (
+          back.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img alt="Card back" src={back.src} className="max-h-40 w-full object-contain" />
+          ) : (
+            <p data-testid="card-back">{back.name}</p>
+          )
+        ) : null}
         {bodyVisible && currentCard.body ? (
           <p className="text-sm text-slate-300">{currentCard.body}</p>
         ) : null}

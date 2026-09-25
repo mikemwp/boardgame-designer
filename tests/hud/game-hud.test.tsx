@@ -377,5 +377,33 @@ describe('GameHud', () => {
     expect(screen.queryByRole('button', { name: 'Leave' })).toBeNull();
     expect(roll).toHaveProperty('disabled', false);
   });
+
+  it('shows a land HUD popup for tile image from the spout', () => {
+    const floor = climbSample.board.floors[0]!;
+    const start = floor.cells.find((cell) => cell.start) ?? floor.cells[0]!;
+    const bootstrap = {
+      ...climbSample,
+      board: {
+        ...climbSample.board,
+        floors: climbSample.board.floors.map((entry) =>
+          entry.id === floor.id
+            ? {
+                ...entry,
+                look: { popupSpout: 'surround' as const },
+                cells: entry.cells.map((cell) =>
+                  cell.id === start.id
+                    ? { ...cell, image: { id: 'land', name: 'clue.png', source: 'url' as const, src: 'https://ex/clue.png' } }
+                    : cell,
+                ),
+              }
+            : entry,
+        ),
+      },
+    };
+    render(<GameHud bootstrap={bootstrap} />);
+    expect(screen.getByTestId('land-media-popup').getAttribute('data-spout')).toBe('surround');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByTestId('land-media-popup')).toBeNull();
+  });
 });
 
