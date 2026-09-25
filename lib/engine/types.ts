@@ -205,6 +205,7 @@ export interface Card {
   extraButton?: string;
   audio?: AudioRef;
   spinnerId?: string;
+  image?: ImageRef;
 }
 
 export interface CardPack {
