@@ -11,6 +11,7 @@ declare module 'spin-wheel' {
     items?: WheelItemProps[];
     isInteractive?: boolean;
     pointerAngle?: number;
+    borderColor?: string;
     image?: HTMLImageElement | null;
     overlayImage?: HTMLImageElement | null;
     itemBackgroundColors?: string[];
