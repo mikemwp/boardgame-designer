@@ -54,12 +54,14 @@ export function GameHud({
   gameStart,
   gameId,
   media,
+  gameTitle,
 }: {
   bootstrap: GameBootstrap;
   onStateChange?: (game: GameState) => void;
   gameStart?: GameStart;
   gameId?: string;
   media?: MediaStore;
+  gameTitle?: string;
 }) {
   const { game, dispatch, updateConfig, importCards } = useGameStore(bootstrap);
   const [importOpen, setImportOpen] = useState(false);
@@ -315,6 +317,7 @@ export function GameHud({
           allowSlide={shouldAllowTokenSlide(phase)}
           onTokenSlideStart={onTokenSlideStart}
           onTokenSlideComplete={onTokenSlideComplete}
+          gameTitle={gameTitle}
         />
       </div>
       <aside

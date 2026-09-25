@@ -5,6 +5,7 @@ import { Camera, Script } from '@playcanvas/react/components';
 import { Vec2, Vec3 } from 'playcanvas';
 import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
 import { useMemo } from 'react';
+import type { CameraBias } from '@/lib/engine/types';
 import type { Board } from '@/lib/engine/board';
 import { boardWorldBounds, orbitCameraLimits } from '@/lib/view/board-layout';
 import {
@@ -12,6 +13,7 @@ import {
   PLAY_ORBIT_PITCH,
   PREVIEW_ORBIT_PITCH,
   PREVIEW_ORBIT_PITCH_RANGE,
+  tokenSideYaw,
 } from '@/lib/view/orbit-camera';
 
 export {
@@ -24,22 +26,27 @@ export {
 export function BoardOrbitCamera({
   board,
   view = 'play',
+  token,
+  bias = 'top-down',
 }: {
   board: Board;
   view?: 'play' | 'top-down';
+  token?: { x: number; z: number };
+  bias?: CameraBias;
 }) {
   const orbit = useMemo(() => {
     const limits = orbitCameraLimits(boardWorldBounds(board));
     const pivot = new Vec3(limits.pivot.x, limits.pivot.y, limits.pivot.z);
-    const pitch = view === 'top-down' ? PREVIEW_ORBIT_PITCH : PLAY_ORBIT_PITCH;
+    const pitch = view === 'top-down' && bias !== 'token-side' ? PREVIEW_ORBIT_PITCH : PLAY_ORBIT_PITCH;
+    const yaw = bias === 'token-side' && token ? tokenSideYaw(token, limits.pivot) : 0;
     const pitchRange = new Vec2(PREVIEW_ORBIT_PITCH_RANGE.min, PREVIEW_ORBIT_PITCH_RANGE.max);
     return {
       pivot,
-      pose: orbitCameraPose(pivot, limits.defaultDistance, pitch),
+      pose: orbitCameraPose(pivot, limits.defaultDistance, pitch, yaw),
       zoomRange: new Vec2(limits.distanceMin, limits.distanceMax),
       pitchRange,
     };
-  }, [board, view]);
+  }, [board, view, token, bias]);
 
   return (
     <Entity name="camera" position={orbit.pose.position} rotation={orbit.pose.rotation}>

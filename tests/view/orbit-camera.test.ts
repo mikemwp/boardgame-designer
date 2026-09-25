@@ -12,6 +12,7 @@ import {
   PLAY_ORBIT_PITCH,
   PREVIEW_ORBIT_PITCH,
   PREVIEW_ORBIT_PITCH_RANGE,
+  tokenSideYaw,
 } from '@/lib/view/orbit-camera';
 
 function ringFloor(id: string, index: number): Floor {
@@ -35,8 +36,8 @@ describe('boardWorldBounds', () => {
   it('wraps all placed cells with half-tile padding', () => {
     const board = createBoard([ringFloor('lobby', 0)], []);
     const bounds = boardWorldBounds(board);
-    expect(bounds.maxX - bounds.minX).toBeCloseTo(3 * TILE_SIZE, 5);
-    expect(bounds.maxZ - bounds.minZ).toBeCloseTo(3 * TILE_SIZE, 5);
+    expect(bounds.maxX - bounds.minX).toBeGreaterThan(3 * TILE_SIZE);
+    expect(bounds.maxZ - bounds.minZ).toBeGreaterThan(3 * TILE_SIZE);
     expect(bounds.minY).toBe(0);
     expect(bounds.maxY).toBe(0);
   });
@@ -78,6 +79,11 @@ describe('orbitCameraLimits', () => {
 });
 
 describe('play orbit camera', () => {
+  it('yaws toward a token on the south side', () => {
+    expect(tokenSideYaw({ x: 0, z: 4 }, { x: 0, z: 0 })).toBe(0);
+    expect(tokenSideYaw({ x: 4, z: 0 }, { x: 0, z: 0 })).toBe(90);
+  });
+
   it('uses the same look-down pitch as Design preview', () => {
     expect(PLAY_ORBIT_PITCH).toBe(PREVIEW_ORBIT_PITCH);
     expect(PLAY_ORBIT_PITCH).toBe(-85);

@@ -514,6 +514,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             })}
             gameStart={workingGameStart}
             gameId={active.id}
+            gameTitle={active.name}
             media={media}
             onStateChange={setSnapshot}
           />

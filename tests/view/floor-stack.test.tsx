@@ -80,6 +80,35 @@ describe('FloorStack', () => {
     expect(screen.queryByText('HUD')).toBeNull();
   });
 
+  it('draws surround, edge, board quad, castle, and kind rims without using cell.image as a face', () => {
+    const floor = createLoopedFloor('ground', 'Ground', 0);
+    const start = floor.cells.find((c) => c.kind !== 'hud')!;
+    const board = createBoard(
+      [
+        {
+          ...floor,
+          look: {
+            image: { id: 'b1', name: 'board.png', source: 'url', src: 'https://ex/board.png' },
+            centreMesh: { kind: 'castle', scale: 1, offsetX: 0, offsetZ: 0, yaw: 0, height: 0.4 },
+          },
+          cells: floor.cells.map((cell) =>
+            cell.id === start.id
+              ? { ...cell, image: { id: 'land', name: 'land.png', source: 'url' as const, src: 'https://ex/land.png' } }
+              : cell,
+          ),
+        },
+      ],
+      [],
+    );
+    render(<FloorStack board={board} selectedCellId={start.id} />);
+    expect(screen.getByTestId('entity-ground-surround')).toBeDefined();
+    expect(screen.getByTestId('entity-ground-edge-n')).toBeDefined();
+    expect(screen.getByTestId('entity-ground-board-quad')).toBeDefined();
+    expect(screen.getByTestId('entity-ground-centre-mesh')).toBeDefined();
+    expect(screen.getByTestId(`entity-${start.id}-rim`)).toBeDefined();
+    expect(screen.queryByTestId('entity-land')).toBeNull();
+  });
+
   it('renders an empty board without crashing', () => {
     expect(() => render(<FloorStack board={createBoard([], [])} />)).not.toThrow();
     expect(screen.queryByTestId(/entity-/)).toBeNull();

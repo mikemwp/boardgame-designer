@@ -970,7 +970,12 @@ export function LayoutDesigner({
             <DialogTitle>Preview</DialogTitle>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-hidden">
-            <FloorPreview board={board} floorId={floor.id} selectedCellId={selectedCellId ?? undefined} />
+            <FloorPreview
+              board={board}
+              floorId={floor.id}
+              selectedCellId={selectedCellId ?? undefined}
+              gameTitle={gameTitle}
+            />
           </div>
         </DialogContent>
       </Dialog>

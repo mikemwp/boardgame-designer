@@ -1,3 +1,4 @@
+import { defaultFloorLook } from '@/lib/designer/board-look';
 import type { Board } from '@/lib/engine/board';
 import { getFloor } from '@/lib/engine/board';
 import { DEFAULT_HUD } from '@/lib/engine/layout';
@@ -139,6 +140,7 @@ export function boardWorldBounds(board: Board): BoardWorldBounds {
   let minZ = Infinity;
   let maxZ = -Infinity;
   let hasCells = false;
+  let surroundPad = 0;
 
   for (const floor of board.floors) {
     if (isPolarFloor(floor)) {
@@ -182,10 +184,25 @@ export function boardWorldBounds(board: Board): BoardWorldBounds {
         maxZ = Math.max(maxZ, world.z + HALF_TILE);
       }
     }
+
+    if (!isPolarFloor(floor)) {
+      const look = { ...defaultFloorLook(), ...floor.look };
+      surroundPad = Math.max(
+        surroundPad,
+        (look.surround?.padding ?? 0.8) + (look.edge?.thickness ?? 0.12),
+      );
+    }
   }
 
   return hasCells
-    ? { minX, maxX, minY, maxY, minZ, maxZ }
+    ? {
+        minX: minX - surroundPad,
+        maxX: maxX + surroundPad,
+        minY,
+        maxY,
+        minZ: minZ - surroundPad,
+        maxZ: maxZ + surroundPad,
+      }
     : { ...EMPTY_BOUNDS };
 }
 

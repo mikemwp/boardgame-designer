@@ -1,3 +1,5 @@
+export { tokenSideYaw } from '@/lib/designer/board-look';
+
 /** CameraControls Pose.look pitch: looking down at XZ from +Y is negative. */
 export const PREVIEW_ORBIT_PITCH = -85;
 export const PREVIEW_ORBIT_PITCH_RANGE = { min: -89, max: -20 } as const;
