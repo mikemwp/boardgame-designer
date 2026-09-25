@@ -26,6 +26,7 @@ export function SpinnerEditor({
   onTemplate,
   onImage,
   onAudio,
+  onPreview,
   gameId,
   media,
 }: {
@@ -45,6 +46,7 @@ export function SpinnerEditor({
   onTemplate?: (template: SpinnerTemplateId) => void;
   onImage?: (image: ImageRef | undefined) => void;
   onAudio?: (audio: AudioRef | undefined) => void;
+  onPreview?: () => void;
   gameId?: string;
   media?: MediaStore;
 }) {
@@ -52,7 +54,12 @@ export function SpinnerEditor({
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-lg border border-slate-800 p-3" data-testid="spinner-editor">
-      <p className="text-sm font-medium text-slate-100">Spinners</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-slate-100">Spinners</p>
+        <Button type="button" variant="outline" disabled={!selected} onClick={() => onPreview?.()}>
+          Preview
+        </Button>
+      </div>
       <Button type="button" variant="outline" onClick={onCreate}>
         New spinner
       </Button>
