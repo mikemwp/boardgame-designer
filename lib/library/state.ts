@@ -1,4 +1,6 @@
+import type { FloatingPack } from '@/lib/designer/packs';
 import { toStoredBootstrap } from '@/lib/library/bootstrap';
+import type { Card, ImageRef } from '@/lib/engine/types';
 import type {
   GameDocument,
   GameStatus,
@@ -174,8 +176,67 @@ function isStoredBootstrap(value: unknown): value is StoredBootstrap {
   if (value.packs !== undefined && (!Array.isArray(value.packs) || value.packs.some((id) => typeof id !== 'string'))) {
     return false;
   }
+  if (value.packBacks !== undefined && !isRecord(value.packBacks)) return false;
   if (!isRecord(value.config)) return false;
   return true;
+}
+
+function parseImageRef(value: unknown): ImageRef | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string' || typeof value.name !== 'string') return null;
+  if (value.source !== 'url' && value.source !== 'file') return null;
+  return {
+    id: value.id,
+    name: value.name,
+    source: value.source,
+    ...(typeof value.src === 'string' ? { src: value.src } : {}),
+    ...(typeof value.mime === 'string' ? { mime: value.mime } : {}),
+  };
+}
+
+function parseCard(value: unknown): Card | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string' || typeof value.pack !== 'string' || typeof value.title !== 'string') {
+    return null;
+  }
+  const image = value.image === undefined ? undefined : parseImageRef(value.image);
+  if (value.image !== undefined && !image) return null;
+  return {
+    id: value.id,
+    pack: value.pack,
+    title: value.title,
+    ...(typeof value.body === 'string' ? { body: value.body } : {}),
+    ...(typeof value.timerSeconds === 'number' ? { timerSeconds: value.timerSeconds } : {}),
+    ...(typeof value.extraButton === 'string' ? { extraButton: value.extraButton } : {}),
+    ...(Array.isArray(value.tags) ? { tags: value.tags.filter((tag): tag is string => typeof tag === 'string') } : {}),
+    ...(image ? { image } : {}),
+  };
+}
+
+function parseFloatingPack(value: unknown): FloatingPack | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string' || typeof value.name !== 'string' || !Array.isArray(value.cards)) {
+    return null;
+  }
+  const cards = value.cards.map(parseCard).filter((card): card is Card => card !== null);
+  const backImage = value.backImage === undefined ? undefined : parseImageRef(value.backImage);
+  if (value.backImage !== undefined && !backImage) return null;
+  return {
+    id: value.id,
+    name: value.name,
+    cards,
+    ...(backImage ? { backImage } : {}),
+  };
+}
+
+function parsePackBacks(value: unknown): Record<string, ImageRef> | undefined {
+  if (!isRecord(value)) return undefined;
+  const next: Record<string, ImageRef> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const image = parseImageRef(entry);
+    if (image) next[key] = image;
+  }
+  return Object.keys(next).length > 0 ? next : {};
 }
 
 function isNewGameSource(value: unknown): value is NewGameSource {
@@ -213,7 +274,12 @@ function parseDocument(value: unknown): GameDocument | null {
     updatedAt: value.updatedAt,
     lastSaved,
     source: value.source,
-    bootstrap: value.bootstrap,
+    bootstrap: {
+      ...value.bootstrap,
+      ...(value.bootstrap.packBacks
+        ? { packBacks: parsePackBacks(value.bootstrap.packBacks) ?? value.bootstrap.packBacks }
+        : {}),
+    },
     status,
     version,
     ...(typeof value.publishedAt === 'string' ? { publishedAt: value.publishedAt } : {}),
@@ -232,14 +298,20 @@ export function parseLibrary(raw: string | null): LibraryState | null {
     const drafts = value.drafts
       .map(parseDocument)
       .filter((d): d is GameDocument => d !== null);
+    const floatingPacks = Array.isArray(value.floatingPacks)
+      ? value.floatingPacks.map(parseFloatingPack).filter((pack): pack is FloatingPack => pack !== null)
+      : [];
+    const floatingCards = Array.isArray(value.floatingCards)
+      ? value.floatingCards.map(parseCard).filter((card): card is Card => card !== null)
+      : [];
     if (drafts.length === 0) {
-      return { version: 1, activeId: null, drafts: [] };
+      return { version: 1, activeId: null, drafts: [], floatingPacks, floatingCards };
     }
     const activeId =
       typeof value.activeId === 'string' && drafts.some((d) => d.id === value.activeId)
         ? value.activeId
         : drafts[0]!.id;
-    return { version: 1, activeId, drafts };
+    return { version: 1, activeId, drafts, floatingPacks, floatingCards };
   } catch {
     return null;
   }

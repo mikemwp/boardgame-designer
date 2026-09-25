@@ -140,7 +140,51 @@ describe('parseLibrary', () => {
 
   it('keeps an empty library instead of treating it as missing', () => {
     const parsed = parseLibrary(JSON.stringify({ version: 1, activeId: null, drafts: [] }));
-    expect(parsed).toEqual({ version: 1, activeId: null, drafts: [] });
+    expect(parsed).toEqual({ version: 1, activeId: null, drafts: [], floatingPacks: [], floatingCards: [] });
+  });
+
+  it('keeps floating packs and cards, defaulting missing lists to empty', () => {
+    const parsed = parseLibrary(
+      JSON.stringify({
+        version: 1,
+        activeId: null,
+        drafts: [],
+        floatingPacks: [{ id: 'float-pack-1', name: 'odds', cards: [{ id: 'o1', pack: 'odds', title: 'Even' }] }],
+        floatingCards: [{ id: 'float-card-1', pack: '', title: 'Loose' }],
+      }),
+    );
+    expect(parsed?.floatingPacks).toEqual([
+      { id: 'float-pack-1', name: 'odds', cards: [{ id: 'o1', pack: 'odds', title: 'Even' }] },
+    ]);
+    expect(parsed?.floatingCards).toEqual([{ id: 'float-card-1', pack: '', title: 'Loose' }]);
+    const empty = parseLibrary(JSON.stringify({ version: 1, activeId: null, drafts: [] }));
+    expect(empty?.floatingPacks).toEqual([]);
+    expect(empty?.floatingCards).toEqual([]);
+  });
+
+  it('keeps packBacks on a stored draft', () => {
+    const empty = emptyStored();
+    const back = { id: 'back-1', name: 'back.png', source: 'url', src: 'https://example.com/back.png' };
+    const parsed = parseLibrary(
+      JSON.stringify({
+        version: 1,
+        activeId: 'notes',
+        drafts: [
+          {
+            id: 'notes',
+            name: 'Notes',
+            createdAt: '2026-09-25T00:00:00.000Z',
+            updatedAt: '2026-09-25T00:00:00.000Z',
+            lastSaved: '2026-09-25T00:00:00.000Z',
+            source: 'empty',
+            status: 'draft',
+            version: null,
+            bootstrap: { ...empty, packs: ['notes'], packBacks: { notes: back } },
+          },
+        ],
+      }),
+    );
+    expect(parsed?.drafts[0]?.bootstrap.packBacks).toEqual({ notes: back });
   });
 
   it('keeps an empty pack catalog on a cardless draft', () => {

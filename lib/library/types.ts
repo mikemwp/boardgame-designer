@@ -1,6 +1,9 @@
 import type { Board } from '@/lib/engine/board';
 import type { PlayerState } from '@/lib/engine/players';
-import type { Card, GameConfig, GameStart, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
+import type { Card, GameConfig, GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
+import type { FloatingPack } from '@/lib/designer/packs';
+
+export type { FloatingPack };
 
 export const LIBRARY_STORAGE_KEY = 'building-board.library.v1';
 export const LIBRARY_VERSION = 1 as const;
@@ -18,6 +21,7 @@ export interface StoredBootstrap {
   players: PlayerState;
   cards: Card[];
   packs?: string[];
+  packBacks?: Record<string, ImageRef>;
   config: GameConfig;
   gameStart?: GameStart;
   spinners?: SpinnerDef[];
@@ -44,4 +48,6 @@ export interface LibraryState {
   version: 1;
   activeId: string | null;
   drafts: GameDocument[];
+  floatingPacks?: FloatingPack[];
+  floatingCards?: Card[];
 }

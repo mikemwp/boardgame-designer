@@ -4,7 +4,7 @@ import { createCardState } from '@/lib/engine/cards';
 import type { GameBootstrap, GameState } from '@/lib/engine/game';
 import type { PlayerState } from '@/lib/engine/players';
 import { defaultGameConfig } from '@/lib/engine/types';
-import type { GameStart, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
+import type { GameStart, ImageRef, InventoryItem, ItemAssign, SpinnerDef } from '@/lib/engine/types';
 import type { StoredBootstrap } from '@/lib/library/types';
 
 function catalogFields(input: {
@@ -27,13 +27,18 @@ export function storedPackIds(stored: StoredBootstrap): string[] {
   return listDraftPackIds(stored.cards, stored.packs ?? []);
 }
 
-export function toStoredBootstrap(bootstrap: GameBootstrap, packIds: string[] = []): StoredBootstrap {
+export function toStoredBootstrap(
+  bootstrap: GameBootstrap,
+  packIds: string[] = [],
+  packBacks?: Record<string, ImageRef>,
+): StoredBootstrap {
   const cards = cloneJson(bootstrap.cards.deck);
   return {
     board: cloneJson(bootstrap.board),
     players: cloneJson(bootstrap.players),
     cards,
     packs: listDraftPackIds(cards, packIds),
+    ...(packBacks && Object.keys(packBacks).length > 0 ? { packBacks: cloneJson(packBacks) } : {}),
     config: cloneJson({ ...defaultGameConfig(), ...bootstrap.config }),
     ...(bootstrap.gameStart ? { gameStart: cloneJson(bootstrap.gameStart) } : {}),
     ...catalogFields(bootstrap),
@@ -56,6 +61,7 @@ export function captureBootstrap(
   startPlayers: PlayerState,
   packIds: string[] = [],
   gameStart?: GameStart,
+  packBacks?: Record<string, ImageRef>,
 ): StoredBootstrap {
   const cards = cloneJson(game.cards.deck);
   return {
@@ -63,6 +69,7 @@ export function captureBootstrap(
     players: cloneJson(startPlayers),
     cards,
     packs: listDraftPackIds(cards, packIds),
+    ...(packBacks && Object.keys(packBacks).length > 0 ? { packBacks: cloneJson(packBacks) } : {}),
     config: cloneJson(game.config),
     ...(gameStart ? { gameStart: cloneJson(gameStart) } : {}),
     ...catalogFields(game),

@@ -70,6 +70,17 @@ describe('stored bootstrap codec', () => {
     expect(toStoredBootstrap(climbSample).packs).toEqual(['climb']);
   });
 
+  it('round-trips packBacks on the stored bootstrap', () => {
+    const back = { id: 'back-1', name: 'back.png', source: 'url' as const, src: 'https://example.com/back.png' };
+    const stored = toStoredBootstrap(emptyBootstrap(), ['notes'], { notes: back });
+    expect(stored.packBacks).toEqual({ notes: back });
+    const again = toStoredBootstrap(fromStoredBootstrap(stored), stored.packs, stored.packBacks);
+    expect(again.packBacks).toEqual({ notes: back });
+    const game = createGame(emptyBootstrap());
+    const captured = captureBootstrap(game, stored.players, stored.packs, undefined, { notes: back });
+    expect(captured.packBacks).toEqual({ notes: back });
+  });
+
   it('round-trips spinner and item catalogs with a tile spinnerId', () => {
     const boot = emptyBootstrap();
     boot.board.floors[0]!.cells[0] = {
