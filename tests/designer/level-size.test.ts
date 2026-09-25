@@ -45,4 +45,34 @@ describe('applyFloorShape', () => {
     expect(next.floors[0]?.shape).toEqual({ kind: 'square', tilesPerSide: 10 });
     expect(isVanillaFloor(next.floors[0]!)).toBe(true);
   });
+
+  it('keeps a vanilla floor unlocked after square↔rectangle reshapes with no paint', () => {
+    let board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
+    board = applyFloorShape(board, 'ground', { kind: 'square', tilesPerSide: 11 });
+    board = applyFloorShape(board, 'ground', { kind: 'square', tilesPerSide: 12 });
+    board = applyFloorShape(board, 'ground', { kind: 'rectangle', length: 8, width: 6 });
+    expect(isVanillaFloor(board.floors[0]!)).toBe(true);
+    expect(applyFloorShape(board, 'ground', { kind: 'square', tilesPerSide: 8 })).not.toBe(board);
+  });
+
+  it('rebuilds 8×6 with a free ring all around and HUD never on the perimeter', () => {
+    const board = applyFloorShape(
+      createBoard([createLoopedFloor('ground', 'Level 1', 0, { kind: 'square', tilesPerSide: 12 })], []),
+      'ground',
+      { kind: 'rectangle', length: 8, width: 6 },
+    );
+    const floor = board.floors[0]!;
+    expect(floor.columns).toBe(8);
+    expect(floor.rows).toBe(6);
+    const hud = floor.cells.filter((c) => c.kind === 'hud');
+    expect(hud.length).toBeGreaterThan(0);
+    for (const cell of hud) {
+      expect(cell.col === 0 || cell.row === 0 || cell.col === 7 || cell.row === 5).toBe(false);
+    }
+    const occupied = new Set(floor.cells.map((c) => `${c.col},${c.row}`));
+    expect(occupied.has('1,1')).toBe(false);
+    expect(occupied.has('6,1')).toBe(false);
+    expect(occupied.has('1,4')).toBe(false);
+    expect(occupied.has('6,4')).toBe(false);
+  });
 });

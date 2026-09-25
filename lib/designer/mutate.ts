@@ -1,10 +1,8 @@
 import { createBoard, type Board } from '@/lib/engine/board';
-import { uniquifyCellIds } from '@/lib/engine/cell-ids';
 import {
   cellAt,
   createLoopedFloor,
   inBounds,
-  isHudSlot,
   retileFloor,
 } from '@/lib/engine/layout';
 import { normalizeShape } from '@/lib/engine/shape';
@@ -24,43 +22,6 @@ export {
 } from '@/lib/designer/rooms';
 
 export { uniquifyCellIds } from '@/lib/engine/cell-ids';
-
-function isPolarKind(kind: BoardShape['kind'] | undefined): boolean {
-  return kind === 'circle' || kind === 'hub-spoke' || kind === 'hub-spoke-wheel';
-}
-
-function designerProps(
-  prev: Cell,
-): Pick<
-  Cell,
-  | 'kind'
-  | 'packId'
-  | 'spinnerId'
-  | 'stairId'
-  | 'roomId'
-  | 'start'
-  | 'end'
-  | 'hudWidget'
-  | 'audio'
-  | 'image'
-  | 'video'
-  | 'face'
-> {
-  return {
-    kind: prev.kind,
-    packId: prev.kind === 'stair' ? undefined : prev.packId,
-    spinnerId: prev.kind === 'hud' ? undefined : prev.spinnerId,
-    stairId: prev.stairId,
-    roomId: prev.roomId,
-    start: prev.start,
-    end: prev.end,
-    hudWidget: prev.hudWidget,
-    audio: prev.audio,
-    image: prev.image,
-    video: prev.video,
-    face: prev.face,
-  };
-}
 
 function nextBoard(board: Board, floors: Floor[], stairs = board.stairs): Board {
   return createBoard(floors, stairs, board.rooms);
@@ -107,85 +68,10 @@ export function applyFloorShape(board: Board, floorId: string, shapeInput: Board
   if (!floor) return board;
   if (!isVanillaFloor(floor)) return board;
   const template = createLoopedFloor(floor.id, floor.label, floor.index, shapeInput);
-  const newPolar = isPolarKind(template.shape?.kind);
-  const oldPolar = isPolarKind(floor.shape?.kind);
-
-  let mapped: Cell[];
-  if (newPolar || oldPolar) {
-    const prevNonHud = floor.cells.filter((cell) => cell.kind !== 'hud');
-    let prevIndex = 0;
-    mapped = template.cells.map((cell) => {
-      if (cell.kind === 'hud') return cell;
-      const prev = prevNonHud[prevIndex];
-      prevIndex += 1;
-      if (!prev) return cell;
-      return { ...cell, id: prev.id, ...designerProps(prev) };
-    });
-    mapped = uniquifyCellIds(floorId, mapped);
-  } else {
-    const oldByPos = new Map<string, Cell>();
-    for (const cell of floor.cells) {
-      if (cell.col === undefined || cell.row === undefined) continue;
-      oldByPos.set(`${cell.col},${cell.row}`, cell);
-    }
-    const ring = template.cells
-      .filter((cell) => cell.kind !== 'hud')
-      .map((cell) => {
-        const prev = oldByPos.get(`${cell.col},${cell.row}`);
-        if (!prev || prev.kind === 'hud') return cell;
-        return { ...cell, id: prev.id, ...designerProps(prev) };
-      });
-    const used = new Set(ring.map((cell) => `${cell.col},${cell.row}`));
-    const oldCols = floor.columns ?? 0;
-    const oldRows = floor.rows ?? 0;
-    const extras = floor.cells.filter((cell) => {
-      if (cell.col === undefined || cell.row === undefined) return false;
-      if (!inBounds(template, cell.col, cell.row)) return false;
-      if (isHudSlot(template, cell.col, cell.row)) return false;
-      if (used.has(`${cell.col},${cell.row}`)) return false;
-      const wasPerimeter =
-        cell.col === 0 ||
-        cell.row === 0 ||
-        (oldCols > 0 && cell.col === oldCols - 1) ||
-        (oldRows > 0 && cell.row === oldRows - 1);
-      if (cell.kind === 'hud') return true;
-      return !wasPerimeter;
-    });
-    const hud = template.cells
-      .filter((cell) => cell.kind === 'hud')
-      .map((cell) => {
-        const prev = oldByPos.get(`${cell.col},${cell.row}`);
-        if (!prev || prev.kind !== 'hud') return cell;
-        return { ...cell, id: prev.id, ...designerProps(prev) };
-      });
-    const reserved = new Set([...ring, ...hud].map((cell) => cell.id));
-    let extraIndex = 0;
-    const remintedExtras = extras.map((cell) => {
-      if (!reserved.has(cell.id)) {
-        reserved.add(cell.id);
-        return cell;
-      }
-      while (reserved.has(`${floorId}-c${extraIndex}`)) extraIndex += 1;
-      const id = `${floorId}-c${extraIndex}`;
-      reserved.add(id);
-      extraIndex += 1;
-      return { ...cell, id };
-    });
-    mapped = uniquifyCellIds(floorId, [...ring, ...remintedExtras, ...hud]);
-  }
-
-  const keepStairIds = new Set(mapped.map((c) => c.stairId).filter(Boolean) as string[]);
-  const stairs = board.stairs.filter(
-    (s) => s.fromFloorId !== floorId || keepStairIds.has(s.id),
-  );
   return nextBoard(
     board,
-    board.floors.map((f) =>
-      f.id === floorId
-        ? { ...template, cells: mapped, holdEnabled: floor.holdEnabled, holdQuotas: floor.holdQuotas }
-        : f,
-    ),
-    stairs,
+    board.floors.map((f) => (f.id === floorId ? template : f)),
+    board.stairs.filter((stair) => stair.fromFloorId !== floorId),
   );
 }
 
