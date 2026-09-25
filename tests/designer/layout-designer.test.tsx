@@ -31,7 +31,7 @@ describe('LayoutDesigner', () => {
     expect(screen.getByRole('button', { name: 'Select' })).toBeDefined();
   });
 
-  it('centers board shape on the canvas top row and keeps tools in the bottom pane', () => {
+  it('centers tile tools on the canvas top and puts Shape on the level row', () => {
     const board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     render(
       <LayoutDesigner
@@ -48,21 +48,26 @@ describe('LayoutDesigner', () => {
       />,
     );
     const toolbar = screen.getByTestId('designer-toolbar');
-    expect(toolbar.contains(screen.getByLabelText('Shape'))).toBe(true);
-    expect(toolbar.contains(screen.getByLabelText('Tiles'))).toBe(true);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Select' }))).toBe(true);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'Start tile' }))).toBe(true);
+    expect(toolbar.contains(screen.getByRole('button', { name: 'End tile' }))).toBe(true);
     expect(toolbar.className).toMatch(/justify-center/);
+    expect(toolbar.contains(screen.getByLabelText('Shape'))).toBe(false);
     expect(toolbar.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(false);
-    expect(toolbar.contains(screen.getByRole('button', { name: 'Select' }))).toBe(false);
     expect(toolbar.contains(screen.getByLabelText('Level name'))).toBe(false);
     const bottom = screen.getByTestId('designer-bottom-pane');
+    const tools = screen.getByTestId('designer-bottom-row-tools');
     expect(bottom.contains(screen.getByRole('button', { name: 'Ground' }))).toBe(true);
-    expect(bottom.contains(screen.getByRole('button', { name: 'Select' }))).toBe(true);
+    expect(tools.contains(screen.getByLabelText('Shape'))).toBe(true);
+    expect(tools.contains(screen.getByLabelText('Tiles'))).toBe(true);
     expect(bottom.contains(screen.getByLabelText('Level name'))).toBe(true);
+    expect(screen.getByTestId('board-shape-fields').className).toMatch(/justify-end/);
     expect(screen.getByTestId('designer-bottom-row-blank')).toBeDefined();
     expect(screen.getByTestId('designer-saved-location').textContent).toBe('This device');
     expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined();
     expect(screen.getByTestId('designer-palette').className).toMatch(/flex-nowrap/);
     expect(screen.getByTestId('board-shape-fields').className).toMatch(/flex-nowrap/);
+    expect(screen.queryByTestId('room-shape-fields')).toBeNull();
   });
 
   it('splits the canvas 2/3 and stretches the right pane without an inline preview', () => {
@@ -322,14 +327,17 @@ describe('LayoutDesigner', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Room 1' }));
-    const tiles = screen.getByLabelText('Tiles') as HTMLSelectElement;
-    expect(Array.from(tiles.options).map((opt) => opt.textContent)).toEqual(['3×3', '4×4']);
+    const roomTiles = screen.getByLabelText('Room tiles') as HTMLSelectElement;
+    expect(Array.from(roomTiles.options).map((opt) => opt.textContent)).toEqual(['3×3', '4×4']);
+    expect(screen.getByTestId('room-shape-fields').className).toMatch(/justify-end/);
     expect(screen.getByTestId('slot-2-2')).toBeDefined();
     expect(screen.queryByTestId('slot-7-7')).toBeNull();
+    expect((screen.getByLabelText('Tiles') as HTMLSelectElement).value).toBe('8');
 
     fireEvent.click(screen.getByRole('button', { name: 'Level 1' }));
     expect(screen.getByTestId('slot-7-7')).toBeDefined();
     expect(screen.getByLabelText('Tiles')).toHaveProperty('disabled', true);
+    expect(screen.getByLabelText('Room tiles')).toHaveProperty('disabled', false);
   });
 
   it('creates a pack from the Packs tab so Tile Actions can assign it', () => {

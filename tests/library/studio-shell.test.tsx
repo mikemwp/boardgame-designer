@@ -275,7 +275,7 @@ describe('StudioShell', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Tiles' }));
     fireEvent.click(screen.getByTestId('slot-0-0'));
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'pack-1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'End room' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End tile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const reloaded = loadLibrary(memoryStorage(storage.read()), { now: NOW, id: 'other' });
     const draft = getActive(reloaded)?.bootstrap.board;

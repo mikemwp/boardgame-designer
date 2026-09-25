@@ -22,6 +22,12 @@ export function DesignerPalette({
   onClear,
   clearDisabled = false,
   className = '',
+  onSetStart,
+  onSetEnd,
+  isStart = false,
+  isEnd = false,
+  startDisabled = true,
+  endDisabled = true,
 }: {
   tool: DesignerTool;
   onToolChange: (tool: DesignerTool) => void;
@@ -30,6 +36,12 @@ export function DesignerPalette({
   onClear?: () => void;
   clearDisabled?: boolean;
   className?: string;
+  onSetStart?: () => void;
+  onSetEnd?: () => void;
+  isStart?: boolean;
+  isEnd?: boolean;
+  startDisabled?: boolean;
+  endDisabled?: boolean;
 }) {
   const disabled = (id: DesignerTool) => {
     if (id === 'stair' || id === 'room') return viewingRoom;
@@ -51,6 +63,22 @@ export function DesignerPalette({
           {item.label}
         </Button>
       ))}
+      <Button
+        type="button"
+        variant={isStart ? 'secondary' : 'outline'}
+        disabled={startDisabled}
+        onClick={() => onSetStart?.()}
+      >
+        Start tile
+      </Button>
+      <Button
+        type="button"
+        variant={isEnd ? 'secondary' : 'outline'}
+        disabled={endDisabled}
+        onClick={() => onSetEnd?.()}
+      >
+        End tile
+      </Button>
       <Button type="button" variant="outline" onClick={() => onFill?.()}>
         Fill
       </Button>

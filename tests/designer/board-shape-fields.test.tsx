@@ -65,6 +65,22 @@ describe('BoardShapeFields', () => {
     ]);
   });
 
+  it('uses Room labels and end alignment for room scope', () => {
+    render(
+      <BoardShapeFields
+        scope="room"
+        align="end"
+        shape={normalizeShape({ kind: 'square', tilesPerSide: 3 })}
+        maxSquare={4}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByLabelText('Room shape')).toBeDefined();
+    expect(screen.getByLabelText('Room tiles')).toBeDefined();
+    expect(screen.queryByLabelText('Shape')).toBeNull();
+    expect(screen.getByTestId('room-shape-fields').className).toMatch(/justify-end/);
+  });
+
   it('disables Shape and Tiles when locked', () => {
     render(
       <BoardShapeFields

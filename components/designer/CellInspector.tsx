@@ -21,12 +21,6 @@ const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
   'player-bar': 'Player bar',
 };
 
-function endTileLabel(cell: Cell): string {
-  if (cell.kind === 'stair') return 'End stair';
-  if (cell.kind === 'room' || cell.region === 'hub') return 'End room';
-  return 'End tile';
-}
-
 function cellHeading(cell: Cell): string {
   return tileActionKind(cell);
 }
@@ -37,8 +31,8 @@ export function CellInspector({
   cellId,
   packIds,
   onSetPack,
-  onSetStart,
-  onSetEnd,
+  onSetStart: _onSetStart,
+  onSetEnd: _onSetEnd,
   onAttachStair,
   onLinkStair,
   onClearStair,
@@ -97,12 +91,6 @@ export function CellInspector({
         ) : null}
         {cell && cell.kind !== 'hud' && cell.kind !== 'board' ? (
           <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
-            <Button type="button" variant={cell.start ? 'secondary' : 'outline'} onClick={onSetStart}>
-              Start tile
-            </Button>
-            <Button type="button" variant={cell.end ? 'secondary' : 'outline'} onClick={onSetEnd}>
-              {endTileLabel(cell)}
-            </Button>
             <Button type="button" variant="outline" onClick={() => setClearOpen(true)}>
               Clear
             </Button>

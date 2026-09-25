@@ -32,10 +32,10 @@ describe('CellInspector', () => {
     expect(screen.queryByLabelText('Level name')).toBeNull();
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'climb' } });
     expect(onSetPack).toHaveBeenCalledWith('climb');
-    fireEvent.click(screen.getByRole('button', { name: 'Start tile' }));
-    expect(onSetStart).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'End tile' }));
-    expect(onSetEnd).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Start tile' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'End tile' })).toBeNull();
+    expect(onSetStart).not.toHaveBeenCalled();
+    expect(onSetEnd).not.toHaveBeenCalled();
   });
 
   it('points empty packs at the Packs tab instead of Test import only', () => {
@@ -80,7 +80,8 @@ describe('CellInspector', () => {
         onClearStair={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: 'End stair' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'End stair' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start tile' })).toBeNull();
     rerender(
       <CellInspector
         board={hubBoard}
@@ -95,7 +96,8 @@ describe('CellInspector', () => {
         onClearStair={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'End room' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'End tile' })).toBeNull();
   });
 
   it('assigns a pack on a room and switches single vs multi', () => {
@@ -120,7 +122,8 @@ describe('CellInspector', () => {
       />,
     );
     expect(screen.getByText('Room')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'End room' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'End room' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'End tile' })).toBeNull();
     fireEvent.change(screen.getByLabelText('Pack'), { target: { value: 'notes' } });
     expect(onSetPack).toHaveBeenCalledWith('notes');
     fireEvent.click(screen.getByRole('button', { name: 'multi-tile' }));
@@ -211,7 +214,7 @@ describe('CellInspector', () => {
     expect(screen.queryByText('Video')).toBeNull();
   });
 
-  it('puts Start, End, and Clear on the top row and confirms Clear', () => {
+  it('keeps Clear on the top row and confirms Clear', () => {
     const onClear = vi.fn();
     const board = createBoard([createLoopedFloor('ground', 'Level 1', 0)], []);
     render(
@@ -230,13 +233,10 @@ describe('CellInspector', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: 'Make stair' })).toBeNull();
-    const start = screen.getByRole('button', { name: 'Start tile' });
-    const end = screen.getByRole('button', { name: 'End tile' });
+    expect(screen.queryByRole('button', { name: 'Start tile' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'End tile' })).toBeNull();
     const clear = screen.getByRole('button', { name: 'Clear' });
-    expect(start.className).toMatch(/border-border|bg-background/);
-    expect(end.className).toMatch(/border-border|bg-background/);
     const header = screen.getByText('Tile Actions').parentElement!;
-    expect(header.contains(start)).toBe(true);
     expect(header.contains(clear)).toBe(true);
     fireEvent.click(clear);
     expect(screen.getByText('Clear this tile?')).toBeDefined();
@@ -247,13 +247,13 @@ describe('CellInspector', () => {
     expect(onClear).toHaveBeenCalled();
   });
 
-  it('whites Start only when that cell is the start tile', () => {
+  it('does not show Start or End on Tile Actions for a start tile', () => {
     const started = setStartCell(
       createBoard([createLoopedFloor('ground', 'Level 1', 0)], []),
       'ground',
       'ground-c1',
     );
-    const { rerender } = render(
+    render(
       <CellInspector
         board={started}
         floorId="ground"
@@ -267,22 +267,9 @@ describe('CellInspector', () => {
         onClearStair={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: 'Start tile' }).className).toMatch(/bg-secondary/);
-    rerender(
-      <CellInspector
-        board={started}
-        floorId="ground"
-        cellId="ground-c2"
-        packIds={[]}
-        onSetPack={() => {}}
-        onSetStart={() => {}}
-        onSetEnd={() => {}}
-        onAttachStair={() => {}}
-        onLinkStair={() => {}}
-        onClearStair={() => {}}
-      />,
-    );
-    expect(screen.getByRole('button', { name: 'Start tile' }).className).not.toMatch(/bg-secondary/);
+    expect(screen.queryByRole('button', { name: 'Start tile' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'End tile' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDefined();
   });
 
   it('sets HUD type on a HUD cell and hides pack controls', () => {

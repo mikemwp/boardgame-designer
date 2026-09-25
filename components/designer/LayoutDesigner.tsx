@@ -216,7 +216,17 @@ export function LayoutDesigner({
   const viewingRoom = Boolean(selectedRoom && selectedRoom.mode === 'multi');
   const canvasFloor = viewingRoom && selectedRoom ? roomAsFloor(selectedRoom) : floor;
   const canvasBoard = viewingRoom ? createBoard([canvasFloor], [], board.rooms) : board;
-  const vanilla = viewingRoom && selectedRoom ? isVanillaRoom(selectedRoom) : isVanillaFloor(floor);
+  const vanillaFloor = isVanillaFloor(floor);
+  const multiRooms = (board.rooms ?? []).filter((room) => room.mode === 'multi');
+  const roomForSize =
+    selectedRoom?.mode === 'multi' ? selectedRoom : multiRooms[0];
+  const vanillaRoom = roomForSize ? isVanillaRoom(roomForSize) : true;
+  const selectedCanvasCell = selectedCellId
+    ? canvasFloor.cells.find((cell) => cell.id === selectedCellId)
+    : undefined;
+  const playableSelected = Boolean(
+    selectedCanvasCell && selectedCanvasCell.kind !== 'hud' && selectedCanvasCell.kind !== 'board',
+  );
   const commitCanvas = (next: Board) => {
     if (!viewingRoom || !selectedRoom) {
       onBoardChange(next);
@@ -354,18 +364,30 @@ export function LayoutDesigner({
           className="flex min-w-0 flex-nowrap items-end justify-center"
           data-testid="designer-toolbar"
         >
-          <BoardShapeFields
-            shape={viewingRoom ? canvasFloor.shape ?? { kind: 'square', tilesPerSide: 3 } : normalizeShape(floor.shape)}
-            disabled={!vanilla}
-            maxSquare={viewingRoom ? 4 : undefined}
-            maxRect={viewingRoom ? { length: 5, width: 4 } : undefined}
-            onChange={(shape) => {
-              if (viewingRoom && selectedRoom) {
-                onBoardChange(applyRoomShape(board, selectedRoom.id, shape));
-                return;
-              }
-              onBoardChange(applyFloorShape(board, floor.id, shape));
+          <DesignerPalette
+            tool={tool}
+            onToolChange={onToolChange}
+            viewingRoom={viewingRoom}
+            onFill={() => commitCanvas(fillFreeWithBoard(canvasBoard, canvasFloor.id))}
+            onClear={() => {
+              if (!selectedCellId) return;
+              commitCanvas(canvasClearCell(canvasBoard, canvasFloor.id, selectedCellId));
+              onSelectCell(null);
             }}
+            clearDisabled={!selectedCellId}
+            onSetStart={() => {
+              if (!selectedCellId) return;
+              commitCanvas(setStartCell(canvasBoard, canvasFloor.id, selectedCellId));
+            }}
+            onSetEnd={() => {
+              if (!selectedCellId) return;
+              commitCanvas(setEndCell(canvasBoard, canvasFloor.id, selectedCellId));
+            }}
+            isStart={Boolean(selectedCanvasCell?.start)}
+            isEnd={Boolean(selectedCanvasCell?.end)}
+            startDisabled={!playableSelected}
+            endDisabled={!playableSelected}
+            className="justify-center"
           />
         </div>
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
@@ -410,25 +432,21 @@ export function LayoutDesigner({
               }}
               onRequestDelete={() => setLevelConfirm('delete')}
               onRequestReset={() => setLevelConfirm('reset')}
-              resetDisabled={vanilla}
               onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
+              resetDisabled={vanillaFloor}
             />
-            <DesignerPalette
-              tool={tool}
-              onToolChange={onToolChange}
-              viewingRoom={viewingRoom}
-              onFill={() => commitCanvas(fillFreeWithBoard(canvasBoard, canvasFloor.id))}
-              onClear={() => {
-                if (!selectedCellId) return;
-                commitCanvas(canvasClearCell(canvasBoard, canvasFloor.id, selectedCellId));
-                onSelectCell(null);
-              }}
-              clearDisabled={!selectedCellId}
-              className="ml-auto shrink-0 justify-end"
-            />
+            <div className="ml-auto shrink-0">
+              <BoardShapeFields
+                scope="level"
+                align="end"
+                shape={normalizeShape(floor.shape)}
+                disabled={!vanillaFloor}
+                onChange={(shape) => onBoardChange(applyFloorShape(board, floor.id, shape))}
+              />
+            </div>
           </div>
           <div
-            className="min-h-10 border-b border-slate-800 py-2"
+            className="flex min-h-10 flex-nowrap items-end gap-2 border-b border-slate-800 py-2"
             data-testid="designer-bottom-row-blank"
           >
             <RoomTabs
@@ -445,8 +463,21 @@ export function LayoutDesigner({
               }}
               onRequestReset={() => setRoomConfirm('reset')}
               onRequestDelete={() => setRoomConfirm('delete')}
-              resetDisabled={!selectedRoom || isVanillaRoom(selectedRoom)}
+              resetDisabled={!roomForSize || vanillaRoom}
             />
+            {roomForSize ? (
+              <div className="ml-auto shrink-0">
+                <BoardShapeFields
+                  scope="room"
+                  align="end"
+                  shape={roomForSize.shape ?? { kind: 'square', tilesPerSide: 3 }}
+                  disabled={!vanillaRoom}
+                  maxSquare={4}
+                  maxRect={{ length: 5, width: 4 }}
+                  onChange={(shape) => onBoardChange(applyRoomShape(board, roomForSize.id, shape))}
+                />
+              </div>
+            ) : null}
           </div>
           <div
             className="flex flex-wrap items-center justify-between gap-2 py-2"

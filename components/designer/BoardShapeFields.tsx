@@ -24,12 +24,16 @@ export function BoardShapeFields({
   disabled = false,
   maxSquare = 12,
   maxRect,
+  scope = 'level',
+  align = 'center',
 }: {
   shape: BoardShape;
   onChange: (shape: BoardShape) => void;
   disabled?: boolean;
   maxSquare?: number;
   maxRect?: { length: number; width: number };
+  scope?: 'level' | 'room';
+  align?: 'center' | 'end';
 }) {
   const normalized = normalizeShape(shape);
   const squareSizes = Array.from({ length: Math.max(1, maxSquare - 2) }, (_, i) => i + 3);
@@ -42,15 +46,21 @@ export function BoardShapeFields({
     (_, i) => i + 3,
   );
 
+  const room = scope === 'room';
+  const shapeLabel = room ? 'Room shape' : 'Shape';
+  const tilesLabel = room ? 'Room tiles' : 'Tiles';
+  const lengthLabel = room ? 'Room length' : 'Length';
+  const widthLabel = room ? 'Room width' : 'Width';
+
   return (
     <div
-      className="flex shrink-0 flex-nowrap items-end justify-center gap-x-3"
-      data-testid="board-shape-fields"
+      className={`flex shrink-0 flex-nowrap items-end gap-x-3 ${align === 'end' ? 'justify-end' : 'justify-center'}`}
+      data-testid={room ? 'room-shape-fields' : 'board-shape-fields'}
     >
       <div className="flex min-w-[8rem] flex-col gap-1">
-        <Label>Shape</Label>
+        <Label>{shapeLabel}</Label>
         <select
-          aria-label="Shape"
+          aria-label={shapeLabel}
           className={selectClass}
           disabled={disabled}
           value={normalized.kind}
@@ -64,9 +74,9 @@ export function BoardShapeFields({
 
       {normalized.kind === 'square' && (
         <div className={fieldClass}>
-          <Label>Tiles</Label>
+          <Label>{tilesLabel}</Label>
           <select
-            aria-label="Tiles"
+            aria-label={tilesLabel}
             className={selectClass}
             disabled={disabled}
             value={normalized.tilesPerSide}
@@ -86,9 +96,9 @@ export function BoardShapeFields({
       {normalized.kind === 'rectangle' && (
         <>
           <div className={fieldClass}>
-            <Label>Length</Label>
+            <Label>{lengthLabel}</Label>
             <select
-              aria-label="Length"
+              aria-label={lengthLabel}
               className={selectClass}
               disabled={disabled}
               value={normalized.length}
@@ -104,9 +114,9 @@ export function BoardShapeFields({
             </select>
           </div>
           <div className={fieldClass}>
-            <Label>Width</Label>
+            <Label>{widthLabel}</Label>
             <select
-              aria-label="Width"
+              aria-label={widthLabel}
               className={selectClass}
               disabled={disabled}
               value={normalized.width}
