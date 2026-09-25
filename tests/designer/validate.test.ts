@@ -118,10 +118,10 @@ describe('validateLayout', () => {
     let board = createBoard([createLoopedFloor('ground', 'Ground', 0)], []);
     board = setStartCell(board, 'ground', 'ground-c0');
     expect(validateLayout(board)).toEqual([]);
-    expect(validateLayout(board).some((i) => i.code === 'missing-end')).toBe(false);
+    expect(canTestPlay(board)).toBe(true);
     board = setEndCell(board, 'ground', 'ground-c1');
     expect(validateLayout(board)).toEqual([]);
-    expect(validateLayout(board).some((i) => i.code === 'missing-end')).toBe(false);
+    expect(canTestPlay(board)).toBe(true);
   });
 
   it('skips the closed loop on a Final level but still blocks dangling stairs', () => {

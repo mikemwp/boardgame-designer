@@ -289,7 +289,7 @@ function afterMove(state: GameState, playerId: string, landing: TokenPos): GameS
       state.config.holdEnabled && state.hold?.active && state.hold.floorId === landing.floorId,
     );
     const levelHeld = Boolean(
-      heldExit && floor.holdEnabled && stair?.rollAgain,
+      heldExit && floor?.holdEnabled && stair?.rollAgain,
     );
     if (!stair || !stair.legal || heldExit) {
       const stayed = {
