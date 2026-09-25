@@ -27,6 +27,24 @@ export function defaultHudFill(layout: ReturnType<typeof buildShapeLayout>): Arr
   return [{ col, row }];
 }
 
+export type LoopInterior = 'inset-hud' | 'full-hud';
+
+export function fullHudFill(layout: ReturnType<typeof buildShapeLayout>): Array<{ col: number; row: number }> {
+  if (layout.shape.kind !== 'square' && layout.shape.kind !== 'rectangle') return [];
+  const ring = new Set(
+    layout.slots
+      .filter((slot) => slot.col !== undefined && slot.row !== undefined)
+      .map((slot) => `${slot.col},${slot.row}`),
+  );
+  const positions: Array<{ col: number; row: number }> = [];
+  for (let row = 0; row < layout.rows; row += 1) {
+    for (let col = 0; col < layout.columns; col += 1) {
+      if (!ring.has(`${col},${row}`)) positions.push({ col, row });
+    }
+  }
+  return positions;
+}
+
 export function isOffPathCell(cell: { kind?: string }): boolean {
   return cell.kind === 'hud';
 }
@@ -96,6 +114,7 @@ export function createLoopedFloor(
   label: string,
   index: number,
   shapeInput?: BoardShape,
+  interior: LoopInterior = 'inset-hud',
 ): Floor {
   const shape = normalizeShape(shapeInput);
   const layout = buildShapeLayout(shape);
@@ -109,13 +128,23 @@ export function createLoopedFloor(
     spokeIndex: slot.spokeIndex,
     slot: slot.slot,
   }));
-  const hudCells: Cell[] = defaultHudFill(layout).map((pos, i) => ({
+  const hudSlots = interior === 'full-hud' ? fullHudFill(layout) : defaultHudFill(layout);
+  const hudCells: Cell[] = hudSlots.map((pos, i) => ({
     id: `${id}-h${i}`,
     index: ringCells.length + i,
     kind: 'hud' as const,
     col: pos.col,
     row: pos.row,
   }));
+  const hud =
+    interior === 'full-hud' && (shape.kind === 'square' || shape.kind === 'rectangle')
+      ? {
+          col: 1,
+          row: 1,
+          width: Math.max(0, layout.columns - 2),
+          height: Math.max(0, layout.rows - 2),
+        }
+      : { ...layout.hud };
   return {
     id,
     index,
@@ -124,7 +153,7 @@ export function createLoopedFloor(
     cells: [...ringCells, ...hudCells],
     columns: layout.columns,
     rows: layout.rows,
-    hud: { ...layout.hud },
+    hud,
     shape,
   };
 }

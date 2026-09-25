@@ -132,6 +132,17 @@ describe('nextRoomName', () => {
 });
 
 describe('multi-tile rooms', () => {
+  it('fills every non-perimeter cell with HUD on a 4×4 room', () => {
+    let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
+    board = setRoomMode(board, board.rooms![0]!.id, 'multi');
+    board = applyRoomShape(board, board.rooms![0]!.id, { kind: 'square', tilesPerSide: 4 });
+    const cells = board.rooms![0]!.cells!;
+    const hud = cells.filter((c) => c.kind === 'hud');
+    expect(hud).toHaveLength(4);
+    expect(hud.every((c) => c.col !== 0 && c.row !== 0 && c.col !== 3 && c.row !== 3)).toBe(true);
+    expect(isVanillaRoom(board.rooms![0]!)).toBe(true);
+  });
+
   it('creates a vanilla 3×3 interior and locks after a pack is set', () => {
     let board = attachRoom(groundBoard(), 'ground', 'ground-c3');
     const roomId = board.rooms![0]!.id;

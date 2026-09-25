@@ -137,7 +137,7 @@ export function setRoomMode(board: Board, roomId: string, mode: RoomMode): Board
       return { id: room.id, name: room.name, mode };
     }
     const shape = normalizeRoomShape(room.shape ?? { kind: 'square', tilesPerSide: 3 });
-    const interior = createLoopedFloor(room.id, room.name, 0, shape);
+    const interior = createLoopedFloor(room.id, room.name, 0, shape, 'full-hud');
     return { id: room.id, name: room.name, mode, shape, cells: interior.cells };
   });
   return createBoard(board.floors, board.stairs, nextRooms);
@@ -148,7 +148,7 @@ export function applyRoomShape(board: Board, roomId: string, shapeInput: BoardSh
   const current = rooms.find((room) => room.id === roomId);
   if (!current || current.mode !== 'multi' || !isVanillaRoom(current)) return board;
   const shape = normalizeRoomShape(shapeInput);
-  const interior = createLoopedFloor(current.id, current.name, 0, shape);
+  const interior = createLoopedFloor(current.id, current.name, 0, shape, 'full-hud');
   return createBoard(
     board.floors,
     board.stairs,
@@ -173,7 +173,7 @@ export function renameRoom(board: Board, roomId: string, name: string): Board {
 export function isVanillaRoom(room: RoomDef): boolean {
   if (room.mode !== 'multi') return false;
   const shape = normalizeRoomShape(room.shape ?? { kind: 'square', tilesPerSide: 3 });
-  const template = createLoopedFloor(room.id, room.name, 0, shape);
+  const template = createLoopedFloor(room.id, room.name, 0, shape, 'full-hud');
   const cells = room.cells ?? [];
   if (cells.length !== template.cells.length) return false;
   const templateByPos = new Map<string, Cell>();
@@ -212,7 +212,7 @@ export function resetRoom(board: Board, roomId: string): Board {
   const current = rooms.find((room) => room.id === roomId);
   if (!current || current.mode !== 'multi') return board;
   const shape = normalizeRoomShape(current.shape ?? { kind: 'square', tilesPerSide: 3 });
-  const interior = createLoopedFloor(current.id, current.name, 0, shape);
+  const interior = createLoopedFloor(current.id, current.name, 0, shape, 'full-hud');
   return createBoard(
     board.floors,
     board.stairs,
@@ -252,7 +252,7 @@ export function dropRoomsOnFloor(board: Board, floorId: string): RoomDef[] | und
 
 export function roomAsFloor(room: RoomDef): Floor {
   const shape = normalizeRoomShape(room.shape ?? { kind: 'square', tilesPerSide: 3 });
-  const template = createLoopedFloor(room.id, room.name, 0, shape);
+  const template = createLoopedFloor(room.id, room.name, 0, shape, 'full-hud');
   return {
     ...template,
     label: room.name,
