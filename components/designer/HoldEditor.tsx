@@ -1,18 +1,26 @@
 'use client';
 
+import { MediaField } from '@/components/designer/AudioField';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { Floor } from '@/lib/engine/types';
+import type { Floor, ImageRef } from '@/lib/engine/types';
+import type { MediaStore } from '@/lib/library/media-store';
 
 export function HoldEditor({
   floor,
   packIds,
   onChange,
+  gameId,
+  media,
+  onBackgroundChange,
 }: {
   floor: Floor;
   packIds: string[];
   onChange: (patch: { holdEnabled?: boolean; holdQuotas?: Record<string, number> }) => void;
+  gameId?: string;
+  media?: MediaStore;
+  onBackgroundChange?: (background: ImageRef | undefined) => void;
 }) {
   const holdOn = Boolean(floor.holdEnabled);
   return (
@@ -30,6 +38,23 @@ export function HoldEditor({
       </div>
       {holdOn && packIds.length === 0 ? (
         <p className="text-sm text-slate-400">Create a pack in Packs to set reveal quotas.</p>
+      ) : null}
+      {onBackgroundChange && gameId && media ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-slate-100">Level background</p>
+          <MediaField
+            kind="image"
+            value={floor.background}
+            gameId={gameId}
+            media={media}
+            idPrefix={`level-bg-${floor.id}`}
+            label="Level background"
+            onChange={(next) => onBackgroundChange(next as ImageRef | undefined)}
+          />
+          {!floor.background ? (
+            <p className="text-sm text-slate-400">Uses the Start background.</p>
+          ) : null}
+        </div>
       ) : null}
       {holdOn
         ? packIds.map((packId) => (

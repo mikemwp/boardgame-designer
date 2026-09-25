@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { GameStart } from '@/lib/engine/types';
-import { initialStartPhase, nextSplashIndex } from '@/lib/view/game-start';
+import { initialStartPhase, nextSplashIndex, viewportBackground } from '@/lib/view/game-start';
 
 const clip = { id: 'g', name: 'intro.mp3', source: 'url' as const, src: 'https://ex/intro.mp3' };
 
@@ -45,7 +45,7 @@ describe('nextSplashIndex', () => {
     expect(nextSplashIndex(start, 2, 'timeout')).toBe('menu');
   });
 
-  it('jumps to play when the last remaining splash is skippable and there is no menu', () => {
+  it('opens Join Game after skippable splashes even without authored menu items', () => {
     const start: GameStart = {
       splashes: [
         { id: 's1', caption: 'One', skippable: true },
@@ -53,7 +53,26 @@ describe('nextSplashIndex', () => {
       ],
       menu: { items: [] },
     };
-    expect(nextSplashIndex(start, 0, 'skip')).toBe('play');
+    expect(nextSplashIndex(start, 0, 'skip')).toBe('menu');
+  });
+
+  it('opens Join Game when only a background is set', () => {
+    expect(
+      initialStartPhase({
+        splashes: [],
+        menu: { items: [] },
+        background: { id: 'bg', name: 'hall.jpg', source: 'url', src: 'https://ex/hall.jpg' },
+      }),
+    ).toBe('menu');
+  });
+
+  it('uses the level background when set, otherwise the Start background', () => {
+    const startBg = { id: 'g', name: 'start.jpg', source: 'url' as const, src: 'https://ex/start.jpg' };
+    const levelBg = { id: 'l', name: 'level.jpg', source: 'url' as const, src: 'https://ex/level.jpg' };
+    expect(viewportBackground({ splashes: [], menu: { items: [] }, background: startBg })).toEqual(startBg);
+    expect(
+      viewportBackground({ splashes: [], menu: { items: [] }, background: startBg }, { id: 'f', index: 0, label: 'L', cells: [], background: levelBg }),
+    ).toEqual(levelBg);
   });
 
   it('jumps to menu when remaining splashes are skippable', () => {

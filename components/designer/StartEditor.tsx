@@ -6,19 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  addMenuItem,
   addSplash,
-  moveMenuItem,
   moveSplash,
-  nextMenuItemId,
   nextSplashId,
-  removeMenuItem,
   removeSplash,
   setGameStartAudio,
-  updateMenuItem,
+  setStartBackground,
+  setStayThroughout,
   updateSplash,
 } from '@/lib/designer/game-start';
-import type { GameStart, ImageRef, StartMenuAction } from '@/lib/engine/types';
+import type { GameStart, ImageRef } from '@/lib/engine/types';
 import {
   AUDIO_SIZE_WARN_BYTES,
   isAllowedImageMime,
@@ -48,13 +45,6 @@ function urlName(src: string): string {
 
 function splashIsEmpty(caption?: string, image?: ImageRef): boolean {
   return !image && !(caption ?? '').trim();
-}
-
-function nextMenuDefaults(start: GameStart): { label: string; action: StartMenuAction } {
-  const usedContinue = start.menu.items.some((item) => item.action === 'continue');
-  if (start.menu.items.length === 0) return { label: 'Play', action: 'play' };
-  if (!usedContinue) return { label: 'Continue', action: 'continue' };
-  return { label: 'Play', action: 'play' };
 }
 
 function ImagePicker({
@@ -197,7 +187,7 @@ export function StartEditor({
       <p className="text-sm font-medium text-slate-100">Splash screens</p>
       {value.splashes.length === 0 ? (
         <p className="text-sm text-slate-400">
-          No splash screens. Test and Play skip straight to the board unless you add a menu.
+          No splash screens. After any background, Test and Play open Join Game.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -292,76 +282,27 @@ export function StartEditor({
       >
         Add splash
       </Button>
-      <p className="text-sm font-medium text-slate-100">Start menu</p>
-      {value.menu.items.length === 0 ? (
-        <p className="text-sm text-slate-400">
-          No menu items. After splashes (if any), play starts by itself.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {value.menu.items.map((item, index) => (
-            <li key={item.id} className="flex flex-col gap-2 rounded-md border border-slate-800 p-2">
-              <Label htmlFor={`menu-label-${item.id}`}>Label</Label>
-              <Input
-                id={`menu-label-${item.id}`}
-                aria-label="Menu label"
-                value={item.label}
-                onChange={(e) => onChange(updateMenuItem(value, item.id, { label: e.target.value }))}
-              />
-              <Label htmlFor={`menu-action-${item.id}`}>Action</Label>
-              <select
-                id={`menu-action-${item.id}`}
-                aria-label="Action"
-                className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
-                value={item.action}
-                onChange={(e) =>
-                  onChange(updateMenuItem(value, item.id, { action: e.target.value as StartMenuAction }))
-                }
-              >
-                <option value="play">Play</option>
-                <option value="continue">Continue</option>
-              </select>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={index === 0}
-                  onClick={() => onChange(moveMenuItem(value, item.id, -1))}
-                >
-                  Up
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={index === value.menu.items.length - 1}
-                  onClick={() => onChange(moveMenuItem(value, item.id, 1))}
-                >
-                  Down
-                </Button>
-                <Button type="button" variant="outline" onClick={() => onChange(removeMenuItem(value, item.id))}>
-                  Delete
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          const defaults = nextMenuDefaults(value);
-          onChange(
-            addMenuItem(value, {
-              id: nextMenuItemId(value),
-              label: defaults.label,
-              action: defaults.action,
-            }),
-          );
-        }}
-      >
-        Add item
-      </Button>
+      <p className="text-sm font-medium text-slate-100">Background image</p>
+      <ImagePicker
+        value={value.background}
+        gameId={gameId}
+        media={media}
+        idPrefix="start-background"
+        onChange={(background) => onChange(setStartBackground(value, background))}
+      />
+      <label className="flex items-center gap-2 text-sm text-slate-200">
+        <input
+          type="checkbox"
+          aria-label="Stay throughout the game"
+          checked={value.stayThroughout !== false}
+          onChange={(e) => onChange(setStayThroughout(value, e.target.checked))}
+        />
+        Stay throughout the game
+      </label>
+      <p className="text-sm text-slate-400">
+        After splash, players see Join Game: New game, Saved game, and Tutorial, plus Copy link and Play on this
+        device. Saved game stays disabled until sessions persist. Copy link is local — seats do not sync yet.
+      </p>
     </div>
   );
 }

@@ -16,13 +16,10 @@ describe('StartEditor', () => {
     );
     expect(screen.getByText('Game start')).toBeDefined();
     expect(
-      screen.getByText(
-        'No splash screens. Test and Play skip straight to the board unless you add a menu.',
-      ),
+      screen.getByText('No splash screens. After any background, Test and Play open Join Game.'),
     ).toBeDefined();
-    expect(
-      screen.getByText('No menu items. After splashes (if any), play starts by itself.'),
-    ).toBeDefined();
+    expect(screen.getByText('Background image')).toBeDefined();
+    expect(screen.getByText('Stay throughout the game')).toBeDefined();
   });
 
   it('adds a splash with a caption field', () => {
@@ -41,9 +38,9 @@ describe('StartEditor', () => {
     expect(next.splashes).toHaveLength(1);
   });
 
-  it('adds a Play menu item, then Continue', () => {
+  it('toggles stay throughout', () => {
     const onChange = vi.fn();
-    const { rerender } = render(
+    render(
       <StartEditor
         value={emptyGameStart()}
         gameId="g1"
@@ -51,19 +48,7 @@ describe('StartEditor', () => {
         onChange={onChange}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
-    const afterPlay = onChange.mock.calls.at(-1)![0];
-    expect(afterPlay.menu.items[0]).toMatchObject({ label: 'Play', action: 'play' });
-    rerender(
-      <StartEditor
-        value={afterPlay}
-        gameId="g1"
-        media={memoryMediaStore()}
-        onChange={onChange}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
-    const afterContinue = onChange.mock.calls.at(-1)![0];
-    expect(afterContinue.menu.items[1]).toMatchObject({ label: 'Continue', action: 'continue' });
+    fireEvent.click(screen.getByLabelText('Stay throughout the game'));
+    expect(onChange.mock.calls.at(-1)![0].stayThroughout).toBe(false);
   });
 });

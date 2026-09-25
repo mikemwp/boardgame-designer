@@ -516,6 +516,7 @@ export function StudioShell(options: UseLibraryOptions = {}) {
             gameId={active.id}
             gameTitle={active.name}
             packBacks={workingPackBacks}
+            playUrl={active.slug ? `/play/${active.slug}` : '/'}
             media={media}
             onStateChange={setSnapshot}
           />

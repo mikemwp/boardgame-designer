@@ -106,6 +106,8 @@ export interface GameStart {
   audio?: AudioRef;
   splashes: SplashScreen[];
   menu: { items: StartMenuItem[] };
+  background?: ImageRef;
+  stayThroughout?: boolean;
 }
 
 export type SpinnerSplit = 'equal' | 'percent';
@@ -220,6 +222,7 @@ export interface Floor {
   hud?: HudRect;
   shape?: BoardShape;
   look?: FloorLook;
+  background?: ImageRef;
 }
 
 export interface TokenPos {

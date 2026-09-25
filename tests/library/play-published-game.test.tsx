@@ -91,7 +91,7 @@ describe('PlayPublishedGame', () => {
     render(<PlayPublishedGame slug="climb-sample" storage={storage} />);
     await flush();
     expect(screen.getByTestId('game-start-overlay')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Play' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'New game' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Roll dice' })).toHaveProperty('disabled', true);
   });
 

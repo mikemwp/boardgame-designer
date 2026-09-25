@@ -59,6 +59,7 @@ import {
   setCellPack,
   setCellSpinner,
   setEndCell,
+  setFloorBackground,
   setFloorHold,
   setHudWidget,
   setRoomMode,
@@ -673,6 +674,11 @@ export function LayoutDesigner({
               floor={floor}
               packIds={catalog}
               onChange={(patch) => onBoardChange(setFloorHold(board, floor.id, patch))}
+              gameId={gameId ?? 'draft'}
+              media={mediaStore}
+              onBackgroundChange={(background) =>
+                onBoardChange(setFloorBackground(board, floor.id, background))
+              }
             />
           ) : sideTab === 'start' ? (
             <StartEditor

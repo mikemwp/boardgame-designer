@@ -1,5 +1,5 @@
 import { isGameStartEmpty } from '@/lib/engine/audio';
-import type { GameStart, SplashScreen } from '@/lib/engine/types';
+import type { Floor, GameStart, ImageRef, SplashScreen } from '@/lib/engine/types';
 
 export type StartPhase = 'skip' | 'splash' | 'menu' | 'play';
 
@@ -18,8 +18,12 @@ export function initialStartPhase(start: GameStart | undefined): StartPhase {
 }
 
 export function afterSplashes(start: GameStart): 'menu' | 'play' {
-  if (start.menu.items.length > 0 || start.audio) return 'menu';
-  return 'play';
+  if (isGameStartEmpty(start)) return 'play';
+  return 'menu';
+}
+
+export function viewportBackground(start?: GameStart, floor?: Floor): ImageRef | undefined {
+  return floor?.background ?? start?.background;
 }
 
 export function nextSplashIndex(

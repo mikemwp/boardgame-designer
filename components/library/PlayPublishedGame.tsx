@@ -46,6 +46,7 @@ export function PlayPublishedGame({
           bootstrap={fromStoredBootstrap(doc.bootstrap)}
           gameStart={doc.bootstrap.gameStart}
           gameId={doc.id}
+          playUrl={`/play/${slug}`}
           media={media}
         />
       ) : null}

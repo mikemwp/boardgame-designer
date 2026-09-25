@@ -37,6 +37,7 @@ import {
   initialStartPhase,
   nextSplashIndex,
   splashDurationMs,
+  viewportBackground,
   type StartPhase,
 } from '@/lib/view/game-start';
 import {
@@ -58,6 +59,7 @@ export function GameHud({
   media,
   gameTitle,
   packBacks,
+  playUrl,
 }: {
   bootstrap: GameBootstrap;
   onStateChange?: (game: GameState) => void;
@@ -66,6 +68,7 @@ export function GameHud({
   media?: MediaStore;
   gameTitle?: string;
   packBacks?: Record<string, ImageRef>;
+  playUrl?: string;
 }) {
   const { game, dispatch, updateConfig, importCards } = useGameStore(bootstrap);
   const [importOpen, setImportOpen] = useState(false);
@@ -81,6 +84,7 @@ export function GameHud({
   const [missingSound, setMissingSound] = useState(false);
   const [muted, setMuted] = useState(() => readMute());
   const [splashImageSrc, setSplashImageSrc] = useState<string | undefined>();
+  const [backgroundSrc, setBackgroundSrc] = useState<string | undefined>();
   const lastCueId = useRef(0);
   const pendingCardCues = useRef<AudioCue[]>([]);
 
@@ -220,6 +224,8 @@ export function GameHud({
 
   const splash = gameStart?.splashes[splashIndex];
   const splashUrl = startPhase === 'splash' && splash?.image?.source === 'url' ? splash.image.src : undefined;
+  const tokenFloor = game.board.floors.find((floor) => floor.id === activePlayer?.token.floorId) ?? game.board.floors[0];
+  const viewportRef = viewportBackground(gameStart, tokenFloor);
 
   useEffect(() => {
     if (startPhase !== 'splash' || splash?.image?.source !== 'file' || !splash.image) {
@@ -235,6 +241,26 @@ export function GameHud({
       cancelled = true;
     };
   }, [gameStart, splash, splashIndex, startPhase, mediaStore, resolvedGameId]);
+
+  useEffect(() => {
+    if (!viewportRef) {
+      setBackgroundSrc(undefined);
+      return;
+    }
+    if (viewportRef.source === 'url') {
+      setBackgroundSrc(viewportRef.src);
+      return;
+    }
+    const assetId = viewportRef.id;
+    let cancelled = false;
+    void mediaStore.get(resolvedGameId, assetId).then((blob) => {
+      if (cancelled) return;
+      setBackgroundSrc(blob ? URL.createObjectURL(blob) : undefined);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewportRef, mediaStore, resolvedGameId]);
 
   const goToAfterSplash = useCallback(
     (mode: 'timeout' | 'skip') => {
@@ -309,6 +335,8 @@ export function GameHud({
       start={gameStart ?? { splashes: [], menu: { items: [] } }}
       splashIndex={splashIndex}
       splashImageSrc={splashUrl ?? splashImageSrc}
+      backgroundSrc={backgroundSrc}
+      playUrl={playUrl}
       tapToStart={tapToStart}
       missingSound={missingSound}
       muted={muted}

@@ -15,7 +15,7 @@ export function emptyGameStart(): GameStart {
 
 export function isGameStartEmpty(start: GameStart | undefined): boolean {
   if (!start) return true;
-  return !start.audio && start.splashes.length === 0 && start.menu.items.length === 0;
+  return !start.audio && start.splashes.length === 0 && start.menu.items.length === 0 && !start.background;
 }
 
 export function cueForCard(card: Card | null | undefined): AudioCue[] {

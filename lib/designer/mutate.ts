@@ -585,6 +585,22 @@ export function setHudWidget(board: Board, floorId: string, cellId: string, widg
   }));
 }
 
+export function setFloorBackground(board: Board, floorId: string, background: ImageRef | undefined): Board {
+  if (!board.floors.some((floor) => floor.id === floorId)) return board;
+  return nextBoard(
+    board,
+    board.floors.map((floor) => {
+      if (floor.id !== floorId) return floor;
+      if (!background) {
+        const next = { ...floor };
+        delete next.background;
+        return next;
+      }
+      return { ...floor, background };
+    }),
+  );
+}
+
 export function setFloorHold(
   board: Board,
   floorId: string,

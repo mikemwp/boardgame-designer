@@ -10,6 +10,8 @@ import {
   removeMenuItem,
   removeSplash,
   setGameStartAudio,
+  setStartBackground,
+  setStayThroughout,
   updateMenuItem,
   updateSplash,
 } from '@/lib/designer/game-start';
@@ -48,6 +50,14 @@ describe('game-start mutations', () => {
     expect(start.menu.items[0]?.label).toBe('Resume');
     start = removeMenuItem(start, start.menu.items[0]!.id);
     expect(start.menu.items).toHaveLength(1);
+  });
+
+  it('sets and clears a viewport background and stay-throughout', () => {
+    const image = { id: 'bg1', name: 'hall.jpg', source: 'url' as const, src: 'https://ex/hall.jpg' };
+    const withBg = setStartBackground(emptyGameStart(), image);
+    expect(withBg.background).toEqual(image);
+    expect(setStartBackground(withBg, undefined).background).toBeUndefined();
+    expect(setStayThroughout(emptyGameStart(), false).stayThroughout).toBe(false);
   });
 
   it('ignores empty or duplicate ids', () => {

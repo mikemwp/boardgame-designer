@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createBoard } from '@/lib/engine/board';
 import { createLoopedFloor } from '@/lib/engine/layout';
-import { applyFloorShape, attachStair, setStartCell } from '@/lib/designer/mutate';
+import { applyFloorShape, attachStair, setFloorBackground, setStartCell } from '@/lib/designer/mutate';
 import { isVanillaFloor, resetFloor } from '@/lib/designer/level-size';
 
 describe('isVanillaFloor', () => {
@@ -13,6 +13,13 @@ describe('isVanillaFloor', () => {
     expect(isVanillaFloor(started.floors[0]!)).toBe(false);
     const stair = attachStair(board, 'ground', floor.cells.find((c) => c.kind === 'corridor')!.id);
     expect(isVanillaFloor(stair.floors[0]!)).toBe(false);
+    const withBg = setFloorBackground(board, 'ground', {
+      id: 'bg',
+      name: 'level.jpg',
+      source: 'url',
+      src: 'https://ex/level.jpg',
+    });
+    expect(isVanillaFloor(withBg.floors[0]!)).toBe(false);
   });
 });
 

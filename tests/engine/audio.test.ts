@@ -14,6 +14,13 @@ describe('game start emptiness', () => {
     expect(isGameStartEmpty(undefined)).toBe(true);
     expect(isGameStartEmpty(emptyGameStart())).toBe(true);
     expect(isGameStartEmpty({ audio: clip('g'), splashes: [], menu: { items: [] } })).toBe(false);
+    expect(
+      isGameStartEmpty({
+        splashes: [],
+        menu: { items: [] },
+        background: { id: 'bg', name: 'hall.jpg', source: 'url', src: 'https://ex/hall.jpg' },
+      }),
+    ).toBe(false);
   });
 });
 

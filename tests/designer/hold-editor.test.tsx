@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { HoldEditor } from '@/components/designer/HoldEditor';
 import { createLoopedFloor } from '@/lib/engine/layout';
+import { memoryMediaStore } from '@/lib/library/media-store';
 
 describe('HoldEditor', () => {
   it('enables level hold and sets a pack quota', () => {
@@ -25,5 +26,20 @@ describe('HoldEditor', () => {
     const floor = { ...createLoopedFloor('ground', 'Level 1', 0), holdEnabled: true };
     render(<HoldEditor floor={floor} packIds={[]} onChange={() => {}} />);
     expect(screen.getByText('Create a pack in Packs to set reveal quotas.')).toBeDefined();
+  });
+
+  it('shows a level background inherit hint', () => {
+    const floor = createLoopedFloor('ground', 'Level 1', 0);
+    render(
+      <HoldEditor
+        floor={floor}
+        packIds={[]}
+        onChange={() => {}}
+        gameId="g1"
+        media={memoryMediaStore()}
+        onBackgroundChange={() => {}}
+      />,
+    );
+    expect(screen.getByText('Uses the Start background.')).toBeDefined();
   });
 });

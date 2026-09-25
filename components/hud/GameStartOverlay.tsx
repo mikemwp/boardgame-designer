@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import type { GameStart, SplashScreen } from '@/lib/engine/types';
 import type { StartPhase } from '@/lib/view/game-start';
@@ -15,6 +15,8 @@ export function GameStartOverlay({
   start,
   splashIndex = 0,
   splashImageSrc,
+  backgroundSrc,
+  playUrl,
   tapToStart = false,
   missingSound = false,
   muted = false,
@@ -30,6 +32,8 @@ export function GameStartOverlay({
   start: GameStart;
   splashIndex?: number;
   splashImageSrc?: string;
+  backgroundSrc?: string;
+  playUrl?: string;
   tapToStart?: boolean;
   missingSound?: boolean;
   muted?: boolean;
@@ -44,17 +48,35 @@ export function GameStartOverlay({
   const splash: SplashScreen | undefined = start.splashes[splashIndex];
   const overlayHidden = phase === 'skip' || phase === 'play';
   const showSplash = phase === 'splash' && splash && isSplashRenderable(splash);
-  const menuItems =
-    start.menu.items.length > 0
-      ? start.menu.items
-      : [{ id: 'implicit-play', label: 'Play', action: 'play' as const }];
+  const showBackground = Boolean(backgroundSrc) && (phase !== 'play' || start.stayThroughout !== false);
+  const [copied, setCopied] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+
+  const copyLink = async () => {
+    const path = playUrl ?? '/';
+    const href = typeof window !== 'undefined' ? `${window.location.origin}${path.startsWith('/') ? path : `/${path}`}` : path;
+    try {
+      await navigator.clipboard.writeText(href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
-      {children}
+      {showBackground ? (
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center"
+          data-testid="viewport-background"
+          style={{ backgroundImage: `url(${backgroundSrc})` }}
+        />
+      ) : null}
+      <div className="relative z-10 flex h-full min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       {overlayHidden ? null : (
       <div
-        className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-slate-950/90 p-6 text-center"
+        className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-slate-950/40 p-6 text-center backdrop-blur-[2px]"
         data-testid="game-start-overlay"
       >
         <div className="absolute right-3 top-3">
@@ -90,24 +112,46 @@ export function GameStartOverlay({
           </>
         ) : null}
         {phase === 'menu' ? (
-          <div className="flex flex-col gap-2">
-            {menuItems.map((item) => {
-              const disabled = item.action === 'continue';
-              return (
-                <Button
-                  key={item.id}
-                  type="button"
-                  disabled={disabled}
-                  title={disabled ? 'No saved game' : undefined}
-                  onClick={() => {
-                    if (item.action === 'play') onPlay?.();
-                    else onContinue?.();
-                  }}
-                >
-                  {item.label}
-                </Button>
-              );
-            })}
+          <div
+            className="flex w-full max-w-sm flex-col gap-3 rounded-xl border border-white/20 bg-slate-950/60 p-6 text-left backdrop-blur-md"
+            data-testid="join-game-card"
+          >
+            <h2 className="text-center text-2xl font-semibold text-slate-50">Join Game</h2>
+            <Button type="button" onClick={onPlay}>
+              New game
+            </Button>
+            <Button type="button" disabled title="No saved game" onClick={onContinue}>
+              Saved game
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setTutorialOpen(true)}>
+              Tutorial
+            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => void copyLink()}>
+                Copy link
+              </Button>
+              <Button type="button" variant="outline" onClick={onPlay}>
+                Play on this device
+              </Button>
+            </div>
+            {copied ? <p className="text-sm text-emerald-300">Copied!</p> : null}
+          </div>
+        ) : null}
+        {tutorialOpen ? (
+          <div
+            className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 p-6"
+            data-testid="tutorial-overlay"
+          >
+            <div className="max-w-md rounded-xl border border-white/20 bg-slate-900/90 p-6 text-left">
+              <h3 className="mb-2 text-lg font-semibold text-slate-50">How to play</h3>
+              <p className="mb-4 text-sm text-slate-200">
+                Roll to move around the loop. Land on a packed tile to draw a card. Stairs change level. Rooms offer
+                Enter or Pass. Mute sits at the top right.
+              </p>
+              <Button type="button" onClick={() => setTutorialOpen(false)}>
+                Close
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

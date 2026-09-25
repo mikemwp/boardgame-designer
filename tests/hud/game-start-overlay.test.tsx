@@ -35,22 +35,57 @@ describe('GameStartOverlay', () => {
     expect(screen.getByRole('button', { name: 'Mute' })).toBeDefined();
   });
 
-  it('disables Continue with No saved game', () => {
+  it('shows Join Game with Saved game disabled and a frosted card', () => {
     render(
       <GameStartOverlay
         phase="menu"
         start={{
           splashes: [],
-          menu: { items: [{ id: 'm1', label: 'Continue', action: 'continue' }] },
+          menu: { items: [] },
         }}
         onContinue={() => {}}
       >
         <div>Board</div>
       </GameStartOverlay>,
     );
-    const cont = screen.getByRole('button', { name: 'Continue' });
-    expect(cont).toHaveProperty('disabled', true);
-    expect(cont.getAttribute('title')).toBe('No saved game');
+    expect(screen.getByTestId('join-game-card')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'New game' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Tutorial' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Copy link' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Play on this device' })).toBeDefined();
+    const saved = screen.getByRole('button', { name: 'Saved game' });
+    expect(saved).toHaveProperty('disabled', true);
+    expect(saved.getAttribute('title')).toBe('No saved game');
+  });
+
+  it('shows the viewport photo under splash', () => {
+    render(
+      <GameStartOverlay
+        phase="splash"
+        splashIndex={0}
+        backgroundSrc="https://ex/hall.jpg"
+        start={{
+          splashes: [{ id: 's1', caption: 'Welcome', skippable: true }],
+          menu: { items: [] },
+        }}
+      >
+        <div>Board</div>
+      </GameStartOverlay>,
+    );
+    expect(screen.getByTestId('viewport-background')).toBeDefined();
+    expect(screen.getByText('Welcome')).toBeDefined();
+  });
+
+  it('opens a simple tutorial overlay from Join Game', () => {
+    render(
+      <GameStartOverlay phase="menu" start={{ splashes: [], menu: { items: [] } }}>
+        <div>Board</div>
+      </GameStartOverlay>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Tutorial' }));
+    expect(screen.getByTestId('tutorial-overlay')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByTestId('tutorial-overlay')).toBeNull();
   });
 
   it('shows Tap to start when autoplay is blocked', () => {

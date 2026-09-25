@@ -200,8 +200,8 @@ describe('GameHud', () => {
     const roll = screen.getByRole('button', { name: 'Roll dice' });
     expect(roll).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByRole('button', { name: 'Continue' })).toHaveProperty('disabled', true);
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    expect(screen.getByRole('button', { name: 'Saved game' })).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'New game' }));
     expect(screen.queryByTestId('game-start-overlay')).toBeNull();
     expect(roll).toHaveProperty('disabled', false);
   });
@@ -249,7 +249,7 @@ describe('GameHud', () => {
     const roll = screen.getByRole('button', { name: 'Roll dice' });
     expect(roll).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New game' }));
     expect(screen.queryByTestId('game-start-overlay')).toBeNull();
     expect(screen.getByTestId('item-setup')).toBeDefined();
     expect(roll).toHaveProperty('disabled', true);

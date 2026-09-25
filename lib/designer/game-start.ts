@@ -1,4 +1,4 @@
-import type { AudioRef, GameStart, SplashScreen, StartMenuItem } from '@/lib/engine/types';
+import type { AudioRef, GameStart, ImageRef, SplashScreen, StartMenuItem } from '@/lib/engine/types';
 
 function nextNumberedId(prefix: string, used: Set<string>): string {
   let n = 1;
@@ -12,6 +12,19 @@ export function nextSplashId(start: GameStart): string {
 
 export function nextMenuItemId(start: GameStart): string {
   return nextNumberedId('menu', new Set(start.menu.items.map((i) => i.id)));
+}
+
+export function setStartBackground(start: GameStart, background: ImageRef | undefined): GameStart {
+  if (!background) {
+    const next = { ...start };
+    delete next.background;
+    return next;
+  }
+  return { ...start, background };
+}
+
+export function setStayThroughout(start: GameStart, stayThroughout: boolean): GameStart {
+  return { ...start, stayThroughout };
 }
 
 export function setGameStartAudio(start: GameStart, audio: AudioRef | undefined): GameStart {

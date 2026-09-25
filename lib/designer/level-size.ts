@@ -35,6 +35,7 @@ export { isVanillaRoom, resetRoom } from '@/lib/designer/rooms';
 
 export function isVanillaFloor(floor: Floor): boolean {
   if (floor.holdEnabled) return false;
+  if (floor.background) return false;
   if (floor.look?.image || floor.look?.surround?.image || floor.look?.centreMesh?.kind === 'castle') {
     return false;
   }

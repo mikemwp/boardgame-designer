@@ -286,7 +286,7 @@ describe('StudioShell', () => {
       end: true,
     });
     expect(draft?.rooms?.[0]).toMatchObject({ name: 'Room 1', mode: 'single' });
-    expect(screen.queryByRole('button', { name: 'Door' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Door' })).toHaveProperty('disabled', true);
   });
 
   it('Save persists an empty pack with no cards', () => {
