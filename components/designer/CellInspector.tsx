@@ -162,7 +162,6 @@ export function CellInspector({
                 <p className="text-sm text-slate-400">Click a tile on this level to set the landing.</p>
               ) : null}
               <div className="flex flex-col gap-2" data-testid="stair-roll-again">
-                <p className="text-sm font-medium text-slate-100">Roll again</p>
                 <div className="flex items-center justify-between gap-4">
                   <Label htmlFor="stair-roll-again">Roll again</Label>
                   <Switch
