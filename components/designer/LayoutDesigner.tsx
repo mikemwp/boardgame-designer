@@ -41,9 +41,14 @@ import {
   nextCellId,
   nextFloorId,
   nextLevelLabel,
+  placeBoard,
   placeCorridor,
   placeCorridorOnSlot,
   placeHud,
+  attachDoor,
+  canvasClearCell,
+  fillFreeWithBoard,
+  setDoorExit,
   clearCell,
   renameFloor,
   renameRoom,
@@ -252,6 +257,26 @@ export function LayoutDesigner({
       onSelectCell(id);
       return;
     }
+    if (tool === 'board') {
+      if (existing) {
+        onSelectCell(existing.id);
+        return;
+      }
+      const id = nextCellId(canvasFloor);
+      commitCanvas(placeBoard(canvasBoard, canvasFloor.id, col, row, id));
+      onSelectCell(id);
+      return;
+    }
+    if (tool === 'door') {
+      if (!viewingRoom || !existing) return;
+      if (existing.kind === 'door') {
+        onSelectCell(existing.id);
+        return;
+      }
+      commitCanvas(attachDoor(canvasBoard, canvasFloor.id, existing.id));
+      onSelectCell(existing.id);
+      return;
+    }
     if (tool === 'room') {
       if (viewingRoom) return;
       if (!existing) return;
@@ -387,7 +412,19 @@ export function LayoutDesigner({
               resetDisabled={vanilla}
               onRename={(label) => onBoardChange(renameFloor(board, floor.id, label))}
             />
-            <DesignerPalette tool={tool} onToolChange={onToolChange} className="ml-auto shrink-0 justify-end" />
+            <DesignerPalette
+              tool={tool}
+              onToolChange={onToolChange}
+              viewingRoom={viewingRoom}
+              onFill={() => commitCanvas(fillFreeWithBoard(canvasBoard, canvasFloor.id))}
+              onClear={() => {
+                if (!selectedCellId) return;
+                commitCanvas(canvasClearCell(canvasBoard, canvasFloor.id, selectedCellId));
+                onSelectCell(null);
+              }}
+              clearDisabled={!selectedCellId}
+              className="ml-auto shrink-0 justify-end"
+            />
           </div>
           <div
             className="min-h-10 border-b border-slate-800 py-2"
@@ -711,6 +748,10 @@ export function LayoutDesigner({
               onSetFace={(face) => {
                 if (!selectedCellId) return;
                 commitCanvas(setCellFace(canvasBoard, canvasFloor.id, selectedCellId, face));
+              }}
+              onSetDoorExit={(exit) => {
+                if (!selectedCellId) return;
+                commitCanvas(setDoorExit(canvasBoard, canvasFloor.id, selectedCellId, exit));
               }}
             />
           ) : sideTab === 'board' ? (

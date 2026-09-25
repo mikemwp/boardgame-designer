@@ -133,6 +133,7 @@ export function GameHud({
     overlayLocksRoll ||
     showItemSetup ||
     Boolean(game.awaitingRoom) ||
+    game.awaitingDoorExit ||
     isRollLocked({
       tokenSliding,
       awaitingAction: game.cards.awaitingAction,
@@ -368,10 +369,12 @@ export function GameHud({
         />
         <RoomPrompt
           awaitingRoom={Boolean(game.awaitingRoom)}
-          canLeave={isOnRoomEntrance(game)}
+          awaitingDoorExit={game.awaitingDoorExit}
+          canLeave={isOnRoomEntrance(game) && !game.awaitingDoorExit}
           onEnter={() => dispatch({ type: 'ENTER_ROOM' })}
           onPass={() => dispatch({ type: 'PASS_ROOM' })}
           onLeave={() => dispatch({ type: 'LEAVE_ROOM' })}
+          onStay={() => dispatch({ type: 'STAY_ROOM' })}
         />
         <div className="flex flex-wrap gap-2">
           <Button

@@ -13,6 +13,16 @@ describe('DesignerPalette', () => {
   it('keeps tool names visible as button labels', () => {
     render(<DesignerPalette tool="select" onToolChange={() => {}} />);
     const labels = screen.getAllByRole('button').map((button) => button.textContent);
-    expect(labels).toEqual(['Select', 'Tile', 'HUD', 'Stair', 'Room', 'Erase']);
+    expect(labels).toEqual(['Select', 'Tile', 'HUD', 'Board', 'Stair', 'Room', 'Door', 'Fill', 'Erase', 'Clear']);
+  });
+
+  it('disables Stair and Room in a room and Door on a level', () => {
+    const { rerender } = render(<DesignerPalette tool="select" onToolChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Door' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Stair' })).toHaveProperty('disabled', false);
+    rerender(<DesignerPalette tool="select" viewingRoom onToolChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Door' })).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: 'Stair' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Room' })).toHaveProperty('disabled', true);
   });
 });

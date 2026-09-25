@@ -10,7 +10,7 @@ import { tileActionKind } from '@/lib/designer/tile-chrome';
 import { roomById } from '@/lib/designer/rooms';
 import type { Board } from '@/lib/engine/board';
 import { stairLabel } from '@/lib/engine/layout';
-import type { AudioRef, Cell, HudWidget, ImageRef, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
+import type { AudioRef, Cell, DoorExit, HudWidget, ImageRef, RoomMode, SpinnerDef, VideoRef } from '@/lib/engine/types';
 import type { MediaStore } from '@/lib/library/media-store';
 
 const HUD_TYPE_OPTIONS: Record<HudWidget, string> = {
@@ -53,6 +53,7 @@ export function CellInspector({
   onSetVideo,
   onSetFace,
   onSetRoomMode,
+  onSetDoorExit,
 }: {
   board: Board;
   floorId: string;
@@ -75,6 +76,7 @@ export function CellInspector({
   onSetVideo?: (video: VideoRef | undefined) => void;
   onSetFace?: (face: ImageRef | undefined) => void;
   onSetRoomMode?: (mode: RoomMode) => void;
+  onSetDoorExit?: (exit: DoorExit) => void;
 }) {
   const [clearOpen, setClearOpen] = useState(false);
   const floor = board.floors.find((f) => f.id === floorId);
@@ -93,7 +95,7 @@ export function CellInspector({
             {cellHeading(cell)}
           </p>
         ) : null}
-        {cell && cell.kind !== 'hud' ? (
+        {cell && cell.kind !== 'hud' && cell.kind !== 'board' ? (
           <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
             <Button type="button" variant={cell.start ? 'secondary' : 'outline'} onClick={onSetStart}>
               Start tile
@@ -111,7 +113,9 @@ export function CellInspector({
         <p className="text-sm text-slate-400">Select a tile to edit pack, stairs, start, or end.</p>
       ) : (
         <>
-          {cell.kind === 'hud' ? (
+          {cell.kind === 'board' ? (
+            <p className="text-sm text-slate-400">Board tiles are scenery. They are not playable and are not HUD.</p>
+          ) : cell.kind === 'hud' ? (
             <>
               <Label htmlFor="hud-type">HUD type</Label>
               <select
@@ -175,6 +179,21 @@ export function CellInspector({
             </>
           ) : (
             <>
+              {cell.kind === 'door' && onSetDoorExit ? (
+                <>
+                  <Label htmlFor="door-type">Door type</Label>
+                  <select
+                    id="door-type"
+                    aria-label="Door type"
+                    className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-sm"
+                    value={cell.doorExit ?? 'leave-or-stay'}
+                    onChange={(e) => onSetDoorExit(e.target.value as DoorExit)}
+                  >
+                    <option value="leave-or-stay">Leave / Stay</option>
+                    <option value="auto-leave">Auto-leave</option>
+                  </select>
+                </>
+              ) : null}
               {cell.kind === 'room' && onSetRoomMode ? (
                 <div className="flex flex-wrap gap-2">
                   <Button
