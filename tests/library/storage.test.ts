@@ -33,7 +33,7 @@ describe('memoryStorage + loadLibrary', () => {
   it('does not reseed an explicitly empty library', () => {
     const storage = memoryStorage(JSON.stringify({ version: 1, activeId: null, drafts: [] }));
     const loaded = loadLibrary(storage, { now: NOW, id: 'fresh' });
-    expect(loaded).toEqual({ version: 1, activeId: null, drafts: [] });
+    expect(loaded).toEqual({ version: 1, activeId: null, drafts: [], floatingPacks: [], floatingCards: [] });
   });
 });
 
